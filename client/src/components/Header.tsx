@@ -21,7 +21,9 @@ export default function Header() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="english">English</SelectItem>
+              <SelectItem value="english,">English</SelectItem>
+              <SelectItem value="bangla,">Bangla</SelectItem>
+              <SelectItem value="chinese,">Chinese</SelectItem>
             </SelectContent>
           </Select>
         </div>
