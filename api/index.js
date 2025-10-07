@@ -696,7 +696,13 @@ export default async function handler(req, res) {
         const campaigns = await campaignsCollection.find().limit(30).toArray();
         
         const usersCollection = database.collection('users');
-        const customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        let customer;
+        try {
+          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        } catch (objectIdError) {
+          // Fallback: try finding by string ID
+          customer = await usersCollection.findOne({ _id: customerId });
+        }
         
         if (!customer) {
           return res.json({ success: true, data: [], total: 0 });
@@ -1096,6 +1102,320 @@ export default async function handler(req, res) {
         .sort({ createdAt: -1 })
         .toArray();
       res.json(products);
+    }
+    
+    // Missing endpoints from original server
+    
+    // Customers (legacy)
+    else if (req.method === 'GET' && path === '/api/customers') {
+      const usersCollection = database.collection('users');
+      const customers = await usersCollection
+        .find({})
+        .sort({ createdAt: -1 })
+        .toArray();
+      res.json(customers);
+    }
+    
+    else if (req.method === 'GET' && path.startsWith('/api/customers/')) {
+      const customerId = path.split('/').pop();
+      const usersCollection = database.collection('users');
+      let customer;
+      try {
+        customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+      } catch (objectIdError) {
+        customer = await usersCollection.findOne({ _id: customerId });
+      }
+      
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      res.json(customer);
+    }
+    
+    else if (req.method === 'POST' && path === '/api/customers') {
+      const newCustomer = req.body;
+      const usersCollection = database.collection('users');
+      const result = await usersCollection.insertOne({
+        ...newCustomer,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      const customer = await usersCollection.findOne({ _id: result.insertedId });
+      res.json(customer);
+    }
+    
+    else if (req.method === 'PATCH' && path.startsWith('/api/customers/')) {
+      const customerId = path.split('/').pop();
+      const updateData = req.body;
+      const usersCollection = database.collection('users');
+      
+      let result;
+      try {
+        result = await usersCollection.findOneAndUpdate(
+          { _id: new ObjectId(customerId) },
+          { $set: { ...updateData, updatedAt: new Date() } },
+          { returnDocument: 'after' }
+        );
+      } catch (objectIdError) {
+        result = await usersCollection.findOneAndUpdate(
+          { _id: customerId },
+          { $set: { ...updateData, updatedAt: new Date() } },
+          { returnDocument: 'after' }
+        );
+      }
+      
+      if (!result) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      res.json(result);
+    }
+    
+    // Withdrawals (legacy)
+    else if (req.method === 'GET' && path === '/api/withdrawals') {
+      const transactionsCollection = database.collection('transactions');
+      const withdrawals = await transactionsCollection
+        .find({ type: 'withdrawal' })
+        .sort({ createdAt: -1 })
+        .toArray();
+      res.json(withdrawals);
+    }
+    
+    else if (req.method === 'GET' && path.startsWith('/api/withdrawals/')) {
+      const withdrawalId = path.split('/').pop();
+      const transactionsCollection = database.collection('transactions');
+      let withdrawal;
+      try {
+        withdrawal = await transactionsCollection.findOne({ _id: new ObjectId(withdrawalId) });
+      } catch (objectIdError) {
+        withdrawal = await transactionsCollection.findOne({ _id: withdrawalId });
+      }
+      
+      if (!withdrawal) {
+        return res.status(404).json({ message: "Withdrawal not found" });
+      }
+      res.json(withdrawal);
+    }
+    
+    else if (req.method === 'POST' && path === '/api/withdrawals') {
+      const newWithdrawal = req.body;
+      const transactionsCollection = database.collection('transactions');
+      const result = await transactionsCollection.insertOne({
+        ...newWithdrawal,
+        type: 'withdrawal',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      const withdrawal = await transactionsCollection.findOne({ _id: result.insertedId });
+      res.json(withdrawal);
+    }
+    
+    else if (req.method === 'PATCH' && path.startsWith('/api/withdrawals/')) {
+      const withdrawalId = path.split('/').pop();
+      const updateData = req.body;
+      const transactionsCollection = database.collection('transactions');
+      
+      let result;
+      try {
+        result = await transactionsCollection.findOneAndUpdate(
+          { _id: new ObjectId(withdrawalId) },
+          { $set: { ...updateData, updatedAt: new Date() } },
+          { returnDocument: 'after' }
+        );
+      } catch (objectIdError) {
+        result = await transactionsCollection.findOneAndUpdate(
+          { _id: withdrawalId },
+          { $set: { ...updateData, updatedAt: new Date() } },
+          { returnDocument: 'after' }
+        );
+      }
+      
+      if (!result) {
+        return res.status(404).json({ message: "Withdrawal not found" });
+      }
+      res.json(result);
+    }
+    
+    // Admins (legacy)
+    else if (req.method === 'GET' && path === '/api/admins') {
+      const adminsCollection = database.collection('admins');
+      const admins = await adminsCollection
+        .find({})
+        .sort({ createdAt: -1 })
+        .toArray();
+      res.json(admins);
+    }
+    
+    else if (req.method === 'GET' && path.startsWith('/api/admins/')) {
+      const adminId = path.split('/').pop();
+      const adminsCollection = database.collection('admins');
+      let admin;
+      try {
+        admin = await adminsCollection.findOne({ _id: new ObjectId(adminId) });
+      } catch (objectIdError) {
+        admin = await adminsCollection.findOne({ _id: adminId });
+      }
+      
+      if (!admin) {
+        return res.status(404).json({ message: "Admin not found" });
+      }
+      res.json(admin);
+    }
+    
+    // Daily Check-ins (legacy)
+    else if (req.method === 'GET' && path === '/api/daily-check-ins') {
+      const dailyCheckInsCollection = database.collection('dailyCheckIns');
+      const checkIns = await dailyCheckInsCollection
+        .find({})
+        .sort({ dayNumber: 1 })
+        .toArray();
+      res.json(checkIns);
+    }
+    
+    else if (req.method === 'PATCH' && path.startsWith('/api/daily-check-ins/')) {
+      const checkInId = path.split('/').pop();
+      const updateData = req.body;
+      const dailyCheckInsCollection = database.collection('dailyCheckIns');
+      
+      let result;
+      try {
+        result = await dailyCheckInsCollection.findOneAndUpdate(
+          { _id: new ObjectId(checkInId) },
+          { $set: { ...updateData, updatedAt: new Date() } },
+          { returnDocument: 'after' }
+        );
+      } catch (objectIdError) {
+        result = await dailyCheckInsCollection.findOneAndUpdate(
+          { _id: checkInId },
+          { $set: { ...updateData, updatedAt: new Date() } },
+          { returnDocument: 'after' }
+        );
+      }
+      
+      if (!result) {
+        return res.status(404).json({ message: "Daily check-in not found" });
+      }
+      res.json(result);
+    }
+    
+    // VIP Levels (legacy)
+    else if (req.method === 'GET' && path === '/api/vip-levels') {
+      const vipLevelsCollection = database.collection('vipLevels');
+      const vipLevels = await vipLevelsCollection
+        .find({})
+        .sort({ minAmount: 1 })
+        .toArray();
+      res.json(vipLevels);
+    }
+    
+    else if (req.method === 'GET' && path.startsWith('/api/vip-levels/')) {
+      const vipLevelId = path.split('/').pop();
+      const vipLevelsCollection = database.collection('vipLevels');
+      let vipLevel;
+      try {
+        vipLevel = await vipLevelsCollection.findOne({ _id: new ObjectId(vipLevelId) });
+      } catch (objectIdError) {
+        vipLevel = await vipLevelsCollection.findOne({ _id: vipLevelId });
+      }
+      
+      if (!vipLevel) {
+        return res.status(404).json({ message: "VIP level not found" });
+      }
+      res.json(vipLevel);
+    }
+    
+    // Check all VIP levels
+    else if (req.method === 'POST' && path === '/api/frontend/vip-levels/check-all') {
+      const usersCollection = database.collection('users');
+      const vipLevelsCollection = database.collection('vipLevels');
+      const users = await usersCollection.find().toArray();
+
+      let updatedCount = 0;
+      for (const user of users) {
+        const userId = user._id.toString();
+        const oldLevel = user.vipLevel;
+        
+        // Get user's actual balance
+        const userBalance = Number(user.actualWalletBalance || user.walletBalance || 0);
+
+        // Get all VIP levels sorted by minAmount descending
+        const vipLevels = await vipLevelsCollection
+          .find()
+          .sort({ minAmount: -1 })
+          .toArray();
+
+        // Find appropriate VIP level
+        let newVipLevel = "Silver"; // default
+        for (const level of vipLevels) {
+          if (userBalance >= level.minAmount) {
+            newVipLevel = level.name;
+            break;
+          }
+        }
+
+        // Update user VIP level if changed
+        if (user.vipLevel !== newVipLevel) {
+          try {
+            await usersCollection.updateOne(
+              { _id: new ObjectId(userId) },
+              { 
+                $set: { 
+                  vipLevel: newVipLevel,
+                  updatedAt: new Date() 
+                } 
+              }
+            );
+            updatedCount++;
+          } catch (objectIdError) {
+            await usersCollection.updateOne(
+              { _id: userId },
+              { 
+                $set: { 
+                  vipLevel: newVipLevel,
+                  updatedAt: new Date() 
+                } 
+              }
+            );
+            updatedCount++;
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Checked ${users.length} users, updated ${updatedCount} VIP levels`,
+        totalUsers: users.length,
+        updatedCount
+      });
+    }
+    
+    // Stats (legacy)
+    else if (req.method === 'GET' && path === '/api/stats') {
+      const usersCollection = database.collection('users');
+      const campaignsCollection = database.collection('campaigns');
+      const transactionsCollection = database.collection('transactions');
+      
+      const totalUsers = await usersCollection.countDocuments();
+      const totalCampaigns = await campaignsCollection.countDocuments();
+      const totalTransactions = await transactionsCollection.countDocuments();
+      
+      res.json({
+        id: "801874e4-2df4-4947-b453-787a82073f09",
+        depositsToday: "16200",
+        depositsYesterday: "25065820.12",
+        depositsTotal: "25065820.12",
+        approvedToday: "16200",
+        approvedYesterday: "25065820.12",
+        approvedTotal: "25065820.12",
+        pendingToday: "0",
+        pendingYesterday: "0",
+        pendingTotal: "0",
+        rejectedToday: "0",
+        rejectedYesterday: "0",
+        rejectedTotal: "0",
+        customersToday: totalUsers,
+        customersYesterday: 0,
+        customersTotal: totalUsers
+      });
     }
     
     else {
