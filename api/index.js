@@ -284,6 +284,46 @@ export default async function handler(req, res) {
       } else {
         res.status(404).json({ error: 'Not found' });
       }
+    } else if (req.method === 'DELETE') {
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const path = url.pathname;
+      
+      // Handle DELETE /api/frontend/products/{id}
+      if (path.startsWith('/api/frontend/products/')) {
+        const productId = path.split('/').pop();
+        
+        if (!productId) {
+          return res.status(400).json({
+            success: false,
+            error: "Product ID is required"
+          });
+        }
+
+        const campaignsCollection = database.collection('campaigns');
+        const { ObjectId } = require('mongodb');
+        
+        // Try to delete by ObjectId first, then by string ID as fallback
+        let result = await campaignsCollection.deleteOne({ _id: new ObjectId(productId) });
+        
+        if (result.deletedCount === 0) {
+          // Fallback: try deleting by string ID or other fields
+          result = await campaignsCollection.deleteOne({ _id: productId });
+        }
+
+        if (result.deletedCount === 0) {
+          return res.status(404).json({
+            success: false,
+            error: "Product not found"
+          });
+        }
+
+        res.json({
+          success: true,
+          message: "Product deleted successfully"
+        });
+      } else {
+        res.status(404).json({ error: 'Not found' });
+      }
     } else {
       res.status(405).json({ error: 'Method not allowed' });
     }
