@@ -683,12 +683,17 @@ export default async function handler(req, res) {
     else if (req.method === 'GET' && path.startsWith('/api/frontend/customer-tasks/') && !path.includes('/allow')) {
       const customerId = path.split('/')[3];
       console.log("📋 Fetching tasks for customer:", customerId);
+      console.log("📋 Full path:", path);
 
       const customerTasksCollection = database.collection('customerTasks');
+      console.log("📋 Collection name: customerTasks");
+      
       const tasks = await customerTasksCollection
         .find({ customerId })
         .sort({ taskNumber: 1 })
         .toArray();
+      
+      console.log("📋 Found tasks:", tasks.length);
 
       if (tasks.length === 0) {
         console.log("No tasks found, initializing 30 tasks for customer:", customerId);
@@ -1687,12 +1692,17 @@ export default async function handler(req, res) {
     else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks/')) {
       const customerId = path.split('/')[3];
       console.log("🎯 Fetching combo tasks for customer:", customerId);
+      console.log("🎯 Full path:", path);
 
       const customerTasksCollection = database.collection('customerTasks');
+      console.log("🎯 Collection name: customerTasks");
+      
       const tasks = await customerTasksCollection
         .find({ customerId })
         .sort({ taskNumber: 1 })
         .toArray();
+      
+      console.log("🎯 Found combo tasks:", tasks.length);
 
       // If no tasks found, initialize 30 tasks
       if (tasks.length === 0) {
