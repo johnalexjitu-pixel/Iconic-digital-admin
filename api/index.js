@@ -1323,6 +1323,269 @@ export default async function handler(req, res) {
       res.json(vipLevel);
     }
     
+    // Combo Task Management
+    
+    // Create Combo Task
+    else if (req.method === 'POST' && path === '/api/frontend/combo-tasks') {
+      const { customerId, taskIds, comboCommission, comboType } = req.body;
+      console.log("🎯 Creating combo task:", { customerId, taskIds, comboCommission });
+
+      if (!customerId || !taskIds || !Array.isArray(taskIds)) {
+        return res.status(400).json({
+          success: false,
+          error: "Customer ID and task IDs are required"
+        });
+      }
+
+      const comboTasksCollection = database.collection('comboTasks');
+      
+      // Check if combo already exists for this customer
+      const existingCombo = await comboTasksCollection.findOne({
+        customerId,
+        status: { $in: ['pending', 'active'] }
+      });
+
+      if (existingCombo) {
+        return res.status(400).json({
+          success: false,
+          error: "Customer already has an active combo task"
+        });
+      }
+
+      const newComboTask = {
+        customerId,
+        taskIds,
+        comboCommission: comboCommission || 0,
+        comboType: comboType || 'standard',
+        status: 'pending',
+        completedTasks: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const result = await comboTasksCollection.insertOne(newComboTask);
+      const savedComboTask = await comboTasksCollection.findOne({ _id: result.insertedId });
+
+      console.log("✅ Combo task created successfully:", result.insertedId);
+
+      res.json({
+        success: true,
+        data: savedComboTask,
+        message: "Combo task created successfully"
+      });
+    }
+    
+    // Get Combo Tasks for Customer
+    else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks/')) {
+      const customerId = path.split('/').pop();
+      console.log("📋 Fetching combo tasks for customer:", customerId);
+
+      const comboTasksCollection = database.collection('comboTasks');
+      const comboTasks = await comboTasksCollection
+        .find({ customerId })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      res.json({
+        success: true,
+        data: comboTasks,
+        total: comboTasks.length
+      });
+    }
+    
+    // Update Combo Task
+    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/')) {
+      const comboTaskId = path.split('/').pop();
+      const { status, completedTasks, comboCommission } = req.body;
+      console.log("✏️ Updating combo task:", comboTaskId);
+
+      const comboTasksCollection = database.collection('comboTasks');
+      const updateData = {
+        updatedAt: new Date()
+      };
+
+      if (status) updateData.status = status;
+      if (completedTasks) updateData.completedTasks = completedTasks;
+      if (comboCommission !== undefined) updateData.comboCommission = comboCommission;
+
+      let result;
+      try {
+        result = await comboTasksCollection.findOneAndUpdate(
+          { _id: new ObjectId(comboTaskId) },
+          { $set: updateData },
+          { returnDocument: 'after' }
+        );
+      } catch (objectIdError) {
+        result = await comboTasksCollection.findOneAndUpdate(
+          { _id: comboTaskId },
+          { $set: updateData },
+          { returnDocument: 'after' }
+        );
+      }
+
+      if (!result) {
+        return res.status(404).json({
+          success: false,
+          error: "Combo task not found"
+        });
+      }
+
+      console.log("✅ Combo task updated successfully:", comboTaskId);
+
+      res.json({
+        success: true,
+        data: result,
+        message: "Combo task updated successfully"
+      });
+    }
+    
+    // Complete Combo Task
+    else if (req.method === 'POST' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/complete')) {
+      const comboTaskId = path.split('/')[3];
+      const { completedTaskIds } = req.body;
+      console.log("🎉 Completing combo task:", comboTaskId);
+
+      const comboTasksCollection = database.collection('comboTasks');
+      const usersCollection = database.collection('users');
+      
+      let comboTask;
+      try {
+        comboTask = await comboTasksCollection.findOne({ _id: new ObjectId(comboTaskId) });
+      } catch (objectIdError) {
+        comboTask = await comboTasksCollection.findOne({ _id: comboTaskId });
+      }
+
+      if (!comboTask) {
+        return res.status(404).json({
+          success: false,
+          error: "Combo task not found"
+        });
+      }
+
+      if (comboTask.status !== 'active') {
+        return res.status(400).json({
+          success: false,
+          error: "Combo task is not active"
+        });
+      }
+
+      // Check if all required tasks are completed
+      const allTasksCompleted = comboTask.taskIds.every(taskId => 
+        completedTaskIds.includes(taskId)
+      );
+
+      if (!allTasksCompleted) {
+        return res.status(400).json({
+          success: false,
+          error: "Not all required tasks are completed"
+        });
+      }
+
+      // Calculate combo commission
+      const vipLevelsCollection = database.collection('vipLevels');
+      let customer;
+      try {
+        customer = await usersCollection.findOne({ _id: new ObjectId(comboTask.customerId) });
+      } catch (objectIdError) {
+        customer = await usersCollection.findOne({ _id: comboTask.customerId });
+      }
+
+      if (!customer) {
+        return res.status(404).json({
+          success: false,
+          error: "Customer not found"
+        });
+      }
+
+      // Get customer's VIP level for combo commission
+      const vipLevel = await vipLevelsCollection.findOne({ name: customer.vipLevel });
+      const comboCommissionRate = vipLevel?.comboCommissionPercentage || 10;
+      const comboCommissionAmount = comboTask.comboCommission * (comboCommissionRate / 100);
+
+      // Update combo task status
+      await comboTasksCollection.updateOne(
+        { _id: comboTask._id },
+        {
+          $set: {
+            status: 'completed',
+            completedAt: new Date(),
+            comboCommissionEarned: comboCommissionAmount,
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      // Add combo commission to customer balance
+      await usersCollection.updateOne(
+        { _id: customer._id },
+        {
+          $inc: { 
+            accountBalance: comboCommissionAmount,
+            totalEarnings: comboCommissionAmount 
+          },
+          $set: { updatedAt: new Date() }
+        }
+      );
+
+      // Record transaction
+      const transactionsCollection = database.collection('transactions');
+      await transactionsCollection.insertOne({
+        userId: customer._id,
+        type: 'combo_commission',
+        amount: comboCommissionAmount,
+        description: `Combo task completion bonus`,
+        status: 'completed',
+        createdAt: new Date()
+      });
+
+      console.log("✅ Combo task completed successfully:", comboTaskId);
+
+      res.json({
+        success: true,
+        message: "Combo task completed successfully",
+        comboCommissionEarned: comboCommissionAmount,
+        newBalance: customer.accountBalance + comboCommissionAmount
+      });
+    }
+    
+    // Activate Combo Task
+    else if (req.method === 'POST' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/activate')) {
+      const comboTaskId = path.split('/')[3];
+      console.log("🚀 Activating combo task:", comboTaskId);
+
+      const comboTasksCollection = database.collection('comboTasks');
+      
+      let result;
+      try {
+        result = await comboTasksCollection.findOneAndUpdate(
+          { _id: new ObjectId(comboTaskId) },
+          { $set: { status: 'active', updatedAt: new Date() } },
+          { returnDocument: 'after' }
+        );
+      } catch (objectIdError) {
+        result = await comboTasksCollection.findOneAndUpdate(
+          { _id: comboTaskId },
+          { $set: { status: 'active', updatedAt: new Date() } },
+          { returnDocument: 'after' }
+        );
+      }
+
+      if (!result) {
+        return res.status(404).json({
+          success: false,
+          error: "Combo task not found"
+        });
+      }
+
+      console.log("✅ Combo task activated successfully:", comboTaskId);
+
+      res.json({
+        success: true,
+        data: result,
+        message: "Combo task activated successfully"
+      });
+    }
+    
     // Check all VIP levels
     else if (req.method === 'POST' && path === '/api/frontend/vip-levels/check-all') {
       const usersCollection = database.collection('users');
@@ -1415,6 +1678,211 @@ export default async function handler(req, res) {
         customersToday: totalUsers,
         customersYesterday: 0,
         customersTotal: totalUsers
+      });
+    }
+    
+    // Combo Task Management
+    
+    // Get combo tasks for a specific user
+    else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks/')) {
+      const customerId = path.split('/')[3];
+      console.log("🎯 Fetching combo tasks for customer:", customerId);
+
+      const customerTasksCollection = database.collection('customerTasks');
+      const tasks = await customerTasksCollection
+        .find({ customerId })
+        .sort({ taskNumber: 1 })
+        .toArray();
+
+      // If no tasks found, initialize 30 tasks
+      if (tasks.length === 0) {
+        console.log("No combo tasks found, initializing 30 tasks for customer:", customerId);
+        const campaignsCollection = database.collection('campaigns');
+        const campaigns = await campaignsCollection.find().limit(30).toArray();
+        
+        const usersCollection = database.collection('users');
+        let customer;
+        try {
+          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        } catch (objectIdError) {
+          customer = await usersCollection.findOne({ _id: customerId });
+        }
+        
+        if (!customer) {
+          return res.json({ success: true, data: [], total: 0 });
+        }
+
+        const newTasks = campaigns.map((campaign, index) => ({
+          customerId,
+          customerCode: customer.membershipId || "",
+          taskNumber: index + 1,
+          campaignId: campaign._id.toString(),
+          taskCommission: campaign.commissionAmount || 0,
+          taskPrice: campaign.baseAmount || 0,
+          estimatedNegativeAmount: campaign.commissionAmount ? -campaign.commissionAmount : 0,
+          priceFrom: 0,
+          priceTo: 0,
+          hasGoldenEgg: campaign.type === "Paid" || campaign.baseAmount > 10000,
+          expiredDate: campaign.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: 'pending',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }));
+
+        if (newTasks.length > 0) {
+          await customerTasksCollection.insertMany(newTasks);
+          const insertedTasks = await customerTasksCollection
+            .find({ customerId })
+            .sort({ taskNumber: 1 })
+            .toArray();
+          return res.json({ success: true, data: insertedTasks, total: insertedTasks.length });
+        }
+      }
+
+      res.json({ success: true, data: tasks, total: tasks.length });
+    }
+    
+    // Update combo task prices by range
+    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/')) {
+      const customerId = path.split('/')[3];
+      const { taskRange, newPrice } = req.body;
+      
+      console.log("💰 Updating combo task prices:", { customerId, taskRange, newPrice });
+
+      if (!taskRange || !newPrice) {
+        return res.status(400).json({
+          success: false,
+          error: "Task range and new price are required"
+        });
+      }
+
+      const customerTasksCollection = database.collection('customerTasks');
+      
+      // Parse task range (e.g., "1-10", "11-20", "21-30")
+      const [startTask, endTask] = taskRange.split('-').map(num => parseInt(num.trim()));
+      
+      if (isNaN(startTask) || isNaN(endTask)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid task range format. Use format like '1-10'"
+        });
+      }
+
+      // Update tasks in the specified range
+      const result = await customerTasksCollection.updateMany(
+        { 
+          customerId,
+          taskNumber: { $gte: startTask, $lte: endTask }
+        },
+        { 
+          $set: { 
+            taskPrice: Number(newPrice),
+            updatedAt: new Date() 
+          } 
+        }
+      );
+
+      console.log(`✅ Updated ${result.modifiedCount} combo tasks with price ${newPrice}`);
+
+      res.json({
+        success: true,
+        message: `Updated ${result.modifiedCount} tasks (${startTask}-${endTask}) with price ${newPrice}`,
+        modifiedCount: result.modifiedCount,
+        taskRange,
+        newPrice
+      });
+    }
+    
+    // Bulk update combo task prices for specific task numbers
+    else if (req.method === 'POST' && path.startsWith('/api/frontend/combo-tasks/')) {
+      const customerId = path.split('/')[3];
+      const { taskPrices } = req.body; // Array of {taskNumber, price}
+      
+      console.log("🎯 Bulk updating combo task prices:", { customerId, taskPrices });
+
+      if (!Array.isArray(taskPrices)) {
+        return res.status(400).json({
+          success: false,
+          error: "taskPrices must be an array of {taskNumber, price}"
+        });
+      }
+
+      const customerTasksCollection = database.collection('customerTasks');
+      
+      let updatedCount = 0;
+      
+      // Update each task individually
+      for (const taskPrice of taskPrices) {
+        const { taskNumber, price } = taskPrice;
+        
+        if (!taskNumber || !price) {
+          continue; // Skip invalid entries
+        }
+
+        const result = await customerTasksCollection.updateOne(
+          { 
+            customerId,
+            taskNumber: Number(taskNumber)
+          },
+          { 
+            $set: { 
+              taskPrice: Number(price),
+              updatedAt: new Date() 
+            } 
+          }
+        );
+
+        if (result.modifiedCount > 0) {
+          updatedCount++;
+        }
+      }
+
+      console.log(`✅ Bulk updated ${updatedCount} combo tasks`);
+
+      res.json({
+        success: true,
+        message: `Bulk updated ${updatedCount} combo tasks`,
+        updatedCount,
+        totalRequested: taskPrices.length
+      });
+    }
+    
+    // Get combo task statistics for a user
+    else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks-stats/')) {
+      const customerId = path.split('/')[3];
+      console.log("📊 Fetching combo task stats for customer:", customerId);
+
+      const customerTasksCollection = database.collection('customerTasks');
+      
+      const stats = await customerTasksCollection.aggregate([
+        { $match: { customerId } },
+        {
+          $group: {
+            _id: null,
+            totalTasks: { $sum: 1 },
+            completedTasks: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] } },
+            pendingTasks: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },
+            totalEarnings: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$taskPrice", 0] } },
+            avgTaskPrice: { $avg: "$taskPrice" },
+            minTaskPrice: { $min: "$taskPrice" },
+            maxTaskPrice: { $max: "$taskPrice" }
+          }
+        }
+      ]).toArray();
+
+      const taskStats = stats[0] || {
+        totalTasks: 0,
+        completedTasks: 0,
+        pendingTasks: 0,
+        totalEarnings: 0,
+        avgTaskPrice: 0,
+        minTaskPrice: 0,
+        maxTaskPrice: 0
+      };
+
+      res.json({
+        success: true,
+        data: taskStats
       });
     }
     
