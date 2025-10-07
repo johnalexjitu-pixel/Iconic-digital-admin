@@ -130,6 +130,28 @@ export default async function handler(req, res) {
             pages: Math.ceil(total / 100)
           }
         });
+      } else if (path === '/api/frontend/campaigns') {
+        const campaignsCollection = database.collection('campaigns');
+        const campaigns = await campaignsCollection
+          .find({})
+          .sort({ createdAt: -1 })
+          .toArray();
+
+        res.json({
+          success: true,
+          data: campaigns,
+          total: campaigns.length
+        });
+      } else if (path === '/api/frontend/products') {
+        // Return empty products array for now
+        res.json({
+          success: true,
+          data: [],
+          total: 0
+        });
+      } else if (path === '/api/products') {
+        // Return empty products array for now
+        res.json([]);
       } else {
         res.status(404).json({ error: 'Not found' });
       }
@@ -174,6 +196,30 @@ export default async function handler(req, res) {
             role: admin.role
           },
           message: "Login successful"
+        });
+      } else if (path === '/api/frontend/products') {
+        // Handle product creation
+        const { name, code, price, imageType } = req.body;
+        
+        if (!name || !code) {
+          return res.status(400).json({
+            success: false,
+            error: "Name and code are required"
+          });
+        }
+
+        // For now, just return success without actually saving
+        res.json({
+          success: true,
+          data: {
+            id: Math.random().toString(36).substr(2, 9),
+            name,
+            code,
+            price: price || 0,
+            imageType: imageType || null,
+            createdAt: new Date()
+          },
+          message: "Product created successfully"
         });
       } else {
         res.status(404).json({ error: 'Not found' });
