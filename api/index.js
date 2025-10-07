@@ -249,7 +249,7 @@ export default async function handler(req, res) {
             message: "Campaign created successfully"
           });
         } else {
-          // This is a product - save to campaigns collection
+          // This is a product - save to campaigns collection with same structure as existing campaigns
           const { name, price, image } = body;
           
           if (!name) {
@@ -260,23 +260,23 @@ export default async function handler(req, res) {
           }
 
           const campaignsCollection = database.collection('campaigns');
-          const productData = {
-            id: `PROD_${Date.now()}`, // Use 'id' field like the old products
-            name: name,
-            code: `PROD_${Date.now()}`, // Auto-generate code
-            price: price ? parseFloat(price) : 0,
-            image: image || null, // Store as 'image' field like old products
+          const campaignData = {
+            brand: name, // Frontend expects 'brand' field for name
+            code: `${Date.now()}`, // Auto-generate code
+            baseAmount: price ? parseFloat(price) : 0, // Frontend expects 'baseAmount' for price
+            logo: image || null, // Frontend expects 'logo' field for image
             imageType: image ? "image/jpeg" : null,
-            createdAt: new Date()
+            createdAt: new Date(),
+            updatedAt: new Date()
           };
 
-          const result = await campaignsCollection.insertOne(productData);
+          const result = await campaignsCollection.insertOne(campaignData);
           
           res.json({
             success: true,
             data: {
               _id: result.insertedId,
-              ...productData
+              ...campaignData
             },
             message: "Product created successfully"
           });
