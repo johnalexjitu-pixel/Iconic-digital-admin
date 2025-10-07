@@ -288,9 +288,12 @@ export default async function handler(req, res) {
       const url = new URL(req.url, `http://${req.headers.host}`);
       const path = url.pathname;
       
+      console.log('DELETE request to:', path);
+      
       // Handle DELETE /api/frontend/products/{id}
       if (path.startsWith('/api/frontend/products/')) {
         const productId = path.split('/').pop();
+        console.log('Product ID to delete:', productId);
         
         if (!productId) {
           return res.status(400).json({
@@ -302,12 +305,20 @@ export default async function handler(req, res) {
         const campaignsCollection = database.collection('campaigns');
         const { ObjectId } = require('mongodb');
         
-        // Try to delete by ObjectId first, then by string ID as fallback
-        let result = await campaignsCollection.deleteOne({ _id: new ObjectId(productId) });
+        let result;
+        
+        try {
+          // Try to delete by ObjectId first
+          result = await campaignsCollection.deleteOne({ _id: new ObjectId(productId) });
+        } catch (objectIdError) {
+          console.log('ObjectId conversion failed, trying string ID:', objectIdError.message);
+          // Fallback: try deleting by string ID
+          result = await campaignsCollection.deleteOne({ _id: productId });
+        }
         
         if (result.deletedCount === 0) {
-          // Fallback: try deleting by string ID or other fields
-          result = await campaignsCollection.deleteOne({ _id: productId });
+          // Try deleting by code field as another fallback
+          result = await campaignsCollection.deleteOne({ code: productId });
         }
 
         if (result.deletedCount === 0) {
