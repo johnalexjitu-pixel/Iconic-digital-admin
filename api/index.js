@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 
 const MONGODB_URI = 'mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/?retryWrites=true&w=majority&appName=iconicdigital';
 const DB_NAME = 'iconicdigital';
@@ -303,7 +303,6 @@ export default async function handler(req, res) {
         }
 
         const campaignsCollection = database.collection('campaigns');
-        const { ObjectId } = require('mongodb');
         
         let result;
         
