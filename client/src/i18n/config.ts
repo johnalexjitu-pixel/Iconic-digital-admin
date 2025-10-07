@@ -160,8 +160,6 @@ const resources = {
       // Additional Common Keys
       name: "Name",
       userName: "User Name",
-      customer: "Customer",
-      action: "Action",
       by: "By",
       created: "Created",
       updated: "Updated",
@@ -176,7 +174,6 @@ const resources = {
       editCustomerProfile: "Edit Customer Profile",
       
       // Withdrawal Management Additional
-      date: "Date",
       bankDetails: "Bank Details",
       
       // Task Management
@@ -190,7 +187,6 @@ const resources = {
       confirmUpdateAmount: "Confirm Update Amount",
       
       // VIP Level Management
-      vipLevel: "VIP Level",
       withdrawalLimitation: "Withdrawal Limitation",
       minAmount: "Min Amount",
       taskCount: "Task Count",
@@ -204,7 +200,6 @@ const resources = {
       edit: "Edit",
       
       // Tasklist Expiration
-      tasklistExpiration: "Customer Tasklist Expiration",
       expiredDate: "Expired Date",
       expired: "Expired",
       noRecordsFound: "No Records Found",
@@ -366,10 +361,8 @@ const resources = {
       updating: "আপডেট হচ্ছে...",
       
       // Additional Common Keys
-      name: "নাম",
-      userName: "ইউজার নাম",
-      customer: "কাস্টমার",
-      action: "অ্যাকশন",
+        name: "নাম",
+        userName: "ইউজার নাম",
       by: "দ্বারা",
       created: "তৈরি হয়েছে",
       updated: "আপডেট হয়েছে",
@@ -383,9 +376,8 @@ const resources = {
       enterReferralCode: "রেফারেল কোড লিখুন",
       editCustomerProfile: "কাস্টমার প্রোফাইল সম্পাদনা",
       
-      // Withdrawal Management Additional
-      date: "তারিখ",
-      bankDetails: "ব্যাংক বিবরণ",
+        // Withdrawal Management Additional
+        bankDetails: "ব্যাংক বিবরণ",
       
       // Task Management
       createProduct: "প্রোডাক্ট তৈরি করুন",
@@ -397,9 +389,8 @@ const resources = {
       dailyCheckIn: "দৈনিক চেক ইন",
       confirmUpdateAmount: "পরিমাণ আপডেট নিশ্চিত করুন",
       
-      // VIP Level Management
-      vipLevel: "ভিআইপি লেভেল",
-      withdrawalLimitation: "উত্তোলন সীমাবদ্ধতা",
+        // VIP Level Management
+        withdrawalLimitation: "উত্তোলন সীমাবদ্ধতা",
       minAmount: "সর্বনিম্ন পরিমাণ",
       taskCount: "টাস্ক সংখ্যা",
       commissionPercentage: "কমিশন শতাংশ",
@@ -411,9 +402,8 @@ const resources = {
       withdrawalFees: "উত্তোলন ফি",
       edit: "সম্পাদনা",
       
-      // Tasklist Expiration
-      tasklistExpiration: "কাস্টমার টাস্কলিস্ট মেয়াদ শেষ",
-      expiredDate: "মেয়াদ শেষের তারিখ",
+        // Tasklist Expiration
+        expiredDate: "মেয়াদ শেষের তারিখ",
       expired: "মেয়াদ শেষ",
       noRecordsFound: "কোন রেকর্ড পাওয়া যায়নি",
       noExpiredTasklists: "আপনার মানদণ্ড অনুযায়ী কোন মেয়াদ শেষ টাস্কলিস্ট নেই",
@@ -574,10 +564,8 @@ const resources = {
       updating: "更新中...",
       
       // Additional Common Keys
-      name: "姓名",
-      userName: "用户名",
-      customer: "客户",
-      action: "操作",
+        name: "姓名",
+        userName: "用户名",
       by: "由",
       created: "已创建",
       updated: "已更新",
@@ -591,9 +579,8 @@ const resources = {
       enterReferralCode: "输入推荐码",
       editCustomerProfile: "编辑客户资料",
       
-      // Withdrawal Management Additional
-      date: "日期",
-      bankDetails: "银行详情",
+        // Withdrawal Management Additional
+        bankDetails: "银行详情",
       
       // Task Management
       createProduct: "创建产品",
@@ -605,9 +592,8 @@ const resources = {
       dailyCheckIn: "每日签到",
       confirmUpdateAmount: "确认更新金额",
       
-      // VIP Level Management
-      vipLevel: "VIP等级",
-      withdrawalLimitation: "提款限制",
+        // VIP Level Management
+        withdrawalLimitation: "提款限制",
       minAmount: "最低金额",
       taskCount: "任务数量",
       commissionPercentage: "佣金百分比",
@@ -619,9 +605,8 @@ const resources = {
       withdrawalFees: "提款费用",
       edit: "编辑",
       
-      // Tasklist Expiration
-      tasklistExpiration: "客户任务列表过期",
-      expiredDate: "过期日期",
+        // Tasklist Expiration
+        expiredDate: "过期日期",
       expired: "已过期",
       noRecordsFound: "未找到记录",
       noExpiredTasklists: "没有符合您条件的过期任务列表",
