@@ -249,21 +249,22 @@ export default async function handler(req, res) {
           });
         } else {
           // This is a product
-          const { name, code, price, imageType } = body;
+          const { name, price, image } = body;
           
-          if (!name || !code) {
+          if (!name) {
             return res.status(400).json({
               success: false,
-              error: "Name and code are required"
+              error: "Name is required"
             });
           }
 
           const productsCollection = database.collection('products');
           const productData = {
             name,
-            code,
-            price: price || 0,
-            imageType: imageType || null,
+            code: `PROD_${Date.now()}`, // Auto-generate code if not provided
+            price: price ? parseFloat(price) : 0,
+            image: image || null,
+            imageType: image ? "image/jpeg" : null,
             status: 'active',
             createdAt: new Date(),
             updatedAt: new Date()
