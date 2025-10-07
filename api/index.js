@@ -261,14 +261,13 @@ export default async function handler(req, res) {
 
           const campaignsCollection = database.collection('campaigns');
           const productData = {
-            name,
-            code: `PROD_${Date.now()}`, // Auto-generate code if not provided
+            id: `PROD_${Date.now()}`, // Use 'id' field like the old products
+            name: name,
+            code: `PROD_${Date.now()}`, // Auto-generate code
             price: price ? parseFloat(price) : 0,
-            image: image || null,
+            image: image || null, // Store as 'image' field like old products
             imageType: image ? "image/jpeg" : null,
-            status: 'active',
-            createdAt: new Date(),
-            updatedAt: new Date()
+            createdAt: new Date()
           };
 
           const result = await campaignsCollection.insertOne(productData);
