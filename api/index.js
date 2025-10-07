@@ -143,15 +143,24 @@ export default async function handler(req, res) {
           total: campaigns.length
         });
       } else if (path === '/api/frontend/products') {
-        // Return empty products array for now
+        const productsCollection = database.collection('products');
+        const products = await productsCollection
+          .find({})
+          .sort({ createdAt: -1 })
+          .toArray();
+
         res.json({
           success: true,
-          data: [],
-          total: 0
+          data: products,
+          total: products.length
         });
       } else if (path === '/api/products') {
-        // Return empty products array for now
-        res.json([]);
+        const productsCollection = database.collection('products');
+        const products = await productsCollection
+          .find({})
+          .sort({ createdAt: -1 })
+          .toArray();
+        res.json(products);
       } else {
         res.status(404).json({ error: 'Not found' });
       }
@@ -198,29 +207,79 @@ export default async function handler(req, res) {
           message: "Login successful"
         });
       } else if (path === '/api/frontend/products') {
-        // Handle product creation
-        const { name, code, price, imageType } = req.body;
+        // Handle product/campaign creation
+        const body = req.body;
+        console.log('Product creation request body:', body);
         
-        if (!name || !code) {
-          return res.status(400).json({
-            success: false,
-            error: "Name and code are required"
-          });
-        }
+        // Check if it's a campaign or product based on the data structure
+        if (body.title || body.description) {
+          // This is a campaign
+          const { title, description, targetAmount, startDate, endDate, imageType } = body;
+          
+          if (!title || !description) {
+            return res.status(400).json({
+              success: false,
+              error: "Title and description are required"
+            });
+          }
 
-        // For now, just return success without actually saving
-        res.json({
-          success: true,
-          data: {
-            id: Math.random().toString(36).substr(2, 9),
+          const campaignsCollection = database.collection('campaigns');
+          const campaignData = {
+            title,
+            description,
+            targetAmount: targetAmount || 0,
+            currentAmount: 0,
+            startDate: startDate ? new Date(startDate) : new Date(),
+            endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            imageType: imageType || null,
+            status: 'active',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+
+          const result = await campaignsCollection.insertOne(campaignData);
+          
+          res.json({
+            success: true,
+            data: {
+              _id: result.insertedId,
+              ...campaignData
+            },
+            message: "Campaign created successfully"
+          });
+        } else {
+          // This is a product
+          const { name, code, price, imageType } = body;
+          
+          if (!name || !code) {
+            return res.status(400).json({
+              success: false,
+              error: "Name and code are required"
+            });
+          }
+
+          const productsCollection = database.collection('products');
+          const productData = {
             name,
             code,
             price: price || 0,
             imageType: imageType || null,
-            createdAt: new Date()
-          },
-          message: "Product created successfully"
-        });
+            status: 'active',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+
+          const result = await productsCollection.insertOne(productData);
+          
+          res.json({
+            success: true,
+            data: {
+              _id: result.insertedId,
+              ...productData
+            },
+            message: "Product created successfully"
+          });
+        }
       } else {
         res.status(404).json({ error: 'Not found' });
       }
