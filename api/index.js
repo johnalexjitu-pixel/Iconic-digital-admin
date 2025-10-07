@@ -13,13 +13,18 @@ async function connectToDatabase() {
 
   try {
     console.log('🔌 Connecting to MongoDB...');
-    client = new MongoClient(MONGODB_URI);
+    console.log('📡 MongoDB URI:', MONGODB_URI.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // Hide credentials in logs
+    client = new MongoClient(MONGODB_URI, {
+      serverSelectionTimeoutMS: 10000, // 10 second timeout
+      connectTimeoutMS: 10000,
+    });
     await client.connect();
     db = client.db(DB_NAME);
     console.log('✅ Connected to MongoDB successfully');
     return db;
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
+    console.error('❌ Error details:', error.message);
     throw error;
   }
 }
@@ -178,6 +183,11 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('API Error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: error.message,
+      type: error.name,
+      details: 'Check server logs for more information'
+    });
   }
 }
