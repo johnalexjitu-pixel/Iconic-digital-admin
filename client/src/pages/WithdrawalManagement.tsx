@@ -10,8 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { FileText } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function WithdrawalManagement() {
+  const { t } = useTranslation();
   const [startDate, setStartDate] = useState("2025-09-25");
   const [endDate, setEndDate] = useState("2025-10-02");
   const { toast } = useToast();
@@ -23,6 +25,48 @@ export default function WithdrawalManagement() {
   const { data: customers } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
+
+  // Fetch transactions from MongoDB (as withdrawals)
+  const { data: transactionsResponse, isLoading: transactionsLoading } = useQuery<{
+    success: boolean;
+    data: any[];
+  }>({
+    queryKey: ["/api/frontend/transactions"],
+  });
+
+  // Fetch users from MongoDB
+  const { data: usersResponse } = useQuery<{
+    success: boolean;
+    data: any[];
+  }>({
+    queryKey: ["/api/frontend/users"],
+  });
+
+  // Convert transactions to withdrawals format
+  const displayWithdrawals = transactionsResponse?.data?.map((transaction: any) => {
+    const user = usersResponse?.data?.find((u: any) => u._id === transaction.userId);
+    return {
+      id: transaction._id,
+      customerId: transaction.userId,
+      amount: transaction.amount?.toString() || "0",
+      status: transaction.status === "completed" ? "Approved" : "Pending",
+      bankName: user?.withdrawalInfo?.bankName || "N/A",
+      accountHolder: user?.withdrawalInfo?.accountHolderName || "N/A",
+      iban: user?.withdrawalInfo?.accountNumber || "N/A",
+      contactNumber: user?.phoneNumber || "",
+      branch: user?.withdrawalInfo?.branch || "N/A",
+      adminName: "TEAM 1 - RUPEE",
+      createdBy: "ooo001",
+      createdAt: new Date(transaction.createdAt),
+      updatedAt: new Date(transaction.updatedAt),
+      customer: {
+        code: user?.membershipId,
+        username: user?.name,
+        walletBalance: user?.accountBalance?.toString(),
+        phoneNumber: user?.phoneNumber,
+      }
+    };
+  }) || [];
 
   const updateWithdrawalMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -44,7 +88,7 @@ export default function WithdrawalManagement() {
     },
   });
 
-  if (isLoading) {
+  if (isLoading || transactionsLoading) {
     return (
       <div className="p-6">
         <div className="h-96 bg-muted animate-pulse rounded-lg" />
@@ -52,18 +96,14 @@ export default function WithdrawalManagement() {
     );
   }
 
-  const getCustomerById = (customerId: string) => {
-    return customers?.find((c) => c.id === customerId);
-  };
-
   return (
     <div className="p-6">
       <div className="bg-card rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-6">Withdrawal Management</h2>
+        <h2 className="text-xl font-semibold mb-6">{t('withdrawalManagement')}</h2>
 
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div>
-            <Label className="text-muted-foreground">*Created Date:</Label>
+            <Label className="text-muted-foreground">*{t('createdDate')}:</Label>
             <div className="flex gap-2 mt-1">
               <Input
                 data-testid="input-start-date"
@@ -82,32 +122,32 @@ export default function WithdrawalManagement() {
           </div>
 
           <div>
-            <Label className="text-muted-foreground">Login User Name:</Label>
+            <Label className="text-muted-foreground">{t('loginUserName')}:</Label>
             <Input data-testid="input-username" className="mt-1" />
           </div>
 
           <div>
-            <Label className="text-muted-foreground">Code:</Label>
+            <Label className="text-muted-foreground">{t('code')}:</Label>
             <Input data-testid="input-code" className="mt-1" />
           </div>
 
           <div>
-            <Label className="text-muted-foreground">Status:</Label>
+            <Label className="text-muted-foreground">{t('status')}:</Label>
             <Select defaultValue="Pending">
               <SelectTrigger data-testid="select-status" className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Approved">Approved</SelectItem>
-                <SelectItem value="Rejected">Rejected</SelectItem>
+                <SelectItem value="Pending">{t('pending')}</SelectItem>
+                <SelectItem value="Approved">{t('approved')}</SelectItem>
+                <SelectItem value="Rejected">{t('rejected')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         <div className="flex justify-center">
-          <Button data-testid="button-filter" className="px-8">Filter</Button>
+          <Button data-testid="button-filter" className="px-8">{t('filter')}</Button>
         </div>
       </div>
 
@@ -115,18 +155,17 @@ export default function WithdrawalManagement() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted">
-              <TableHead className="text-muted-foreground">Date</TableHead>
-              <TableHead className="text-muted-foreground">Customer</TableHead>
-              <TableHead className="text-muted-foreground">Admin</TableHead>
-              <TableHead className="text-muted-foreground">Bank Details</TableHead>
-              <TableHead className="text-muted-foreground">Actual Amount</TableHead>
-              <TableHead className="text-muted-foreground">Updated By</TableHead>
-              <TableHead className="text-muted-foreground">Setting</TableHead>
+              <TableHead className="text-muted-foreground">{t('date')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('customer')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('admin')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('bankDetails')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('actualAmount')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('updatedBy')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('setting')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {withdrawals?.map((withdrawal) => {
-              const customer = getCustomerById(withdrawal.customerId);
+            {displayWithdrawals?.map((withdrawal: any) => {
               return (
                 <TableRow key={withdrawal.id} data-testid={`row-withdrawal-${withdrawal.id}`} className="hover:bg-muted/50">
                   <TableCell>
@@ -137,26 +176,26 @@ export default function WithdrawalManagement() {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm space-y-1">
-                      <div><span className="text-muted-foreground">Code:</span> {customer?.code}</div>
-                      <div>{customer?.username}</div>
-                      <div><span className="text-muted-foreground">Wallet Balance:</span> {customer?.walletBalance}</div>
-                      <div><span className="text-muted-foreground">Phone Number:</span> {customer?.phoneNumber}</div>
+                      <div><span className="text-muted-foreground">{t('code')}:</span> {withdrawal.customer?.code}</div>
+                      <div>{withdrawal.customer?.username}</div>
+                      <div><span className="text-muted-foreground">{t('walletBalance')}:</span> {withdrawal.customer?.walletBalance}</div>
+                      <div><span className="text-muted-foreground">{t('phoneNumber')}:</span> {withdrawal.customer?.phoneNumber}</div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm space-y-1">
-                      <div>Admin: {withdrawal.adminName}</div>
-                      <div>By: {withdrawal.createdBy} Recommend</div>
+                      <div>{t('admin')}: {withdrawal.adminName}</div>
+                      <div>{t('by')}: {withdrawal.createdBy} {t('recommend')}</div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm space-y-1">
-                      <div><span className="text-muted-foreground">Withdrawal Amount:</span> {withdrawal.amount}</div>
-                      <div><span className="text-muted-foreground">Bank Name:</span> {withdrawal.bankName}</div>
-                      <div><span className="text-muted-foreground">Bank Account Holder:</span> {withdrawal.accountHolder}</div>
-                      <div><span className="text-muted-foreground">IBAN:</span> {withdrawal.iban}</div>
-                      <div><span className="text-muted-foreground">Contact Number:</span> {withdrawal.contactNumber}</div>
-                      <div><span className="text-muted-foreground">Branch:</span> {withdrawal.branch}</div>
+                      <div><span className="text-muted-foreground">{t('withdrawalAmount')}:</span> {withdrawal.amount}</div>
+                      <div><span className="text-muted-foreground">{t('bankName')}:</span> {withdrawal.bankName}</div>
+                      <div><span className="text-muted-foreground">{t('bankAccountHolder')}:</span> {withdrawal.accountHolder}</div>
+                      <div><span className="text-muted-foreground">{t('iban')}:</span> {withdrawal.iban}</div>
+                      <div><span className="text-muted-foreground">{t('contactNumber')}:</span> {withdrawal.contactNumber}</div>
+                      <div><span className="text-muted-foreground">{t('branch')}:</span> {withdrawal.branch}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -182,7 +221,7 @@ export default function WithdrawalManagement() {
                         onClick={() => updateWithdrawalMutation.mutate({ id: withdrawal.id, status: "Approved" })}
                         disabled={updateWithdrawalMutation.isPending}
                       >
-                        Approve
+                        {t('approve')}
                       </Button>
                       <Button
                         data-testid={`button-reject-${withdrawal.id}`}
@@ -191,7 +230,7 @@ export default function WithdrawalManagement() {
                         onClick={() => updateWithdrawalMutation.mutate({ id: withdrawal.id, status: "Rejected" })}
                         disabled={updateWithdrawalMutation.isPending}
                       >
-                        Reject
+                        {t('reject')}
                       </Button>
                     </div>
                   </TableCell>
@@ -203,7 +242,7 @@ export default function WithdrawalManagement() {
 
         <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Rows per page:</span>
+            <span>{t('rowsPerPage')}:</span>
             <Select defaultValue="100">
               <SelectTrigger data-testid="select-rows-per-page" className="w-20">
                 <SelectValue />
@@ -214,7 +253,7 @@ export default function WithdrawalManagement() {
             </Select>
           </div>
           <div className="text-sm text-muted-foreground">
-            1-{withdrawals?.length} of {withdrawals?.length}
+            1-{displayWithdrawals?.length} of {displayWithdrawals?.length}
           </div>
         </div>
       </div>

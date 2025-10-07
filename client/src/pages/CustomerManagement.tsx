@@ -1,22 +1,464 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { type Customer } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Check, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useTranslation } from "react-i18next";
 
 export default function CustomerManagement() {
+  const { t } = useTranslation();
   const [startDate, setStartDate] = useState("2025-10-01");
   const [endDate, setEndDate] = useState("2025-10-02");
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    username: "",
+    code: "",
+    ipAddress: "",
+    phoneNumber: "",
+    customerStatus: "all",
+    onlineStatus: "all"
+  });
+  const [isFiltered, setIsFiltered] = useState(false);
+  
+  // Edit Balance Modal State
+  const [editBalanceModal, setEditBalanceModal] = useState<{
+    open: boolean;
+    customer: any;
+  }>({
+    open: false,
+    customer: null,
+  });
+  const [balanceAmount, setBalanceAmount] = useState("");
+  const [balanceOperation, setBalanceOperation] = useState<"add" | "subtract">("add");
 
+  // Task Details Modal State
+  const [taskDetailsModal, setTaskDetailsModal] = useState<{
+    open: boolean;
+    customer: any;
+    activeTab: string;
+  }>({
+    open: false,
+    customer: null,
+    activeTab: "allTask"
+  });
+
+  // Task Edit Modal State
+  const [taskEditModal, setTaskEditModal] = useState<{
+    open: boolean;
+    taskNumber: number;
+    campaign: any;
+    taskCommission: string;
+    expiredDate: string;
+    negativeAmount: string;
+    priceFrom: string;
+    priceTo: string;
+    selectedOption: string;
+  }>({
+    open: false,
+    taskNumber: 0,
+    campaign: null,
+    taskCommission: "",
+    expiredDate: "",
+    negativeAmount: "",
+    priceFrom: "",
+    priceTo: "",
+    selectedOption: ""
+  });
+
+  // Golden Egg Edit Modal State
+  const [goldenEggModal, setGoldenEggModal] = useState<{
+    open: boolean;
+    taskNumber: number;
+    campaign: any;
+    taskPrice: string;
+  }>({
+    open: false,
+    taskNumber: 0,
+    campaign: null,
+    taskPrice: ""
+  });
+
+  // Fetch customer-specific tasks
+  const { data: customerTasksData, refetch: refetchCustomerTasks } = useQuery<{
+    success: boolean;
+    data: any[];
+    total: number;
+  }>({
+    queryKey: ["/api/frontend/customer-tasks", taskDetailsModal.customer?.id],
+    queryFn: async () => {
+      if (!taskDetailsModal.customer?.id) return { success: true, data: [], total: 0 };
+      console.log("📋 Fetching tasks for customer ID:", taskDetailsModal.customer.id);
+      const response = await fetch(`/api/frontend/customer-tasks/${taskDetailsModal.customer.id}`);
+      const data = await response.json();
+      console.log("📥 Customer tasks response:", data);
+      return data;
+    },
+    enabled: taskDetailsModal.open && !!taskDetailsModal.customer?.id,
+  });
+
+  // Mutation for updating customer task settings
+  const updateCustomerTaskMutation = useMutation({
+    mutationFn: async ({ customerId, taskNumber, data }: { customerId: string; taskNumber: number; data: any }) => {
+      const response = await fetch(`/api/frontend/customer-tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerId,
+          taskNumber,
+          ...data
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to update customer task");
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate customer tasks query to force refetch with updated data
+      queryClient.invalidateQueries({ queryKey: ["/api/frontend/customer-tasks"] });
+    },
+  });
+
+  const handleTaskClick = (task: any, taskNumber: number) => {
+    setTaskEditModal({
+      open: true,
+      taskNumber,
+      campaign: task,
+      taskCommission: task.taskCommission?.toString() || "0",
+      expiredDate: task.expiredDate 
+        ? new Date(task.expiredDate).toISOString().split('T')[0]
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      negativeAmount: task.estimatedNegativeAmount?.toString() || "0",
+      priceFrom: task.priceFrom?.toString() || "0",
+      priceTo: task.priceTo?.toString() || "0",
+      selectedOption: ""
+    });
+  };
+
+  const handleTaskEditSave = async () => {
+    if (!taskEditModal.campaign || !taskDetailsModal.customer?.id) return;
+
+    try {
+      await updateCustomerTaskMutation.mutateAsync({
+        customerId: taskDetailsModal.customer.id,
+        taskNumber: taskEditModal.taskNumber,
+        data: {
+          taskCommission: taskEditModal.taskCommission,
+          taskPrice: taskEditModal.campaign.taskPrice || 0,
+          expiredDate: taskEditModal.expiredDate,
+          negativeAmount: taskEditModal.negativeAmount,
+          priceFrom: taskEditModal.priceFrom,
+          priceTo: taskEditModal.priceTo,
+        },
+      });
+
+      toast({
+        title: t("success") || "Success",
+        description: t("taskSettingsSaved") || "Task settings saved successfully",
+      });
+
+      setTaskEditModal({
+        open: false,
+        taskNumber: 0,
+        campaign: null,
+        taskCommission: "",
+        expiredDate: "",
+        negativeAmount: "",
+        priceFrom: "",
+        priceTo: "",
+        selectedOption: ""
+      });
+    } catch (error) {
+      toast({
+        title: t("error") || "Error",
+        description: t("failedToSaveTaskSettings") || "Failed to save task settings",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGoldenEggClick = (task: any, taskNumber: number) => {
+    setGoldenEggModal({
+      open: true,
+      taskNumber,
+      campaign: task,
+      taskPrice: task.taskPrice?.toString() || "0"
+    });
+  };
+
+  const handleGoldenEggSave = async () => {
+    if (!goldenEggModal.campaign || !taskDetailsModal.customer?.id) return;
+
+    try {
+      await updateCustomerTaskMutation.mutateAsync({
+        customerId: taskDetailsModal.customer.id,
+        taskNumber: goldenEggModal.taskNumber,
+        data: {
+          taskCommission: goldenEggModal.campaign.taskCommission || 0,
+          taskPrice: goldenEggModal.taskPrice,
+          expiredDate: goldenEggModal.campaign.expiredDate || new Date(),
+          negativeAmount: goldenEggModal.campaign.estimatedNegativeAmount || 0,
+          priceFrom: goldenEggModal.campaign.priceFrom || 0,
+          priceTo: goldenEggModal.campaign.priceTo || 0,
+        },
+      });
+
+      toast({
+        title: t("success") || "Success",
+        description: t("taskPriceUpdated") || "Task price updated successfully",
+      });
+
+      setGoldenEggModal({
+        open: false,
+        taskNumber: 0,
+        campaign: null,
+        taskPrice: ""
+      });
+    } catch (error) {
+      toast({
+        title: t("error") || "Error",
+        description: t("failedToUpdateTaskPrice") || "Failed to update task price",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAllowTask = async (customer: any) => {
+    console.log("🎯 Allow task clicked for customer:", customer);
+    
+    try {
+      // Call API to allow customer and initialize 30 tasks
+      const response = await fetch(`/api/frontend/customer-tasks/allow/${customer.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to allow tasks");
+      }
+      
+      const data = await response.json();
+      console.log("✅ Customer tasks initialized:", data);
+      
+      // Show success message
+      toast({
+        title: t("success") || "Success",
+        description: `${data.tasksInitialized} tasks have been initialized and ${customer.username} is now allowed to start tasks!`,
+      });
+      
+      // Refresh customer list to show updated allowTask status
+      queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/frontend/customer-tasks"] });
+      
+    } catch (error: any) {
+      console.error("❌ Error allowing tasks:", error);
+      toast({
+        title: t("error") || "Error",
+        description: error.message || "Failed to allow tasks",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Fetch customers from local storage (empty now)
   const { data: customers, isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
-  if (isLoading) {
+  // Build query parameters for API
+  const queryParams = new URLSearchParams();
+  queryParams.append("limit", "100");
+  
+  if (isFiltered) {
+    if (filters.username) queryParams.append("search", filters.username);
+    if (filters.code) queryParams.append("membershipId", filters.code);
+    if (filters.phoneNumber) queryParams.append("phoneNumber", filters.phoneNumber);
+    if (filters.customerStatus && filters.customerStatus !== "all") {
+      queryParams.append("isActive", filters.customerStatus === "active" ? "true" : "false");
+    }
+    if (startDate) queryParams.append("startDate", startDate);
+    if (endDate) queryParams.append("endDate", endDate);
+  }
+
+  // Fetch users from MongoDB frontend database
+  const { data: frontendUsers, isLoading: frontendUsersLoading } = useQuery<{
+    success: boolean;
+    data: any[];
+  }>({
+    queryKey: ["/api/frontend/users?" + queryParams.toString()],
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+  });
+
+  const handleCreateCustomer = () => {
+    setLocation("/customer/create");
+  };
+
+  const handleEditBalance = async (customer: any) => {
+    console.log("📝 Opening edit balance modal for customer:", customer);
+    
+    // Refetch latest data before opening modal
+    await queryClient.refetchQueries({ queryKey: ["/api/frontend/users"] });
+    
+    // Find the latest customer data
+    const latestUsers = queryClient.getQueryData(["/api/frontend/users"]) as any;
+    const latestCustomer = latestUsers?.data?.find((u: any) => u._id === customer.id);
+    
+    console.log("📊 Latest customer data:", latestCustomer);
+    
+    // Update customer object with latest balance
+    const updatedCustomer = {
+      ...customer,
+      walletBalance: latestCustomer?.accountBalance?.toString() || customer.walletBalance,
+      actualWalletBalance: latestCustomer?.accountBalance?.toString() || customer.actualWalletBalance,
+    };
+    
+    console.log("💰 Current balance:", updatedCustomer.walletBalance);
+    
+    setEditBalanceModal({
+      open: true,
+      customer: updatedCustomer,
+    });
+    setBalanceAmount("");
+    setBalanceOperation("add");
+  };
+
+  const handleOpenTaskDetails = (customer: any) => {
+    console.log("📋 Opening task details for customer:", customer);
+    setTaskDetailsModal({
+      open: true,
+      customer,
+      activeTab: "allTask"
+    });
+  };
+
+  const updateBalanceMutation = useMutation({
+    mutationFn: async ({ userId, amount, operation }: { userId: string; amount: number; operation: string }) => {
+      console.log("📤 Updating balance:", { userId, amount, operation });
+      const response = await apiRequest("PATCH", `/api/frontend/users/${userId}/balance`, { amount, operation });
+      console.log("📥 Balance update response:", response);
+      return response;
+    },
+    onSuccess: async (data: any) => {
+      console.log("✅ Balance updated successfully:", data);
+      
+      // Force refetch to get updated data
+      await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/frontend/users"] });
+      
+      toast({
+        title: "✅ Success!",
+        description: `Balance updated successfully. Old: $${data.oldBalance} → New: $${data.newBalance}`,
+        duration: 5000,
+      });
+      
+      // Close modal after a short delay to show success
+      setTimeout(() => {
+        setEditBalanceModal({ open: false, customer: null });
+        setBalanceAmount("");
+      }, 500);
+    },
+    onError: (error: any) => {
+      console.error("❌ Error updating balance:", error);
+      toast({
+        title: "❌ Error!",
+        description: error?.message || "Failed to update balance",
+        variant: "destructive",
+        duration: 5000,
+      });
+    },
+  });
+
+  const handleBalanceSubmit = () => {
+    if (!balanceAmount || Number(balanceAmount) <= 0) {
+      toast({
+        title: "⚠️ Validation Error",
+        description: "Please enter a valid amount greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateBalanceMutation.mutate({
+      userId: editBalanceModal.customer.id,
+      amount: Number(balanceAmount),
+      operation: balanceOperation,
+    });
+  };
+
+  // Apply filters
+  const handleFilter = async () => {
+    console.log("🔍 Applying filters:", filters);
+    setIsFiltered(true);
+    // Refetch with new filters
+    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+    await queryClient.refetchQueries({ queryKey: ["/api/frontend/users"] });
+  };
+
+  const handleResetFilter = async () => {
+    console.log("🔄 Resetting filters");
+    setFilters({
+      username: "",
+      code: "",
+      ipAddress: "",
+      phoneNumber: "",
+      customerStatus: "all",
+      onlineStatus: "all"
+    });
+    setStartDate("2025-10-01");
+    setEndDate("2025-10-02");
+    setIsFiltered(false);
+    // Refetch all data
+    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+    await queryClient.refetchQueries({ queryKey: ["/api/frontend/users"] });
+  };
+
+  // Use frontend users as customers
+  const displayCustomers = frontendUsers?.data?.map((user: any) => ({
+    id: user._id,
+    code: user.membershipId,
+    username: user.name,
+    email: user.email,
+    actualWalletBalance: user.accountBalance.toString(),
+    walletBalance: user.accountBalance.toString(),
+    loginPassword: user.password || "N/A",
+    payPassword: user.withdrawalPassword || "N/A",
+    phoneNumber: user.phoneNumber || "N/A",
+    referralCode: user.referralCode,
+    ipAddress: "N/A",
+    ipCountry: "N/A",
+    ipRegion: "N/A",
+    ipISP: "N/A",
+    vipLevel: user.level,
+    taskCount: user.campaignsCompleted,
+    completedTasks: user.campaignsCompleted,
+    todayCompleted: 0,
+    totalDeposit: "0",
+    todayCommission: "0",
+    totalCommission: user.totalEarnings.toString(),
+    creditScore: user.creditScore,
+    isActive: true,
+    allowTask: true,
+    allowCompleteTask: true,
+    allowWithdraw: true,
+    allowReferral: true,
+    createdBy: "System",
+    updatedBy: "System",
+    createdAt: new Date(user.createdAt),
+    updatedAt: new Date(user.createdAt),
+  })) || [];
+
+  if (isLoading || frontendUsersLoading) {
     return (
       <div className="p-6">
         <div className="h-96 bg-muted animate-pulse rounded-lg" />
@@ -28,13 +470,18 @@ export default function CustomerManagement() {
     <div className="p-6">
       <div className="bg-card rounded-lg p-6 mb-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Customer Management</h2>
-          <Button data-testid="button-create-customer">Create Customer</Button>
+          <h2 className="text-xl font-semibold">{t('customerManagement')}</h2>
+          <Button 
+            data-testid="button-create-customer"
+            onClick={handleCreateCustomer}
+          >
+            {t('createCustomer')}
+          </Button>
         </div>
 
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div>
-            <Label className="text-muted-foreground">*Created Date:</Label>
+            <Label className="text-muted-foreground">*{t('createdDate')}:</Label>
             <div className="flex gap-2 mt-1">
               <Input
                 data-testid="input-start-date"
@@ -53,55 +500,85 @@ export default function CustomerManagement() {
           </div>
 
           <div>
-            <Label className="text-muted-foreground">Login User Name:</Label>
-            <Input data-testid="input-username" className="mt-1" />
+            <Label className="text-muted-foreground">{t('loginUserName')}:</Label>
+            <Input 
+              data-testid="input-username" 
+              className="mt-1" 
+              value={filters.username}
+              onChange={(e) => setFilters({ ...filters, username: e.target.value })}
+              placeholder="Enter username"
+            />
           </div>
 
           <div>
-            <Label className="text-muted-foreground">Code:</Label>
-            <Input data-testid="input-code" className="mt-1" />
+            <Label className="text-muted-foreground">{t('code')}:</Label>
+            <Input 
+              data-testid="input-code" 
+              className="mt-1" 
+              value={filters.code}
+              onChange={(e) => setFilters({ ...filters, code: e.target.value })}
+              placeholder="Enter code"
+            />
           </div>
 
           <div>
-            <Label className="text-muted-foreground">IP Address:</Label>
-            <Input data-testid="input-ip" className="mt-1" />
+            <Label className="text-muted-foreground">{t('ipAddress')}:</Label>
+            <Input 
+              data-testid="input-ip" 
+              className="mt-1" 
+              value={filters.ipAddress}
+              onChange={(e) => setFilters({ ...filters, ipAddress: e.target.value })}
+              placeholder="Enter IP address"
+            />
           </div>
 
           <div>
-            <Label className="text-muted-foreground">Phone Number:</Label>
-            <Input data-testid="input-phone" className="mt-1" />
+            <Label className="text-muted-foreground">{t('phoneNumber')}:</Label>
+            <Input 
+              data-testid="input-phone" 
+              className="mt-1" 
+              value={filters.phoneNumber}
+              onChange={(e) => setFilters({ ...filters, phoneNumber: e.target.value })}
+              placeholder="Enter phone number"
+            />
           </div>
 
           <div>
-            <Label className="text-muted-foreground">Customer Status:</Label>
-            <Select>
+            <Label className="text-muted-foreground">{t('customerStatus')}:</Label>
+            <Select value={filters.customerStatus} onValueChange={(value) => setFilters({ ...filters, customerStatus: value })}>
               <SelectTrigger data-testid="select-status" className="mt-1">
-                <SelectValue placeholder="Please select status..." />
+                <SelectValue placeholder={t('pleaseSelectStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="all">{t('all')}</SelectItem>
+                <SelectItem value="active">{t('active')}</SelectItem>
+                <SelectItem value="inactive">{t('inactive')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label className="text-muted-foreground">Online/Offline:</Label>
-            <Select defaultValue="all">
+            <Label className="text-muted-foreground">{t('onlineOffline')}:</Label>
+            <Select value={filters.onlineStatus} onValueChange={(value) => setFilters({ ...filters, onlineStatus: value })}>
               <SelectTrigger data-testid="select-online-status" className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="online">Online</SelectItem>
-                <SelectItem value="offline">Offline</SelectItem>
+                <SelectItem value="all">{t('all')}</SelectItem>
+                <SelectItem value="online">{t('online')}</SelectItem>
+                <SelectItem value="offline">{t('offline')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div className="flex justify-center">
-          <Button data-testid="button-filter" className="px-8">Filter</Button>
+        <div className="flex justify-center gap-3">
+          <Button data-testid="button-filter" className="px-8" onClick={handleFilter}>{t('filter')}</Button>
+          {isFiltered && (
+            <Button data-testid="button-reset-filter" variant="outline" className="px-8" onClick={handleResetFilter}>
+              Reset Filter
+            </Button>
+          )}
         </div>
       </div>
 
@@ -110,98 +587,129 @@ export default function CustomerManagement() {
           <TableHeader>
             <TableRow className="bg-muted">
               <TableHead className="text-muted-foreground">#</TableHead>
-              <TableHead className="text-muted-foreground">Details</TableHead>
-              <TableHead className="text-muted-foreground">Account Management</TableHead>
-              <TableHead className="text-muted-foreground">Bank Account Details</TableHead>
+              <TableHead className="text-muted-foreground">{t('details')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('accountManagement')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('bankAccountDetails')}</TableHead>
               <TableHead className="text-muted-foreground">IP</TableHead>
-              <TableHead className="text-muted-foreground">Task Plan</TableHead>
-              <TableHead className="text-muted-foreground">Setting</TableHead>
-              <TableHead className="text-muted-foreground">Status</TableHead>
+              <TableHead className="text-muted-foreground">{t('taskPlan')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('setting')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('status')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {customers?.map((customer, index) => (
+            {displayCustomers?.map((customer: any, index: number) => (
               <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`} className="hover:bg-muted/50">
                 <TableCell className="text-sm">{28009 - index}</TableCell>
                 <TableCell>
                   <div className="text-sm space-y-1">
-                    <div><span className="text-muted-foreground">Code:</span> {customer.code}</div>
-                    <div><span className="text-muted-foreground">UserName:</span> {customer.username}</div>
-                    <div><span className="text-muted-foreground">Email:</span> {customer.email}</div>
-                    <div><span className="text-muted-foreground">Actual Wallet Balance:</span> {customer.actualWalletBalance}</div>
-                    <div><span className="text-muted-foreground">Wallet Balance:</span> {customer.walletBalance}</div>
-                    <div><span className="text-muted-foreground">Login Password:</span> {customer.loginPassword}</div>
-                    <div><span className="text-muted-foreground">Pay Password:</span> {customer.payPassword}</div>
-                    <div><span className="text-muted-foreground">Phone Number:</span> {customer.phoneNumber}</div>
-                    <div><span className="text-muted-foreground">Referral Code:</span> {customer.referralCode}</div>
-                    <div className="text-blue-600">By: {customer.createdBy} Created</div>
-                    <div><span className="text-muted-foreground">By:</span> {customer.updatedBy} Updated</div>
-                    <div><span className="text-muted-foreground">Updated At:</span> {customer.updatedAt?.toLocaleString() ?? 'N/A'}</div>
+                    <div><span className="text-muted-foreground">{t('code')}:</span> {customer.code}</div>
+                    <div><span className="text-muted-foreground">{t('userName')}:</span> {customer.username}</div>
+                    <div><span className="text-muted-foreground">{t('email')}:</span> {customer.email}</div>
+                    <div><span className="text-muted-foreground">{t('actualWalletBalance')}:</span> {customer.actualWalletBalance}</div>
+                    <div><span className="text-muted-foreground">{t('walletBalance')}:</span> {customer.walletBalance}</div>
+                    <div><span className="text-muted-foreground">{t('loginPassword')}:</span> {customer.loginPassword}</div>
+                    <div><span className="text-muted-foreground">{t('payPassword')}:</span> {customer.payPassword}</div>
+                    <div><span className="text-muted-foreground">{t('phoneNumber')}:</span> {customer.phoneNumber}</div>
+                    <div><span className="text-muted-foreground">{t('referralCode')}:</span> {customer.referralCode}</div>
+                    <div className="text-blue-600">{t('by')}: {customer.createdBy} {t('created')}</div>
+                    <div><span className="text-muted-foreground">{t('by')}:</span> {customer.updatedBy} {t('updated')}</div>
+                    <div><span className="text-muted-foreground">{t('updatedAt')}:</span> {customer.updatedAt?.toLocaleString() ?? 'N/A'}</div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span>Actual Account</span>
+                      <span>{t('actualAccount')}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div 
+                      className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+                      onClick={() => handleAllowTask(customer)}
+                    >
                       {customer.allowTask ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
                       <span className={customer.allowTask ? "text-blue-600" : ""}>
-                        {customer.allowTask ? "Allow To Start Task" : "Not Allowed To Start Task"}
+                        {customer.allowTask ? t('allowToStartTask') : t('notAllowedToStartTask')}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       {customer.allowCompleteTask ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
                       <span className={customer.allowCompleteTask ? "text-blue-600" : ""}>
-                        {customer.allowCompleteTask ? "Allow To Complete Task" : "Not Allowed To Complete Task"}
+                        {customer.allowCompleteTask ? t('allowToCompleteTask') : t('notAllowedToCompleteTask')}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       {customer.allowWithdraw ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
-                      <span>{customer.allowWithdraw ? "Allowed To Withdraw" : "Not Allowed To Withdraw"}</span>
+                      <span>{customer.allowWithdraw ? t('allowedToWithdraw') : t('notAllowedToWithdraw')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {customer.allowReferral ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
                       <span className={customer.allowReferral ? "text-blue-600" : ""}>
-                        {customer.allowReferral ? "Allow To Use Referral Code" : "Not Allowed To Use Referral Code"}
+                        {customer.allowReferral ? t('allowToUseReferralCode') : t('notAllowedToUseReferralCode')}
                       </span>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm space-y-1">
-                    <div><span className="text-muted-foreground">Phone Number:</span> {customer.phoneNumber}</div>
+                    <div><span className="text-muted-foreground">{t('phoneNumber')}:</span> {customer.phoneNumber}</div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm space-y-1">
-                    <div><span className="text-muted-foreground">IP Address:</span> {customer.ipAddress}</div>
-                    <div><span className="text-muted-foreground">IP Country:</span> {customer.ipCountry}</div>
-                    <div><span className="text-muted-foreground">IP Region:</span> {customer.ipRegion}</div>
-                    <div><span className="text-muted-foreground">IP ISP:</span> {customer.ipISP}</div>
+                    <div><span className="text-muted-foreground">{t('ipAddress')}:</span> {customer.ipAddress}</div>
+                    <div><span className="text-muted-foreground">{t('ipCountry')}:</span> {customer.ipCountry}</div>
+                    <div><span className="text-muted-foreground">{t('ipRegion')}:</span> {customer.ipRegion}</div>
+                    <div><span className="text-muted-foreground">{t('ipISP')}:</span> {customer.ipISP}</div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm space-y-1">
-                    <div><span className="text-muted-foreground">Level:</span> {customer.vipLevel}</div>
-                    <div><span className="text-muted-foreground">Everyday:</span> {customer.taskCount}</div>
-                    <div><span className="text-muted-foreground">Today:</span> Completed: {customer.todayCompleted} Task</div>
-                    <div>Completed: {customer.completedTasks}</div>
-                    <div><span className="text-muted-foreground">Total Deposit:</span> $ {customer.totalDeposit}</div>
-                    <div><span className="text-muted-foreground">Today Commission:</span> $ {customer.todayCommission}</div>
-                    <div><span className="text-muted-foreground">Total Commission:</span> $ {customer.totalCommission}</div>
-                    <div><span className="text-muted-foreground">Credit Score:</span> {customer.creditScore}</div>
+                    <div><span className="text-muted-foreground">{t('level')}:</span> {customer.vipLevel}</div>
+                    <div><span className="text-muted-foreground">{t('everyday')}:</span> {customer.taskCount}</div>
+                    <div><span className="text-muted-foreground">{t('today')}:</span> {t('completed')}: {customer.todayCompleted} {t('task')}</div>
+                    <div>{t('completed')}: {customer.completedTasks}</div>
+                    <div><span className="text-muted-foreground">{t('totalDeposit')}:</span> $ {customer.totalDeposit}</div>
+                    <div><span className="text-muted-foreground">{t('todayCommission')}:</span> $ {customer.todayCommission}</div>
+                    <div><span className="text-muted-foreground">{t('totalCommission')}:</span> $ {customer.totalCommission}</div>
+                    <div><span className="text-muted-foreground">{t('creditScore')}:</span> {customer.creditScore}</div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-2">
-                    <Button data-testid={`button-task-${customer.id}`} size="sm" className="text-xs">Task</Button>
-                    <Button data-testid={`button-combo-${customer.id}`} size="sm" className="text-xs">Combo Task</Button>
-                    <Button data-testid={`button-level-${customer.id}`} size="sm" className="text-xs">Level</Button>
-                    <Button data-testid={`button-edit-balance-${customer.id}`} size="sm" className="text-xs">Edit Balance</Button>
-                    <Button data-testid={`button-reset-task-${customer.id}`} size="sm" className="text-xs">Reset Task</Button>
-                    <Button data-testid={`button-edit-profile-${customer.id}`} size="sm" className="text-xs">Edit Profile</Button>
+                    <Button 
+                      data-testid={`button-task-${customer.id}`} 
+                      size="sm" 
+                      className="text-xs"
+                      onClick={() => handleOpenTaskDetails(customer)}
+                    >
+                      {t('task')}
+                    </Button>
+                    <Button 
+                      data-testid={`button-combo-${customer.id}`} 
+                      size="sm" 
+                      className="text-xs"
+                      onClick={() => setTaskDetailsModal({ open: true, customer, activeTab: "comboTaskSetting" })}
+                    >
+                      {t('comboTask')}
+                    </Button>
+                    <Button data-testid={`button-level-${customer.id}`} size="sm" className="text-xs">{t('level')}</Button>
+                    <Button 
+                      data-testid={`button-edit-balance-${customer.id}`} 
+                      size="sm" 
+                      className="text-xs"
+                      onClick={() => handleEditBalance(customer)}
+                    >
+                      {t('editBalance')}
+                    </Button>
+                    <Button data-testid={`button-reset-task-${customer.id}`} size="sm" className="text-xs">{t('resetTask')}</Button>
+                    <Button 
+                      data-testid={`button-edit-profile-${customer.id}`} 
+                      size="sm" 
+                      className="text-xs"
+                      onClick={() => setLocation(`/customer/edit/${customer.id}`)}
+                    >
+                      {t('editProfile')}
+                    </Button>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -211,7 +719,7 @@ export default function CustomerManagement() {
                     size="sm"
                     className={customer.isActive ? "bg-success hover:bg-success/90" : ""}
                   >
-                    {customer.isActive ? "Activate" : "Deactivate"}
+                    {customer.isActive ? t('activate') : t('deactivate')}
                   </Button>
                 </TableCell>
               </TableRow>
@@ -221,7 +729,7 @@ export default function CustomerManagement() {
 
         <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Rows per page:</span>
+            <span>{t('rowsPerPage')}:</span>
             <Select defaultValue="100">
               <SelectTrigger data-testid="select-rows-per-page" className="w-20">
                 <SelectValue />
@@ -234,10 +742,469 @@ export default function CustomerManagement() {
             </Select>
           </div>
           <div className="text-sm text-muted-foreground">
-            1-{customers?.length} of {customers?.length}
+            1-{displayCustomers?.length} of {displayCustomers?.length}
           </div>
         </div>
       </div>
+
+      {/* Edit Balance Modal */}
+      <Dialog open={editBalanceModal.open} onOpenChange={(open) => setEditBalanceModal({ open, customer: null })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('editCustomerBalance')}</DialogTitle>
+          </DialogHeader>
+          
+          {editBalanceModal.customer && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">{t('customerInformation')}</Label>
+                <div className="text-sm space-y-1 p-3 bg-muted rounded-md">
+                  <div><span className="text-muted-foreground">{t('name')}:</span> {editBalanceModal.customer.username}</div>
+                  <div><span className="text-muted-foreground">{t('code')}:</span> {editBalanceModal.customer.code}</div>
+                  <div><span className="text-muted-foreground">{t('email')}:</span> {editBalanceModal.customer.email}</div>
+                  <div className="font-semibold text-primary">
+                    <span className="text-muted-foreground">{t('currentBalance')}:</span> ${editBalanceModal.customer.walletBalance}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="operation">{t('operation')}</Label>
+                <Select value={balanceOperation} onValueChange={(value: "add" | "subtract") => setBalanceOperation(value)}>
+                  <SelectTrigger id="operation">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="add">{t('add')} (+)</SelectItem>
+                    <SelectItem value="subtract">{t('subtract')} (-)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="amount">{t('amount')}</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder={t('enterAmount')}
+                  value={balanceAmount}
+                  onChange={(e) => setBalanceAmount(e.target.value)}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              {balanceAmount && (
+                <div className="p-3 bg-muted rounded-md">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">{t('newBalanceWillBe')}:</span>{" "}
+                    <span className="font-semibold text-primary">
+                      ${balanceOperation === "add" 
+                        ? (Number(editBalanceModal.customer.walletBalance) + Number(balanceAmount)).toFixed(2)
+                        : (Number(editBalanceModal.customer.walletBalance) - Number(balanceAmount)).toFixed(2)
+                      }
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditBalanceModal({ open: false, customer: null })}
+              disabled={updateBalanceMutation.isPending}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              onClick={handleBalanceSubmit}
+              disabled={updateBalanceMutation.isPending}
+            >
+              {updateBalanceMutation.isPending ? t('updating') : t('updateBalance')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Task Details Dialog */}
+      <Dialog open={taskDetailsModal.open} onOpenChange={(open) => setTaskDetailsModal({ ...taskDetailsModal, open })}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <div className="flex justify-between items-center">
+              <DialogTitle className="text-lg font-semibold">{t('customerTaskDetails')}</DialogTitle>
+              <button
+                onClick={() => setTaskDetailsModal({ open: false, customer: null, activeTab: "allTask" })}
+                className="rounded-full p-1 hover:bg-muted"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </DialogHeader>
+
+          {taskDetailsModal.customer && (
+            <div className="space-y-4">
+              {/* Tabs */}
+              <div className="flex gap-2 border-b">
+                <button
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    taskDetailsModal.activeTab === "allTask"
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setTaskDetailsModal({ ...taskDetailsModal, activeTab: "allTask" })}
+                >
+                  {t('allTask') || 'All Task'}
+                </button>
+                <button
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    taskDetailsModal.activeTab === "comboTaskSetting"
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setTaskDetailsModal({ ...taskDetailsModal, activeTab: "comboTaskSetting" })}
+                >
+                  {t('comboTaskSetting') || 'Combo Task Setting'}
+                </button>
+                <button
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    taskDetailsModal.activeTab === "comboTaskHistory"
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setTaskDetailsModal({ ...taskDetailsModal, activeTab: "comboTaskHistory" })}
+                >
+                  {t('comboTaskHistory') || 'Combo Task History'}
+                </button>
+              </div>
+
+              {/* Customer Info */}
+              <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
+                <div>
+                  <span className="text-sm text-muted-foreground">{t('code')}:</span>
+                  <div className="font-medium">{taskDetailsModal.customer.code}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">{t('loginUserName')}:</span>
+                  <div className="font-medium">{taskDetailsModal.customer.username}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">{t('completed')}:</span>
+                  <div className="font-medium">{taskDetailsModal.customer.completedTasks || 0}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">{t('currentTask') || 'Current Task'}:</span>
+                  <div className="font-medium">{taskDetailsModal.customer.taskCount || 0}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">{t('actualWalletBalance')}:</span>
+                  <div className="font-medium">{taskDetailsModal.customer.actualWalletBalance || 0}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">{t('walletBalance')}:</span>
+                  <div className="font-medium">{taskDetailsModal.customer.walletBalance || 0}</div>
+                </div>
+              </div>
+
+              {/* Tab Content */}
+              {taskDetailsModal.activeTab === "allTask" && (
+                <div className="space-y-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('details')}</TableHead>
+                        <TableHead>{t('price')}</TableHead>
+                        <TableHead>{t('profit')}</TableHead>
+                        <TableHead>{t('status')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {customerTasksData?.data?.slice(0, 10).map((task: any) => (
+                        <TableRow key={task._id}>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="font-medium">Task {task.taskNumber}</div>
+                              <div className="text-sm text-muted-foreground">Code: {task.customerCode}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">{task.taskPrice || 0}</TableCell>
+                          <TableCell className="font-medium">{task.taskCommission || 0}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              task.status === 'completed' 
+                                ? 'bg-green-100 text-green-800' 
+                                : task.status === 'expired'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {task.status || 'pending'}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {!customerTasksData?.data?.length && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            {t('noTasksFound') || 'No tasks found'}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {taskDetailsModal.activeTab === "comboTaskSetting" && (
+                <div className="space-y-4">
+                  <div className="text-lg font-semibold">{t('comboTaskNumber') || 'Combo Task Number'}</div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">#</TableHead>
+                        <TableHead>{t('taskCommission') || 'Task Commission'}</TableHead>
+                        <TableHead>{t('taskPrice') || 'Task Price'}</TableHead>
+                        <TableHead>{t('estimatedNegativeAmount') || 'Estimated Negative Amount'}</TableHead>
+                        <TableHead className="text-center">{t('goldenEgg') || 'Golden Egg'}</TableHead>
+                        <TableHead>{t('expiredDate') || 'Expired Date'}</TableHead>
+                        <TableHead className="w-48"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {customerTasksData?.data?.map((task: any) => {
+                        const commission = task.taskCommission || 0;
+                        const taskPrice = task.taskPrice || 0;
+                        const estimatedNegative = task.estimatedNegativeAmount || 0;
+                        const hasGoldenEgg = task.hasGoldenEgg || false;
+                        const expiredDate = task.expiredDate 
+                          ? new Date(task.expiredDate).toLocaleDateString() 
+                          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString();
+
+                        return (
+                          <TableRow key={task._id}>
+                            <TableCell className="font-medium">Task {task.taskNumber}</TableCell>
+                            <TableCell>
+                              {commission > 0 ? (
+                                <span className="font-medium">{commission}</span>
+                              ) : (
+                                <span className="text-red-600">{t('notSet') || 'Not Set'}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {taskPrice > 0 ? (
+                                <span className="font-medium">{taskPrice}</span>
+                              ) : (
+                                <span className="text-red-600">{t('notSet') || 'Not Set'}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {estimatedNegative < 0 ? (
+                                <span className="font-medium">{estimatedNegative}</span>
+                              ) : (
+                                <span className="text-red-600">{t('notSet') || 'Not Set'}</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {hasGoldenEgg ? (
+                                <span className="text-green-600 font-medium">✓ Active</span>
+                              ) : (
+                                <span className="text-red-600">✕ {t('notSet') || 'Not Set'}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-medium">{expiredDate}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  className="bg-primary"
+                                  onClick={() => handleTaskClick(task, task.taskNumber)}
+                                >
+                                  {t('task')}
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  className="bg-yellow-500 hover:bg-yellow-600"
+                                  onClick={() => handleGoldenEggClick(task, task.taskNumber)}
+                                >
+                                  {t('goldenEgg') || 'Golden Egg'}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {!customerTasksData?.data?.length && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground">
+                            {t('noTasksAvailable') || 'No tasks available'}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {taskDetailsModal.activeTab === "comboTaskHistory" && (
+                <div className="p-4 text-center text-muted-foreground">
+                  {t('comboTaskHistory') || 'Combo Task History'}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Task Edit Modal */}
+      <Dialog open={taskEditModal.open} onOpenChange={(open) => setTaskEditModal({ ...taskEditModal, open })}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setTaskEditModal({ ...taskEditModal, open: false })}
+                className="flex items-center gap-2"
+              >
+                ← {t('back') || 'Back'}
+              </Button>
+              <DialogTitle className="text-lg">
+                {t('task')} {taskEditModal.taskNumber} {t('comboTask')} (?)
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="taskCommission">{t('taskCommission') || 'Task Commission'} *</Label>
+                <Input
+                  id="taskCommission"
+                  type="number"
+                  value={taskEditModal.taskCommission}
+                  onChange={(e) => setTaskEditModal({ ...taskEditModal, taskCommission: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="expiredDate">{t('expiredDate') || 'Expired Date'}</Label>
+                <Input
+                  id="expiredDate"
+                  type="date"
+                  value={taskEditModal.expiredDate}
+                  onChange={(e) => setTaskEditModal({ ...taskEditModal, expiredDate: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="negativeAmount">{t('negativeAmountFrom') || 'Negative Amount From'} *</Label>
+                <Input
+                  id="negativeAmount"
+                  type="number"
+                  value={taskEditModal.negativeAmount}
+                  onChange={(e) => setTaskEditModal({ ...taskEditModal, negativeAmount: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>{t('searchTaskPriceFrom') || 'Search Task Price From'} *</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    type="number"
+                    value={taskEditModal.priceFrom}
+                    onChange={(e) => setTaskEditModal({ ...taskEditModal, priceFrom: e.target.value })}
+                    placeholder="0"
+                  />
+                  <span className="flex items-center px-2">-</span>
+                  <Input
+                    type="number"
+                    value={taskEditModal.priceTo}
+                    onChange={(e) => setTaskEditModal({ ...taskEditModal, priceTo: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="taskOption"> </Label>
+                <Select 
+                  value={taskEditModal.selectedOption} 
+                  onValueChange={(value) => setTaskEditModal({ ...taskEditModal, selectedOption: value })}
+                >
+                  <SelectTrigger id="taskOption" className="mt-1">
+                    <SelectValue placeholder={t('select') || 'Select...'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="option1">{t('option1') || 'Option 1'}</SelectItem>
+                    <SelectItem value="option2">{t('option2') || 'Option 2'}</SelectItem>
+                    <SelectItem value="option3">{t('option3') || 'Option 3'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex justify-center pt-4">
+              <Button
+                onClick={handleTaskEditSave}
+                className="px-12"
+              >
+                {t('save')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Golden Egg Edit Modal */}
+      <Dialog open={goldenEggModal.open} onOpenChange={(open) => setGoldenEggModal({ ...goldenEggModal, open })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setGoldenEggModal({ ...goldenEggModal, open: false })}
+                className="flex items-center gap-2"
+              >
+                ← {t('back') || 'Back'}
+              </Button>
+              <DialogTitle className="text-lg">
+                {t('task')} {goldenEggModal.taskNumber} {t('comboTask')} (?)
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div>
+              <Label htmlFor="goldenEggPrice">{t('taskPrice') || 'Task Price'} *</Label>
+              <Input
+                id="goldenEggPrice"
+                type="number"
+                value={goldenEggModal.taskPrice}
+                onChange={(e) => setGoldenEggModal({ ...goldenEggModal, taskPrice: e.target.value })}
+                className="mt-2"
+                placeholder="0"
+              />
+            </div>
+
+            <div className="flex justify-center pt-4">
+              <Button
+                onClick={handleGoldenEggSave}
+                className="px-12 bg-yellow-500 hover:bg-yellow-600"
+              >
+                {t('save')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

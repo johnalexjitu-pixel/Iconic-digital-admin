@@ -1,0 +1,79 @@
+Sync Service File Structure
+============================
+
+AdminPanelClone/sync-service/
+│
+├── Configuration & Setup
+│   ├── package.json                 # Dependencies: axios, express, winston, dotenv, jest
+│   ├── tsconfig.json                # TypeScript configuration (ESM, strict mode)
+│   ├── jest.config.js               # Jest test configuration
+│   ├── .gitignore                   # Ignore node_modules, dist, logs, .env
+│   └── .env.example                 # Environment variables template
+│
+├── Documentation
+│   ├── README.md                    # Complete setup and usage guide (7.8 KB)
+│   ├── PR_DESCRIPTION.md            # Pull request description and deployment guide (7.9 KB)
+│   ├── IMPLEMENTATION_SUMMARY.md    # Implementation checklist and quick start (8.6 KB)
+│   └── FILE_TREE.txt                # This file
+│
+├── Git Tools
+│   ├── create-commits.sh            # Bash script for creating 8 semantic commits
+│   └── create-commits.ps1           # PowerShell script for creating 8 semantic commits
+│
+└── src/
+    │
+    ├── Core Files
+    │   ├── index.ts                 # Express server entry point
+    │   ├── config.ts                # Configuration, mappings, validation
+    │   ├── logger.ts                # Winston structured logging
+    │   ├── http-client.ts           # Axios with retry logic & exponential backoff
+    │   ├── routes.ts                # API endpoints (/sync/run, /sync/mappings, etc.)
+    │   └── syncController.ts        # Core sync logic (fetch, transform, send, batch)
+    │
+    ├── transformers/
+    │   ├── index.ts                 # Transformer registry
+    │   ├── createArticle.ts         # Admin article → User article
+    │   ├── updateUser.ts            # Admin user → User site user
+    │   └── syncCustomers.ts         # Admin customer → User customer
+    │
+    └── __tests__/
+        └── syncController.test.ts   # Unit tests with mocked HTTP clients
+
+Generated at Runtime:
+├── logs/
+│   ├── sync.log                     # All sync operations with request IDs
+│   └── error.log                    # Errors only
+│
+├── dist/                            # Built JavaScript (npm run build)
+│   └── *.js files
+│
+└── node_modules/                    # Dependencies (npm install)
+
+Statistics:
+-----------
+• Total source files: 14 TypeScript files
+• Total test files: 1 test suite
+• Documentation: 4 markdown files + this file
+• Configuration: 5 config files
+• Lines of code: ~1,500+ lines
+• Dependencies: 4 production, 5 dev dependencies
+• API endpoints: 5 REST endpoints
+• Data transformers: 3 transformers + registry
+• Example mappings: 4 endpoint mappings
+
+Key Features:
+-------------
+✓ TypeScript with ESM modules
+✓ Express REST API server
+✓ Winston structured logging
+✓ Axios with retry logic
+✓ Jest unit testing
+✓ Idempotency support
+✓ Rate limiting
+✓ Dry-run mode
+✓ Batch processing
+✓ Error handling (4xx skip, 5xx retry)
+✓ Environment-based config
+✓ No frontend modifications
+✓ No database access
+✓ API-only integration

@@ -10,29 +10,31 @@ import {
   FileCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutGrid },
-  { href: "/customer-management", label: "Customer Management", icon: Users },
-  { href: "/task-management", label: "Task Management", icon: ClipboardList },
+  { href: "/", labelKey: "dashboard", icon: LayoutGrid },
+  { href: "/customer-management", labelKey: "customerManagement", icon: Users },
+  { href: "/task-management", labelKey: "taskManagement", icon: ClipboardList },
   {
     href: "/withdrawal-management",
-    label: "Withdrawal Management",
+    labelKey: "withdrawalManagement",
     icon: Banknote,
     badge: 342,
   },
-  { href: "/user-management", label: "User Management", icon: UserCog },
-  { href: "/master-data", label: "Master Data Management", icon: Database },
-  { href: "/vip-level", label: "VIP Level Management", icon: Crown },
+  { href: "/user-management", labelKey: "userManagement", icon: UserCog },
+  { href: "/master-data", labelKey: "masterData", icon: Database },
+  { href: "/vip-level", labelKey: "vipLevel", icon: Crown },
   {
     href: "/tasklist-expiration",
-    label: "Customer Tasklist Expiration",
+    labelKey: "tasklistExpiration",
     icon: FileCheck,
   },
 ];
 
 export default function Sidebar() {
   const [location] = useLocation();
+  const { t } = useTranslation();
 
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col pt-2 px-4 pb-4">
@@ -54,7 +56,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              data-testid={`link-nav-${item.label
+              data-testid={`link-nav-${item.labelKey
                 .toLowerCase()
                 .replace(/\s+/g, "-")}`}
               className={cn(
@@ -65,7 +67,7 @@ export default function Sidebar() {
               )}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
-              <span className="flex-1 truncate">{item.label}</span>
+              <span className="flex-1 truncate">{t(item.labelKey)}</span>
               {item.badge && (
                 <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded">
                   {item.badge}
