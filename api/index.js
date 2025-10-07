@@ -155,8 +155,9 @@ export default async function handler(req, res) {
           total: products.length
         });
       } else if (path === '/api/products') {
-        const productsCollection = database.collection('products');
-        const products = await productsCollection
+        // Fetch products from campaigns collection (as mentioned in frontend comment)
+        const campaignsCollection = database.collection('campaigns');
+        const products = await campaignsCollection
           .find({})
           .sort({ createdAt: -1 })
           .toArray();
@@ -248,7 +249,7 @@ export default async function handler(req, res) {
             message: "Campaign created successfully"
           });
         } else {
-          // This is a product
+          // This is a product - save to campaigns collection
           const { name, price, image } = body;
           
           if (!name) {
@@ -258,7 +259,7 @@ export default async function handler(req, res) {
             });
           }
 
-          const productsCollection = database.collection('products');
+          const campaignsCollection = database.collection('campaigns');
           const productData = {
             name,
             code: `PROD_${Date.now()}`, // Auto-generate code if not provided
@@ -270,7 +271,7 @@ export default async function handler(req, res) {
             updatedAt: new Date()
           };
 
-          const result = await productsCollection.insertOne(productData);
+          const result = await campaignsCollection.insertOne(productData);
           
           res.json({
             success: true,
