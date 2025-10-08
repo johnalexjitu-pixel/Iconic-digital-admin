@@ -803,6 +803,9 @@ export default async function handler(req, res) {
       console.log("📋 Customer ID extracted:", customerId);
 
       try {
+        // Check MongoDB connection first
+        console.log("📋 Database connection status:", database ? "Connected" : "Not connected");
+        
         // Get all campaigns from campaignsCollection
         const campaignsCollection = database.collection('campaigns');
         console.log("📋 Fetching from campaignsCollection");
@@ -810,6 +813,10 @@ export default async function handler(req, res) {
         // First, let's check what collections exist
         const collections = await database.listCollections().toArray();
         console.log("📋 Available collections:", collections.map(c => c.name));
+        
+        // Check if campaigns collection exists
+        const campaignsExists = collections.some(c => c.name === 'campaigns');
+        console.log("📋 Campaigns collection exists:", campaignsExists);
         
         // Check total count in campaigns collection
         const totalCampaigns = await campaignsCollection.countDocuments();
