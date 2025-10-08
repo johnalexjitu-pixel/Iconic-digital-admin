@@ -679,68 +679,69 @@ export default async function handler(req, res) {
       });
     }
     
-    // Get customer tasks
+    // Get customer tasks - Fetch directly from campaigns collection
     else if (req.method === 'GET' && path.startsWith('/api/frontend/customer-tasks/') && !path.includes('/allow')) {
       const customerId = path.split('/')[3];
-      console.log("📋 Fetching tasks for customer:", customerId);
+      console.log("📋 Fetching customer tasks from campaignsCollection for customer:", customerId);
       console.log("📋 Full path:", path);
 
-      const customerTasksCollection = database.collection('customerTasks');
-      console.log("📋 Collection name: customerTasks");
+      // Get all campaigns from campaignsCollection
+      const campaignsCollection = database.collection('campaigns');
+      console.log("📋 Fetching from campaignsCollection");
       
-      const tasks = await customerTasksCollection
-        .find({ customerId })
-        .sort({ taskNumber: 1 })
+      const campaigns = await campaignsCollection
+        .find({})
+        .limit(30)
+        .sort({ createdAt: -1 })
         .toArray();
       
-      console.log("📋 Found tasks:", tasks.length);
+      console.log("📋 Found campaigns:", campaigns.length);
 
-      if (tasks.length === 0) {
-        console.log("No tasks found, initializing 30 tasks for customer:", customerId);
-        const campaignsCollection = database.collection('campaigns');
-        const campaigns = await campaignsCollection.find().limit(30).toArray();
-        
-        const usersCollection = database.collection('users');
-        let customer;
-        try {
-          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
-        } catch (objectIdError) {
-          // Fallback: try finding by string ID
-          customer = await usersCollection.findOne({ _id: customerId });
-        }
-        
-        if (!customer) {
-          return res.json({ success: true, data: [], total: 0 });
-        }
-
-        const newTasks = campaigns.map((campaign, index) => ({
-          customerId,
-          customerCode: customer.membershipId || "",
-          taskNumber: index + 1,
-          campaignId: campaign._id.toString(),
-          taskCommission: campaign.commissionAmount || 0,
-          taskPrice: campaign.baseAmount || 0,
-          estimatedNegativeAmount: campaign.commissionAmount ? -campaign.commissionAmount : 0,
-          priceFrom: 0,
-          priceTo: 0,
-          hasGoldenEgg: campaign.type === "Paid" || campaign.baseAmount > 10000,
-          expiredDate: campaign.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          status: 'pending',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }));
-
-        if (newTasks.length > 0) {
-          await customerTasksCollection.insertMany(newTasks);
-          const insertedTasks = await customerTasksCollection
-            .find({ customerId })
-            .sort({ taskNumber: 1 })
-            .toArray();
-          return res.json({ success: true, data: insertedTasks, total: insertedTasks.length });
-        }
+      if (campaigns.length === 0) {
+        console.log("No campaigns found in campaignsCollection");
+        return res.json({ success: true, data: [], total: 0 });
       }
 
-      res.json({ success: true, data: tasks, total: tasks.length });
+      // Get customer info
+      const usersCollection = database.collection('users');
+      let customer;
+      try {
+        customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+      } catch (objectIdError) {
+        // Fallback: try finding by string ID
+        customer = await usersCollection.findOne({ _id: customerId });
+      }
+      
+      if (!customer) {
+        console.log("Customer not found:", customerId);
+        return res.json({ success: true, data: [], total: 0 });
+      }
+
+      // Convert campaigns to customer tasks format
+      const customerTasks = campaigns.map((campaign, index) => ({
+        _id: campaign._id.toString(),
+        customerId,
+        customerCode: customer.membershipId || customer.code || "",
+        taskNumber: index + 1,
+        campaignId: campaign._id.toString(),
+        taskCommission: campaign.commissionAmount || campaign.commission || 0,
+        taskPrice: campaign.baseAmount || campaign.price || 0,
+        estimatedNegativeAmount: (campaign.commissionAmount || campaign.commission || 0) * -1,
+        priceFrom: 0,
+        priceTo: 0,
+        hasGoldenEgg: campaign.type === "Paid" || (campaign.baseAmount || 0) > 10000,
+        expiredDate: campaign.endDate || campaign.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: 'pending',
+        createdAt: campaign.createdAt || new Date(),
+        updatedAt: new Date(),
+        // Additional campaign fields
+        campaignName: campaign.brand || campaign.name || `Campaign ${index + 1}`,
+        campaignLogo: campaign.logo || "",
+        campaignType: campaign.type || "Free"
+      }));
+
+      console.log("📋 Converted to customer tasks:", customerTasks.length);
+      res.json({ success: true, data: customerTasks, total: customerTasks.length });
     }
     
     // Save/Update customer task
@@ -1688,68 +1689,68 @@ export default async function handler(req, res) {
     
     // Combo Task Management
     
-    // Get combo tasks for a specific user
+    // Get combo tasks for a specific user - Fetch from campaigns collection
     else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks/')) {
       const customerId = path.split('/')[3];
-      console.log("🎯 Fetching combo tasks for customer:", customerId);
+      console.log("🎯 Fetching combo tasks from campaignsCollection for customer:", customerId);
       console.log("🎯 Full path:", path);
 
-      const customerTasksCollection = database.collection('customerTasks');
-      console.log("🎯 Collection name: customerTasks");
+      // Get all campaigns from campaignsCollection
+      const campaignsCollection = database.collection('campaigns');
+      console.log("🎯 Fetching from campaignsCollection");
       
-      const tasks = await customerTasksCollection
-        .find({ customerId })
-        .sort({ taskNumber: 1 })
+      const campaigns = await campaignsCollection
+        .find({})
+        .limit(30)
+        .sort({ createdAt: -1 })
         .toArray();
       
-      console.log("🎯 Found combo tasks:", tasks.length);
+      console.log("🎯 Found campaigns:", campaigns.length);
 
-      // If no tasks found, initialize 30 tasks
-      if (tasks.length === 0) {
-        console.log("No combo tasks found, initializing 30 tasks for customer:", customerId);
-        const campaignsCollection = database.collection('campaigns');
-        const campaigns = await campaignsCollection.find().limit(30).toArray();
-        
-        const usersCollection = database.collection('users');
-        let customer;
-        try {
-          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
-        } catch (objectIdError) {
-          customer = await usersCollection.findOne({ _id: customerId });
-        }
-        
-        if (!customer) {
-          return res.json({ success: true, data: [], total: 0 });
-        }
-
-        const newTasks = campaigns.map((campaign, index) => ({
-          customerId,
-          customerCode: customer.membershipId || "",
-          taskNumber: index + 1,
-          campaignId: campaign._id.toString(),
-          taskCommission: campaign.commissionAmount || 0,
-          taskPrice: campaign.baseAmount || 0,
-          estimatedNegativeAmount: campaign.commissionAmount ? -campaign.commissionAmount : 0,
-          priceFrom: 0,
-          priceTo: 0,
-          hasGoldenEgg: campaign.type === "Paid" || campaign.baseAmount > 10000,
-          expiredDate: campaign.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          status: 'pending',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }));
-
-        if (newTasks.length > 0) {
-          await customerTasksCollection.insertMany(newTasks);
-          const insertedTasks = await customerTasksCollection
-            .find({ customerId })
-            .sort({ taskNumber: 1 })
-            .toArray();
-          return res.json({ success: true, data: insertedTasks, total: insertedTasks.length });
-        }
+      if (campaigns.length === 0) {
+        console.log("No campaigns found in campaignsCollection");
+        return res.json({ success: true, data: [], total: 0 });
       }
 
-      res.json({ success: true, data: tasks, total: tasks.length });
+      // Get customer info
+      const usersCollection = database.collection('users');
+      let customer;
+      try {
+        customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+      } catch (objectIdError) {
+        customer = await usersCollection.findOne({ _id: customerId });
+      }
+      
+      if (!customer) {
+        console.log("Customer not found:", customerId);
+        return res.json({ success: true, data: [], total: 0 });
+      }
+
+      // Convert campaigns to combo tasks format
+      const comboTasks = campaigns.map((campaign, index) => ({
+        _id: campaign._id.toString(),
+        customerId,
+        customerCode: customer.membershipId || customer.code || "",
+        taskNumber: index + 1,
+        campaignId: campaign._id.toString(),
+        taskCommission: campaign.commissionAmount || campaign.commission || 0,
+        taskPrice: campaign.baseAmount || campaign.price || 0,
+        estimatedNegativeAmount: (campaign.commissionAmount || campaign.commission || 0) * -1,
+        priceFrom: 0,
+        priceTo: 0,
+        hasGoldenEgg: campaign.type === "Paid" || (campaign.baseAmount || 0) > 10000,
+        expiredDate: campaign.endDate || campaign.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: 'pending',
+        createdAt: campaign.createdAt || new Date(),
+        updatedAt: new Date(),
+        // Additional campaign fields for combo tasks
+        campaignName: campaign.brand || campaign.name || `Campaign ${index + 1}`,
+        campaignLogo: campaign.logo || "",
+        campaignType: campaign.type || "Free"
+      }));
+
+      console.log("🎯 Converted to combo tasks:", comboTasks.length);
+      res.json({ success: true, data: comboTasks, total: comboTasks.length });
     }
     
     // Update combo task prices by range
