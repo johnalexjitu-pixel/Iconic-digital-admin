@@ -107,6 +107,24 @@ export default function CustomerManagement() {
     enabled: taskDetailsModal.open && !!taskDetailsModal.customer?.id,
   });
 
+  // Fetch combo tasks for combo task setting
+  const { data: comboTasksData, refetch: refetchComboTasks } = useQuery<{
+    success: boolean;
+    data: any[];
+    total: number;
+  }>({
+    queryKey: ["/api/frontend/combo-tasks", taskDetailsModal.customer?.id],
+    queryFn: async () => {
+      if (!taskDetailsModal.customer?.id) return { success: true, data: [], total: 0 };
+      console.log("🎯 Fetching combo tasks for customer ID:", taskDetailsModal.customer.id);
+      const response = await fetch(`/api/frontend/combo-tasks/${taskDetailsModal.customer.id}`);
+      const data = await response.json();
+      console.log("🎯 Combo tasks response:", data);
+      return data;
+    },
+    enabled: taskDetailsModal.open && !!taskDetailsModal.customer?.id && taskDetailsModal.activeTab === "comboTaskSetting",
+  });
+
   // Mutation for updating customer task settings
   const updateCustomerTaskMutation = useMutation({
     mutationFn: async ({ customerId, taskNumber, data }: { customerId: string; taskNumber: number; data: any }) => {
@@ -971,7 +989,7 @@ export default function CustomerManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {customerTasksData?.data?.map((task: any) => {
+                      {comboTasksData?.data?.map((task: any) => {
                         const commission = task.taskCommission || 0;
                         const taskPrice = task.taskPrice || 0;
                         const estimatedNegative = task.estimatedNegativeAmount || 0;
@@ -1035,7 +1053,7 @@ export default function CustomerManagement() {
                           </TableRow>
                         );
                       })}
-                      {!customerTasksData?.data?.length && (
+                      {!comboTasksData?.data?.length && (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center text-muted-foreground">
                             {t('noTasksAvailable') || 'No tasks available'}
