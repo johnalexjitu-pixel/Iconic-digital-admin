@@ -379,6 +379,61 @@ export default async function handler(req, res) {
       });
     }
     
+    // Test endpoint for debugging user lookup
+    else if (req.method === 'GET' && path.includes('/api/debug/user/')) {
+      const userId = path.split('/').pop();
+      console.log(`🔍 Debug user lookup for: ${userId}`);
+      
+      try {
+        if (!database) {
+          return res.status(500).json({ 
+            success: false, 
+            error: "Database connection not available" 
+          });
+        }
+
+        const usersCollection = database.collection('users');
+        
+        // Try multiple methods
+        let user1, user2, user3;
+        
+        try {
+          user1 = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        } catch (e) {
+          console.log(`❌ ObjectId search failed: ${e.message}`);
+        }
+        
+        user2 = await usersCollection.findOne({ _id: userId });
+        user3 = await usersCollection.findOne({ membershipId: userId });
+        
+        const totalUsers = await usersCollection.countDocuments();
+        
+        res.json({
+          success: true,
+          debug: {
+            userId,
+            userIdType: typeof userId,
+            userIdLength: userId?.length,
+            totalUsers,
+            objectIdSearch: user1 ? `Found: ${user1.name}` : 'Not found',
+            stringIdSearch: user2 ? `Found: ${user2.name}` : 'Not found',
+            membershipIdSearch: user3 ? `Found: ${user3.name}` : 'Not found',
+            allResults: {
+              user1,
+              user2,
+              user3
+            }
+          }
+        });
+      } catch (error) {
+        console.error("❌ Debug error:", error);
+        res.status(500).json({ 
+          success: false, 
+          error: error.message 
+        });
+      }
+    }
+    
     // Update user balance
     else if (req.method === 'PATCH' && path.includes('/api/frontend/users/') && path.includes('/balance')) {
       const userId = path.split('/')[3];
@@ -415,8 +470,18 @@ export default async function handler(req, res) {
         });
       }
 
+      // Check database connection
+      if (!database) {
+        console.error("❌ Database connection not available");
+        return res.status(500).json({ 
+          success: false, 
+          error: "Database connection not available" 
+        });
+      }
+
       const usersCollection = database.collection('users');
       console.log(`🔍 MongoDB collection: ${usersCollection.collectionName}`);
+      console.log(`🔍 Database name: ${database.databaseName}`);
       
       // Handle ObjectId conversion with error handling
       let user;
