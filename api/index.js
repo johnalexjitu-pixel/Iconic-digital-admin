@@ -1585,10 +1585,11 @@ export default async function handler(req, res) {
     // Get all withdrawals
     else if (req.method === 'GET' && path === '/api/frontend/withdrawals') {
       console.log("💰 Fetching all withdrawals from withdrawals collection");
+      console.log("💰 Query params:", req.query);
       
       const { 
         page = 1, 
-        limit = 10, 
+        limit = 100, 
         status, 
         customerId,
         method,
@@ -1599,10 +1600,15 @@ export default async function handler(req, res) {
       
       const query = {};
       
-      if (status) query.status = status;
+      // Status filter - handle "all" case
+      if (status && status !== "all") {
+        query.status = status;
+      }
+      
       if (customerId) query.customerId = customerId;
       if (method) query.method = method;
       
+      // Date filter - use submittedAt field
       if (startDate || endDate) {
         query.submittedAt = {};
         if (startDate) {
@@ -1614,6 +1620,8 @@ export default async function handler(req, res) {
           query.submittedAt.$lte = end;
         }
       }
+
+      console.log("💰 MongoDB query:", JSON.stringify(query, null, 2));
 
       const withdrawalsCollection = database.collection('withdrawals');
       
@@ -1627,6 +1635,8 @@ export default async function handler(req, res) {
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit))
         .toArray();
+
+      console.log(`📊 Found ${withdrawals.length} withdrawals from database`);
 
       // Get customer details for each withdrawal
       const usersCollection = database.collection('users');
@@ -1666,9 +1676,19 @@ export default async function handler(req, res) {
         });
       }
 
-      console.log(`📊 Found ${withdrawals.length} withdrawals, ${filteredWithdrawals.length} after search filter`);
+      console.log(`📊 Final result: ${filteredWithdrawals.length} withdrawals after all filters`);
       console.log(`📊 Query filters:`, query);
       if (search) console.log(`📊 Search term:`, search);
+
+      // Debug: Log first withdrawal if exists
+      if (filteredWithdrawals.length > 0) {
+        console.log("📊 Sample withdrawal:", {
+          id: filteredWithdrawals[0]._id,
+          status: filteredWithdrawals[0].status,
+          amount: filteredWithdrawals[0].amount,
+          customer: filteredWithdrawals[0].customer?.name
+        });
+      }
 
       res.json({
         success: true,
@@ -1676,8 +1696,8 @@ export default async function handler(req, res) {
         pagination: {
           page: Number(page),
           limit: Number(limit),
-          total: filteredWithdrawals.length,
-          pages: Math.ceil(filteredWithdrawals.length / Number(limit))
+          total: totalWithdrawals, // Use total from database, not filtered count
+          pages: Math.ceil(totalWithdrawals / Number(limit))
         }
       });
     }
@@ -1741,6 +1761,7 @@ export default async function handler(req, res) {
       console.log(`🔍 Full path: ${path}`);
       console.log(`🔍 Path parts: ${JSON.stringify(pathParts)}`);
       console.log(`🔍 Extracted withdrawalId: ${withdrawalId}`);
+      console.log(`🔍 Request body:`, req.body);
 
       if (!status) {
         return res.status(400).json({ 
@@ -1749,8 +1770,13 @@ export default async function handler(req, res) {
         });
       }
 
+      // Map frontend status to database status
+      let dbStatus = status;
+      if (status === 'Approved') dbStatus = 'completed';
+      if (status === 'Rejected') dbStatus = 'rejected';
+
       const validStatuses = ['pending', 'processing', 'completed', 'rejected'];
-      if (!validStatuses.includes(status)) {
+      if (!validStatuses.includes(dbStatus)) {
         return res.status(400).json({ 
           success: false, 
           error: "Invalid status. Must be one of: pending, processing, completed, rejected" 
@@ -1775,7 +1801,7 @@ export default async function handler(req, res) {
       }
 
       const updateData = {
-        status,
+        status: dbStatus,
         updatedAt: new Date()
       };
 
@@ -1785,7 +1811,7 @@ export default async function handler(req, res) {
       }
 
       // Add processed info for completed/rejected withdrawals
-      if (status === 'completed' || status === 'rejected') {
+      if (dbStatus === 'completed' || dbStatus === 'rejected') {
         updateData.processedAt = new Date();
         updateData.processedBy = processedBy || 'admin';
       }
@@ -1813,10 +1839,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // If status is completed, we might want to update customer balance
-      // (This depends on your business logic - you might want to handle this separately)
-      
-      console.log(`✅ Withdrawal ${withdrawalId} status updated to ${status}`);
+      console.log(`✅ Withdrawal ${withdrawalId} status updated to ${dbStatus}`);
 
       res.json({
         success: true,
