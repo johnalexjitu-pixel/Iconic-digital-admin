@@ -14,8 +14,8 @@ import { useTranslation } from "react-i18next";
 
 export default function WithdrawalManagement() {
   const { t } = useTranslation();
-  const [startDate, setStartDate] = useState("2025-09-25");
-  const [endDate, setEndDate] = useState("2025-10-02");
+  const [startDate, setStartDate] = useState("2025-10-01");
+  const [endDate, setEndDate] = useState("2025-10-31");
   const { toast } = useToast();
   
   // Filter states
@@ -104,8 +104,8 @@ export default function WithdrawalManagement() {
       code: "",
       status: "all"
     });
-    setStartDate("2025-09-25");
-    setEndDate("2025-10-02");
+    setStartDate("2025-10-01");
+    setEndDate("2025-10-31");
     toast({
       title: "Success",
       description: "Filters cleared successfully",

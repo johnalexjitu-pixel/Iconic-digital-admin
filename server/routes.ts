@@ -1404,6 +1404,245 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(withdrawal);
   });
 
+  // Frontend Withdrawal Management - MongoDB Integration
+  
+  // Get all withdrawals from MongoDB
+  app.get("/api/frontend/withdrawals", async (req, res) => {
+    try {
+      console.log("💰 Fetching all withdrawals from withdrawals collection");
+      
+      const { 
+        page = 1, 
+        limit = 10, 
+        status, 
+        customerId,
+        method,
+        search,
+        startDate,
+        endDate
+      } = req.query;
+      
+      const query: any = {};
+      
+      if (status) query.status = status;
+      if (customerId) query.customerId = customerId;
+      if (method) query.method = method;
+      
+      if (startDate || endDate) {
+        query.submittedAt = {};
+        if (startDate) {
+          query.submittedAt.$gte = new Date(startDate as string);
+        }
+        if (endDate) {
+          const end = new Date(endDate as string);
+          end.setHours(23, 59, 59, 999);
+          query.submittedAt.$lte = end;
+        }
+      }
+
+      const database = await connectToDatabase();
+      const withdrawalsCollection = database.collection('withdrawals');
+      
+      // Get total withdrawals count
+      const totalWithdrawals = await withdrawalsCollection.countDocuments(query);
+      console.log(`📊 Total withdrawals in collection: ${totalWithdrawals}`);
+      
+      const withdrawals = await withdrawalsCollection
+        .find(query)
+        .sort({ submittedAt: -1 })
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit))
+        .toArray();
+
+      // Get customer details for each withdrawal
+      const usersCollection = database.collection('users');
+      const withdrawalsWithCustomerDetails = await Promise.all(
+        withdrawals.map(async (withdrawal) => {
+          let customer = null;
+          try {
+            customer = await usersCollection.findOne({ _id: new ObjectId(withdrawal.customerId) });
+          } catch (objectIdError) {
+            customer = await usersCollection.findOne({ _id: withdrawal.customerId });
+          }
+          
+          return {
+            ...withdrawal,
+            customer: customer ? {
+              _id: customer._id,
+              name: customer.name,
+              email: customer.email,
+              membershipId: customer.membershipId,
+              phoneNumber: customer.phoneNumber,
+              accountBalance: customer.accountBalance
+            } : null
+          };
+        })
+      );
+
+      // Apply search filter after getting customer details
+      let filteredWithdrawals = withdrawalsWithCustomerDetails;
+      if (search) {
+        filteredWithdrawals = withdrawalsWithCustomerDetails.filter(withdrawal => {
+          const customer = withdrawal.customer;
+          if (!customer) return false;
+          
+          return customer.name?.toLowerCase().includes((search as string).toLowerCase()) ||
+                 customer.membershipId?.toLowerCase().includes((search as string).toLowerCase()) ||
+                 customer.email?.toLowerCase().includes((search as string).toLowerCase());
+        });
+      }
+
+      console.log(`📊 Found ${withdrawals.length} withdrawals, ${filteredWithdrawals.length} after search filter`);
+      console.log(`📊 Query filters:`, query);
+      if (search) console.log(`📊 Search term:`, search);
+
+      res.json({
+        success: true,
+        data: filteredWithdrawals,
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total: filteredWithdrawals.length,
+          pages: Math.ceil(filteredWithdrawals.length / Number(limit))
+        }
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching withdrawals:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || "Failed to fetch withdrawals" 
+      });
+    }
+  });
+  
+  // Get single withdrawal by ID
+  app.get("/api/frontend/withdrawals/:id", async (req, res) => {
+    try {
+      const withdrawalId = req.params.id;
+      console.log(`💰 Fetching withdrawal: ${withdrawalId}`);
+
+      const database = await connectToDatabase();
+      const withdrawalsCollection = database.collection('withdrawals');
+      
+      let withdrawal;
+      try {
+        withdrawal = await withdrawalsCollection.findOne({ _id: new ObjectId(withdrawalId) });
+      } catch (objectIdError) {
+        withdrawal = await withdrawalsCollection.findOne({ _id: withdrawalId });
+      }
+      
+      if (!withdrawal) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Withdrawal not found" 
+        });
+      }
+
+      // Get customer details
+      const usersCollection = database.collection('users');
+      let customer = null;
+      try {
+        customer = await usersCollection.findOne({ _id: new ObjectId(withdrawal.customerId) });
+      } catch (objectIdError) {
+        customer = await usersCollection.findOne({ _id: withdrawal.customerId });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          ...withdrawal,
+          customer: customer ? {
+            _id: customer._id,
+            name: customer.name,
+            email: customer.email,
+            membershipId: customer.membershipId,
+            accountBalance: customer.accountBalance
+          } : null
+        }
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching withdrawal:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || "Failed to fetch withdrawal" 
+      });
+    }
+  });
+  
+  // Update withdrawal status
+  app.patch("/api/frontend/withdrawals/:id/update-status", async (req, res) => {
+    try {
+      const withdrawalId = req.params.id;
+      const { status, adminNotes, processedBy } = req.body;
+      
+      console.log(`💰 Updating withdrawal status: ${withdrawalId} to ${status}`);
+
+      if (!status) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Status is required" 
+        });
+      }
+
+      const validStatuses = ['pending', 'processing', 'completed', 'rejected'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Invalid status. Must be one of: " + validStatuses.join(', ') 
+        });
+      }
+
+      const database = await connectToDatabase();
+      const withdrawalsCollection = database.collection('withdrawals');
+      
+      let withdrawal;
+      try {
+        withdrawal = await withdrawalsCollection.findOne({ _id: new ObjectId(withdrawalId) });
+      } catch (objectIdError) {
+        withdrawal = await withdrawalsCollection.findOne({ _id: withdrawalId });
+      }
+      
+      if (!withdrawal) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Withdrawal not found" 
+        });
+      }
+
+      const updateData: any = {
+        status,
+        updatedAt: new Date()
+      };
+
+      if (adminNotes) updateData.adminNotes = adminNotes;
+      if (processedBy) updateData.processedBy = processedBy;
+      
+      if (status === 'completed' || status === 'rejected') {
+        updateData.processedAt = new Date();
+      }
+
+      const result = await withdrawalsCollection.findOneAndUpdate(
+        { _id: withdrawal._id },
+        { $set: updateData },
+        { returnDocument: 'after' }
+      );
+
+      console.log(`✅ Withdrawal status updated: ${withdrawalId} → ${status}`);
+
+      res.json({
+        success: true,
+        data: result,
+        message: "Withdrawal status updated successfully"
+      });
+    } catch (error: any) {
+      console.error("❌ Error updating withdrawal status:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || "Failed to update withdrawal status" 
+      });
+    }
+  });
+
   // Products
   app.get("/api/products", async (_req, res) => {
     const products = await storage.getProducts();
