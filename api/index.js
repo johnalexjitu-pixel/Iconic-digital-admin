@@ -794,103 +794,84 @@ export default async function handler(req, res) {
       });
     }
     
-    // Get customer tasks - Fetch directly from campaigns collection
+    // Get customer tasks - Show ALL campaigns (not user-specific)
     else if (req.method === 'GET' && path.startsWith('/api/frontend/customer-tasks/') && !path.includes('/allow')) {
-      console.log("🎯 MATCHED: Customer tasks endpoint");
+      console.log("🎯 MATCHED: Customer tasks endpoint - Showing ALL campaigns");
       const customerId = path.split('/')[3];
-      console.log("📋 Fetching customer tasks from campaignsCollection for customer:", customerId);
-      console.log("📋 Full path:", path);
-      console.log("📋 Customer ID extracted:", customerId);
+      console.log("📋 Customer ID:", customerId);
+      console.log("📋 Showing ALL campaigns for customer task details");
 
       try {
         // Check MongoDB connection first
         console.log("📋 Database connection status:", database ? "Connected" : "Not connected");
         
-        // Get all campaigns from campaignsCollection
+        // Get all campaigns from campaignsCollection (same as Task Management)
         const campaignsCollection = database.collection('campaigns');
-        console.log("📋 Fetching from campaignsCollection");
+        console.log("📋 Fetching ALL campaigns from campaignsCollection");
         
-        // First, let's check what collections exist
-        const collections = await database.listCollections().toArray();
-        console.log("📋 Available collections:", collections.map(c => c.name));
+        // Get all campaigns (same as Task Management page)
+        const campaigns = await campaignsCollection
+          .find({})
+          .sort({ createdAt: -1 })
+          .toArray();
         
-        // Check if campaigns collection exists
-        const campaignsExists = collections.some(c => c.name === 'campaigns');
-        console.log("📋 Campaigns collection exists:", campaignsExists);
+        console.log("📋 Found campaigns:", campaigns.length);
+        console.log("📋 First campaign sample:", campaigns[0] ? {
+          _id: campaigns[0]._id,
+          brand: campaigns[0].brand,
+          baseAmount: campaigns[0].baseAmount,
+          logo: campaigns[0].logo,
+          code: campaigns[0].code
+        } : "No campaigns found");
+
+        if (campaigns.length === 0) {
+          console.log("No campaigns found in campaignsCollection");
+          return res.json({ success: true, data: [], total: 0 });
+        }
+
+        // Get customer info for reference
+        const usersCollection = database.collection('users');
+        let customer = null;
+        try {
+          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        } catch (objectIdError) {
+          customer = await usersCollection.findOne({ _id: customerId });
+        }
         
-        // Check total count in campaigns collection
-        const totalCampaigns = await campaignsCollection.countDocuments();
-        console.log("📋 Total campaigns in collection:", totalCampaigns);
-      
-      // Get all campaigns (same as Task Management page)
-      const campaigns = await campaignsCollection
-        .find({})
-        .sort({ createdAt: -1 })
-        .toArray();
-      
-      console.log("📋 Found campaigns:", campaigns.length);
-      console.log("📋 First campaign sample:", campaigns[0] ? {
-        _id: campaigns[0]._id,
-        brand: campaigns[0].brand,
-        baseAmount: campaigns[0].baseAmount,
-        logo: campaigns[0].logo,
-        code: campaigns[0].code
-      } : "No campaigns found");
+        // Convert ALL campaigns to customer tasks format - SAME AS TASK MANAGEMENT
+        const customerTasks = campaigns.map((campaign, index) => ({
+          _id: campaign._id.toString(),
+          customerId: customerId,
+          customerCode: customer?.membershipId || customer?.code || "",
+          taskNumber: index + 1,
+          campaignId: campaign._id.toString(),
+          taskCommission: campaign.commissionAmount || 0,
+          taskPrice: campaign.baseAmount || 0,
+          estimatedNegativeAmount: (campaign.commissionAmount || 0) * -1,
+          priceFrom: 0,
+          priceTo: 0,
+          hasGoldenEgg: campaign.type === "Paid" || (campaign.baseAmount || 0) > 10000,
+          expiredDate: campaign.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: 'pending',
+          createdAt: campaign.createdAt || new Date(),
+          updatedAt: new Date(),
+          // Campaign fields - SAME AS TASK MANAGEMENT PAGE
+          campaignName: campaign.brand || campaign.name || `Campaign ${index + 1}`,
+          campaignLogo: campaign.logo || "",
+          campaignType: campaign.type || "Free",
+          campaignCode: campaign.code || campaign.taskCode || `TASK${index + 1}`,
+          // Additional fields for compatibility
+          name: campaign.brand || campaign.name,
+          price: campaign.baseAmount || 0,
+          code: campaign.code || campaign.taskCode,
+          logo: campaign.logo || ""
+        }));
 
-      if (campaigns.length === 0) {
-        console.log("No campaigns found in campaignsCollection");
-        return res.json({ success: true, data: [], total: 0 });
-      }
-
-      // Get customer info
-      const usersCollection = database.collection('users');
-      let customer;
-      try {
-        customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
-      } catch (objectIdError) {
-        // Fallback: try finding by string ID
-        customer = await usersCollection.findOne({ _id: customerId });
-      }
-      
-      if (!customer) {
-        console.log("Customer not found:", customerId);
-        return res.json({ success: true, data: [], total: 0 });
-      }
-
-      // Convert campaigns to customer tasks format - SAME AS TASK MANAGEMENT
-      const customerTasks = campaigns.map((campaign, index) => ({
-        _id: campaign._id.toString(),
-        customerId,
-        customerCode: customer.membershipId || customer.code || "",
-        taskNumber: index + 1,
-        campaignId: campaign._id.toString(),
-        taskCommission: campaign.commissionAmount || 0,
-        taskPrice: campaign.baseAmount || 0,
-        estimatedNegativeAmount: (campaign.commissionAmount || 0) * -1,
-        priceFrom: 0,
-        priceTo: 0,
-        hasGoldenEgg: campaign.type === "Paid" || (campaign.baseAmount || 0) > 10000,
-        expiredDate: campaign.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'pending',
-        createdAt: campaign.createdAt || new Date(),
-        updatedAt: new Date(),
-        // Campaign fields - SAME AS TASK MANAGEMENT PAGE
-        campaignName: campaign.brand || campaign.name || `Campaign ${index + 1}`,
-        campaignLogo: campaign.logo || "",
-        campaignType: campaign.type || "Free",
-        campaignCode: campaign.code || campaign.taskCode || `TASK${index + 1}`,
-        // Additional fields for compatibility
-        name: campaign.brand || campaign.name,
-        price: campaign.baseAmount || 0,
-        code: campaign.code || campaign.taskCode,
-        logo: campaign.logo || ""
-      }));
-
-      console.log("📋 Converted to customer tasks:", customerTasks.length);
-      console.log("📋 Sample task:", customerTasks[0]);
-      console.log("📋 Sending response with", customerTasks.length, "customer tasks");
-      
-      const response = { success: true, data: customerTasks, total: customerTasks.length };
+        console.log("📋 Converted to customer tasks:", customerTasks.length);
+        console.log("📋 Sample task:", customerTasks[0]);
+        console.log("📋 Sending response with", customerTasks.length, "customer tasks");
+        
+        const response = { success: true, data: customerTasks, total: customerTasks.length };
         console.log("📋 Response structure:", {
           success: response.success,
           dataLength: response.data.length,
@@ -1874,10 +1855,11 @@ export default async function handler(req, res) {
       const totalCampaigns = await campaignsCollection.countDocuments();
       console.log("🎯 Total campaigns in collection:", totalCampaigns);
       
-      // Get all campaigns (remove limit to see all)
+      // Get first 30 campaigns for user's daily tasks
       const campaigns = await campaignsCollection
         .find({})
         .sort({ createdAt: -1 })
+        .limit(30)
         .toArray();
       
       console.log("🎯 Found campaigns:", campaigns.length);
@@ -1907,11 +1889,11 @@ export default async function handler(req, res) {
         return res.json({ success: true, data: [], total: 0 });
       }
 
-      // Convert campaigns to combo tasks format - DIRECT FROM CAMPAIGNS
+      // Convert campaigns to combo tasks format - USER'S DAILY 30 TASKS
       const comboTasks = campaigns.map((campaign, index) => ({
         _id: campaign._id.toString(),
         customerId,
-        customerCode: customer.membershipId || customer.code || "",
+        customerCode: customer?.membershipId || customer?.code || "",
         taskNumber: index + 1,
         campaignId: campaign._id.toString(),
         taskCommission: campaign.commissionAmount || 0,
@@ -1924,10 +1906,16 @@ export default async function handler(req, res) {
         status: 'pending',
         createdAt: campaign.createdAt || new Date(),
         updatedAt: new Date(),
-        // Campaign fields directly from campaigns collection
-        campaignName: campaign.brand || `Campaign ${index + 1}`,
+        // Campaign fields - SAME AS TASK MANAGEMENT PAGE
+        campaignName: campaign.brand || campaign.name || `Campaign ${index + 1}`,
         campaignLogo: campaign.logo || "",
-        campaignType: campaign.type || "Free"
+        campaignType: campaign.type || "Free",
+        campaignCode: campaign.code || campaign.taskCode || `TASK${index + 1}`,
+        // Additional fields for compatibility
+        name: campaign.brand || campaign.name,
+        price: campaign.baseAmount || 0,
+        code: campaign.code || campaign.taskCode,
+        logo: campaign.logo || ""
       }));
 
       console.log("🎯 Converted to combo tasks:", comboTasks.length);
