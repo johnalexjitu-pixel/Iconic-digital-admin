@@ -16,6 +16,7 @@ export default function WithdrawalManagement() {
   const { t } = useTranslation();
   const [startDate, setStartDate] = useState("2025-10-01");
   const [endDate, setEndDate] = useState("2025-10-31");
+  const [dateRangePreset, setDateRangePreset] = useState("custom");
   const { toast } = useToast();
   
   // Filter states
@@ -24,6 +25,65 @@ export default function WithdrawalManagement() {
     code: "",
     status: "all"
   });
+
+  // Date range presets
+  const getDateRange = (preset: string) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    
+    switch (preset) {
+      case "today":
+        return {
+          start: today.toISOString().split('T')[0],
+          end: today.toISOString().split('T')[0]
+        };
+      case "yesterday":
+        return {
+          start: yesterday.toISOString().split('T')[0],
+          end: yesterday.toISOString().split('T')[0]
+        };
+      case "thisWeek":
+        return {
+          start: startOfWeek.toISOString().split('T')[0],
+          end: today.toISOString().split('T')[0]
+        };
+      case "thisMonth":
+        return {
+          start: startOfMonth.toISOString().split('T')[0],
+          end: endOfMonth.toISOString().split('T')[0]
+        };
+      case "lastMonth":
+        return {
+          start: startOfLastMonth.toISOString().split('T')[0],
+          end: endOfLastMonth.toISOString().split('T')[0]
+        };
+      default:
+        return {
+          start: startDate,
+          end: endDate
+        };
+    }
+  };
+
+  // Handle date range preset change
+  const handleDateRangePresetChange = (preset: string) => {
+    setDateRangePreset(preset);
+    if (preset !== "custom") {
+      const { start, end } = getDateRange(preset);
+      setStartDate(start);
+      setEndDate(end);
+    }
+  };
 
   // Build query parameters for API call
   const queryParams = new URLSearchParams();
@@ -46,7 +106,7 @@ export default function WithdrawalManagement() {
     queryParams.append("endDate", endDate);
   }
 
-  // Fetch withdrawals from MongoDB withdrawals collection
+  // Fetch withdrawals from MongoDB withdrawals collection - using /api/withdrawals endpoint
   const { data: withdrawalsResponse, isLoading: withdrawalsLoading } = useQuery<{
     success: boolean;
     data: any[];
@@ -57,7 +117,7 @@ export default function WithdrawalManagement() {
       pages: number;
     };
   }>({
-    queryKey: [`/api/frontend/withdrawals?${queryParams.toString()}`],
+    queryKey: [`/api/withdrawals?${queryParams.toString()}`],
     staleTime: 0, // Always fetch fresh data
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -80,21 +140,23 @@ export default function WithdrawalManagement() {
   const handleFilterChange = (field: string, value: string) => {
     if (field === 'startDate') {
       setStartDate(value);
+      setDateRangePreset('custom'); // Reset to custom when manually changing dates
     } else if (field === 'endDate') {
       setEndDate(value);
+      setDateRangePreset('custom'); // Reset to custom when manually changing dates
     } else {
       setFilters(prev => ({ ...prev, [field]: value }));
     }
   };
 
   const handleApplyFilter = async () => {
-    console.log("🔍 Applying filters:", { filters, startDate, endDate });
+    console.log("🔍 Applying filters:", { filters, startDate, endDate, dateRangePreset });
     toast({
       title: "Success",
       description: "Filters applied successfully",
     });
     // Refetch with new filters
-    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/withdrawals"] });
+    await queryClient.invalidateQueries({ queryKey: ["/api/withdrawals"] });
   };
 
   const handleClearFilters = async () => {
@@ -106,12 +168,13 @@ export default function WithdrawalManagement() {
     });
     setStartDate("2025-10-01");
     setEndDate("2025-10-31");
+    setDateRangePreset("custom");
     toast({
       title: "Success",
       description: "Filters cleared successfully",
     });
     // Refetch all data
-    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/withdrawals"] });
+    await queryClient.invalidateQueries({ queryKey: ["/api/withdrawals"] });
   };
 
   // Use withdrawals data directly from the new API
@@ -153,7 +216,7 @@ export default function WithdrawalManagement() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/frontend/withdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/withdrawals"] });
       toast({
         title: "Success",
         description: "Withdrawal status updated successfully",
@@ -188,6 +251,7 @@ export default function WithdrawalManagement() {
   console.log("  - queryParams:", queryParams.toString());
   console.log("  - startDate:", startDate);
   console.log("  - endDate:", endDate);
+  console.log("  - dateRangePreset:", dateRangePreset);
   console.log("  - filters:", filters);
 
   return (
@@ -199,28 +263,45 @@ export default function WithdrawalManagement() {
             <div>MONGODB_URI: mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/</div>
             <div>Total Withdrawals: {totalWithdrawals}</div>
             <div>Last Updated: {new Date().toLocaleString()}</div>
-            <div>Production Fix Applied - v2.0</div>
-            <div>Debug: {JSON.stringify({startDate, endDate, filters, queryParams: queryParams.toString()})}</div>
+            <div>Production Fix Applied - v3.0 (Date Range Dropdown)</div>
+            <div>Debug: {JSON.stringify({startDate, endDate, dateRangePreset, filters, queryParams: queryParams.toString()})}</div>
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-5 gap-4 mb-6">
           <div>
             <Label className="text-muted-foreground">*{t('createdDate')}:</Label>
-            <div className="flex gap-2 mt-1">
-              <Input
-                data-testid="input-start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => handleFilterChange('startDate', e.target.value)}
-              />
-              <span className="flex items-center">-</span>
-              <Input
-                data-testid="input-end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => handleFilterChange('endDate', e.target.value)}
-              />
+            <div className="space-y-2 mt-1">
+              <Select value={dateRangePreset} onValueChange={handleDateRangePresetChange}>
+                <SelectTrigger data-testid="select-date-range-preset" className="w-full">
+                  <SelectValue placeholder="Select date range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="yesterday">Yesterday</SelectItem>
+                  <SelectItem value="thisWeek">This Week</SelectItem>
+                  <SelectItem value="thisMonth">This Month</SelectItem>
+                  <SelectItem value="lastMonth">Last Month</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2">
+                <Input
+                  data-testid="input-start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                  disabled={dateRangePreset !== 'custom'}
+                />
+                <span className="flex items-center">-</span>
+                <Input
+                  data-testid="input-end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                  disabled={dateRangePreset !== 'custom'}
+                />
+              </div>
             </div>
           </div>
 
