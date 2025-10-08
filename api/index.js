@@ -1,5 +1,6 @@
 import { MongoClient, ObjectId } from 'mongodb';
 
+
 const MONGODB_URI = 'mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/?retryWrites=true&w=majority&appName=iconicdigital';
 const DB_NAME = 'iconicdigital';
 
