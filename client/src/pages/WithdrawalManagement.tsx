@@ -26,91 +26,13 @@ export default function WithdrawalManagement() {
     status: "all"
   });
 
-  // Date range presets
-  const getDateRange = (preset: string) => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
-    
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    
-    const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-    
-    switch (preset) {
-      case "today":
-        return {
-          start: today.toISOString().split('T')[0],
-          end: today.toISOString().split('T')[0]
-        };
-      case "yesterday":
-        return {
-          start: yesterday.toISOString().split('T')[0],
-          end: yesterday.toISOString().split('T')[0]
-        };
-      case "thisWeek":
-        return {
-          start: startOfWeek.toISOString().split('T')[0],
-          end: today.toISOString().split('T')[0]
-        };
-      case "thisMonth":
-        return {
-          start: startOfMonth.toISOString().split('T')[0],
-          end: endOfMonth.toISOString().split('T')[0]
-        };
-      case "lastMonth":
-        return {
-          start: startOfLastMonth.toISOString().split('T')[0],
-          end: endOfLastMonth.toISOString().split('T')[0]
-        };
-      default:
-        return {
-          start: startDate,
-          end: endDate
-        };
-    }
-  };
+  // DATE RANGE FUNCTIONALITY COMPLETELY REMOVED
 
-  // Handle date range preset change
-  const handleDateRangePresetChange = (preset: string) => {
-    setDateRangePreset(preset);
-    if (preset !== "custom") {
-      const { start, end } = getDateRange(preset);
-      setStartDate(start);
-      setEndDate(end);
-    }
-  };
-
-  // Build query parameters for API call - SIMPLE FILTERING
+  // Build query parameters for API call - NO FILTERING AT ALL
   const queryParams = new URLSearchParams();
   queryParams.append("limit", "100");
   
-  // Add filters only if they have meaningful values
-  if (filters.status && filters.status !== "all") {
-    queryParams.append("status", filters.status.toLowerCase());
-  }
-  
-  // Only add search if user actually typed something
-  if (filters.username && filters.username.trim() !== "") {
-    queryParams.append("search", filters.username.trim());
-  }
-  
-  // Only add customer code if user actually typed something
-  if (filters.code && filters.code.trim() !== "") {
-    queryParams.append("customerId", filters.code.trim());
-  }
-  
-  // Only add date filters if they're not default values
-  if (startDate && startDate !== "2025-10-01") {
-    queryParams.append("startDate", startDate);
-  }
-  if (endDate && endDate !== "2025-10-31") {
-    queryParams.append("endDate", endDate);
-  }
+  // ALL FILTERING REMOVED - SHOW ALL DATA ALWAYS
 
   // Fetch withdrawals from MongoDB withdrawals collection - using /api/withdrawals endpoint
   const { data: withdrawalsResponse, isLoading: withdrawalsLoading } = useQuery<{
@@ -142,46 +64,7 @@ export default function WithdrawalManagement() {
   });
 
   // Apply filters
-  // Filter functions - TaskManagement style
-  const handleFilterChange = (field: string, value: string) => {
-    if (field === 'startDate') {
-      setStartDate(value);
-      setDateRangePreset('custom'); // Reset to custom when manually changing dates
-    } else if (field === 'endDate') {
-      setEndDate(value);
-      setDateRangePreset('custom'); // Reset to custom when manually changing dates
-    } else {
-      setFilters(prev => ({ ...prev, [field]: value }));
-    }
-  };
-
-  const handleApplyFilter = async () => {
-    console.log("🔍 Applying filters:", { filters, startDate, endDate, dateRangePreset });
-    toast({
-      title: "Success",
-      description: "Filters applied successfully",
-    });
-    // Refetch with new filters
-    await queryClient.invalidateQueries({ queryKey: ["/api/withdrawals"] });
-  };
-
-  const handleClearFilters = async () => {
-    console.log("🔄 Clearing filters");
-    setFilters({
-      username: "",
-      code: "",
-      status: "all"
-    });
-    setStartDate("2025-10-01");
-    setEndDate("2025-10-31");
-    setDateRangePreset("custom");
-    toast({
-      title: "Success",
-      description: "Filters cleared successfully",
-    });
-    // Refetch all data
-    await queryClient.invalidateQueries({ queryKey: ["/api/withdrawals"] });
-  };
+  // ALL FILTER FUNCTIONS REMOVED - NO FILTERING
 
   // Use withdrawals data directly from the new API
   let displayWithdrawals = withdrawalsResponse?.data?.map((withdrawal: any) => {
@@ -255,10 +138,7 @@ export default function WithdrawalManagement() {
   console.log("  - displayWithdrawals length:", displayWithdrawals?.length || 0);
   console.log("  - totalWithdrawals:", totalWithdrawals);
   console.log("  - queryParams:", queryParams.toString());
-  console.log("  - startDate:", startDate);
-  console.log("  - endDate:", endDate);
-  console.log("  - dateRangePreset:", dateRangePreset);
-  console.log("  - filters:", filters);
+  console.log("  - NO FILTERING - SHOWING ALL DATA");
 
   return (
     <div className="p-6">
@@ -269,93 +149,16 @@ export default function WithdrawalManagement() {
             <div>MONGODB_URI: mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/</div>
             <div>Total Withdrawals: {totalWithdrawals}</div>
             <div>Last Updated: {new Date().toLocaleString()}</div>
-            <div>Production Fix Applied - v5.0 (WORKING FILTERING ENABLED)</div>
-            <div>Debug: {JSON.stringify({startDate, endDate, dateRangePreset, filters, queryParams: queryParams.toString()})}</div>
-            <div>✅ FILTERING ENABLED - Smart filtering with meaningful values only</div>
+            <div>Production Fix Applied - v6.0 (ALL FILTERING REMOVED)</div>
+            <div>Debug: {JSON.stringify({queryParams: queryParams.toString()})}</div>
+            <div>🚫 ALL FILTERING REMOVED - Showing all withdrawal data always</div>
           </div>
         </div>
 
-        <div className="grid grid-cols-5 gap-4 mb-6">
-          <div>
-            <Label className="text-muted-foreground">*{t('createdDate')}:</Label>
-            <div className="space-y-2 mt-1">
-              <Select value={dateRangePreset} onValueChange={handleDateRangePresetChange}>
-                <SelectTrigger data-testid="select-date-range-preset" className="w-full">
-                  <SelectValue placeholder="Select date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="yesterday">Yesterday</SelectItem>
-                  <SelectItem value="thisWeek">This Week</SelectItem>
-                  <SelectItem value="thisMonth">This Month</SelectItem>
-                  <SelectItem value="lastMonth">Last Month</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex gap-2">
-                <Input
-                  data-testid="input-start-date"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                  disabled={dateRangePreset !== 'custom'}
-                />
-                <span className="flex items-center">-</span>
-                <Input
-                  data-testid="input-end-date"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                  disabled={dateRangePreset !== 'custom'}
-                />
-              </div>
-            </div>
+        <div className="mb-6">
+          <div className="text-center text-lg font-semibold text-green-600">
+            ✅ All Withdrawal Data Displayed - No Filtering Applied
           </div>
-
-          <div>
-            <Label className="text-muted-foreground">{t('loginUserName')}:</Label>
-            <Input 
-              data-testid="input-username" 
-              className="mt-1" 
-              value={filters.username}
-              onChange={(e) => handleFilterChange('username', e.target.value)}
-              placeholder="Enter username"
-            />
-          </div>
-
-          <div>
-            <Label className="text-muted-foreground">{t('code')}:</Label>
-            <Input 
-              data-testid="input-code" 
-              className="mt-1" 
-              value={filters.code}
-              onChange={(e) => handleFilterChange('code', e.target.value)}
-              placeholder="Enter code"
-            />
-          </div>
-
-          <div>
-            <Label className="text-muted-foreground">{t('status')}:</Label>
-            <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
-              <SelectTrigger data-testid="select-status" className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('all')}</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="processing">Processing</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="flex justify-center gap-3">
-          <Button data-testid="button-filter" className="px-8" onClick={handleApplyFilter}>{t('filter')}</Button>
-          <Button data-testid="button-clear-filter" variant="outline" className="px-8" onClick={handleClearFilters}>
-            Clear Filters
-          </Button>
         </div>
       </div>
 
