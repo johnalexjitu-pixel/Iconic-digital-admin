@@ -689,13 +689,27 @@ export default async function handler(req, res) {
       const campaignsCollection = database.collection('campaigns');
       console.log("📋 Fetching from campaignsCollection");
       
+      // First, let's check what collections exist
+      const collections = await database.listCollections().toArray();
+      console.log("📋 Available collections:", collections.map(c => c.name));
+      
+      // Check total count in campaigns collection
+      const totalCampaigns = await campaignsCollection.countDocuments();
+      console.log("📋 Total campaigns in collection:", totalCampaigns);
+      
+      // Get all campaigns (remove limit to see all)
       const campaigns = await campaignsCollection
         .find({})
-        .limit(30)
         .sort({ createdAt: -1 })
         .toArray();
       
       console.log("📋 Found campaigns:", campaigns.length);
+      console.log("📋 First campaign sample:", campaigns[0] ? {
+        _id: campaigns[0]._id,
+        brand: campaigns[0].brand,
+        baseAmount: campaigns[0].baseAmount,
+        logo: campaigns[0].logo
+      } : "No campaigns found");
 
       if (campaigns.length === 0) {
         console.log("No campaigns found in campaignsCollection");
@@ -1699,13 +1713,27 @@ export default async function handler(req, res) {
       const campaignsCollection = database.collection('campaigns');
       console.log("🎯 Fetching from campaignsCollection");
       
+      // Check what collections exist
+      const collections = await database.listCollections().toArray();
+      console.log("🎯 Available collections:", collections.map(c => c.name));
+      
+      // Check total count in campaigns collection
+      const totalCampaigns = await campaignsCollection.countDocuments();
+      console.log("🎯 Total campaigns in collection:", totalCampaigns);
+      
+      // Get all campaigns (remove limit to see all)
       const campaigns = await campaignsCollection
         .find({})
-        .limit(30)
         .sort({ createdAt: -1 })
         .toArray();
       
       console.log("🎯 Found campaigns:", campaigns.length);
+      console.log("🎯 First campaign sample:", campaigns[0] ? {
+        _id: campaigns[0]._id,
+        brand: campaigns[0].brand,
+        baseAmount: campaigns[0].baseAmount,
+        logo: campaigns[0].logo
+      } : "No campaigns found");
 
       if (campaigns.length === 0) {
         console.log("No campaigns found in campaignsCollection");
