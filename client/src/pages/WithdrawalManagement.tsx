@@ -85,26 +85,26 @@ export default function WithdrawalManagement() {
     }
   };
 
-  // Build query parameters for API call
+  // Build query parameters for API call - REMOVE FILTERING FOR NOW TO SHOW ALL DATA
   const queryParams = new URLSearchParams();
   queryParams.append("limit", "100");
   
-  // Add filter parameters - always include filters if they have values
-  if (filters.status && filters.status !== "all") {
-    queryParams.append("status", filters.status.toLowerCase());
-  }
-  if (filters.code) {
-    queryParams.append("customerId", filters.code);
-  }
-  if (filters.username) {
-    queryParams.append("search", filters.username);
-  }
-  if (startDate) {
-    queryParams.append("startDate", startDate);
-  }
-  if (endDate) {
-    queryParams.append("endDate", endDate);
-  }
+  // REMOVED ALL FILTERS - Show all data first
+  // if (filters.status && filters.status !== "all") {
+  //   queryParams.append("status", filters.status.toLowerCase());
+  // }
+  // if (filters.code) {
+  //   queryParams.append("customerId", filters.code);
+  // }
+  // if (filters.username) {
+  //   queryParams.append("search", filters.username);
+  // }
+  // if (startDate) {
+  //   queryParams.append("startDate", startDate);
+  // }
+  // if (endDate) {
+  //   queryParams.append("endDate", endDate);
+  // }
 
   // Fetch withdrawals from MongoDB withdrawals collection - using /api/withdrawals endpoint
   const { data: withdrawalsResponse, isLoading: withdrawalsLoading } = useQuery<{
@@ -263,8 +263,9 @@ export default function WithdrawalManagement() {
             <div>MONGODB_URI: mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/</div>
             <div>Total Withdrawals: {totalWithdrawals}</div>
             <div>Last Updated: {new Date().toLocaleString()}</div>
-            <div>Production Fix Applied - v3.0 (Date Range Dropdown)</div>
+            <div>Production Fix Applied - v4.0 (FILTERING REMOVED - SHOW ALL DATA)</div>
             <div>Debug: {JSON.stringify({startDate, endDate, dateRangePreset, filters, queryParams: queryParams.toString()})}</div>
+            <div>⚠️ FILTERING DISABLED - Showing all withdrawal data</div>
           </div>
         </div>
 
