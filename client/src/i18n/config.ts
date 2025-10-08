@@ -74,6 +74,7 @@ const resources = {
       activate: "Activate",
       deactivate: "Deactivate",
       suspend: "Suspend",
+      inactive: "Inactive",
       approve: "Approve",
       reject: "Reject",
       
@@ -278,6 +279,7 @@ const resources = {
       activate: "সক্রিয়",
       deactivate: "নিষ্ক্রিয়",
       suspend: "স্থগিত",
+      inactive: "নিষ্ক্রিয়",
       approve: "অনুমোদন",
       reject: "প্রত্যাখ্যান",
       
@@ -482,6 +484,7 @@ const resources = {
       activate: "激活",
       deactivate: "停用",
       suspend: "暂停",
+      inactive: "非活跃",
       approve: "批准",
       reject: "拒绝",
       

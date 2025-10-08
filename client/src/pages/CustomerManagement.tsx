@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Check, X } from "lucide-react";
@@ -233,6 +234,45 @@ export default function CustomerManagement() {
       campaign: task,
       taskPrice: task.taskPrice?.toString() || "0"
     });
+  };
+
+  const handleGoldenEggToggle = async (task: any, checked: boolean) => {
+    try {
+      console.log("🟡 Toggling golden egg for task:", task.taskNumber, "to:", checked);
+      
+      if (!taskDetailsModal.customer?.id) {
+        throw new Error("Customer ID not found");
+      }
+
+      // Call API to toggle golden egg
+      const response = await apiRequest("PATCH", `/api/frontend/combo-tasks/${taskDetailsModal.customer.id}/toggle-golden-egg`, {
+        taskNumber: task.taskNumber,
+        hasGoldenEgg: checked
+      });
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || "Failed to toggle golden egg");
+      }
+
+      // Show success message
+      toast({
+        title: "Success",
+        description: `Golden egg ${checked ? 'activated' : 'deactivated'} for Task ${task.taskNumber}`,
+      });
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ["/api/frontend/combo-tasks"] });
+      
+    } catch (error: any) {
+      console.error("❌ Error toggling golden egg:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to toggle golden egg",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleGoldenEggSave = async () => {
@@ -1091,11 +1131,18 @@ export default function CustomerManagement() {
                               )}
                             </TableCell>
                             <TableCell className="text-center">
-                              {hasGoldenEgg ? (
-                                <span className="text-green-600 font-medium">✓ Active</span>
-                              ) : (
-                                <span className="text-red-600">✕ {t('notSet') || 'Not Set'}</span>
-                              )}
+                              <div className="flex items-center justify-center">
+                                <Switch
+                                  checked={hasGoldenEgg}
+                                  onCheckedChange={(checked) => handleGoldenEggToggle(task, checked)}
+                                  className="data-[state=checked]:bg-yellow-500"
+                                />
+                                <span className={`ml-2 text-sm font-medium ${
+                                  hasGoldenEgg ? 'text-yellow-600' : 'text-gray-500'
+                                }`}>
+                                  {hasGoldenEgg ? t('activate') : t('inactive')}
+                                </span>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <span className="font-medium">{expiredDate}</span>
@@ -1108,13 +1155,6 @@ export default function CustomerManagement() {
                                   onClick={() => handleTaskClick(task, task.taskNumber)}
                                 >
                                   {t('task')}
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  className="bg-yellow-500 hover:bg-yellow-600"
-                                  onClick={() => handleGoldenEggClick(task, task.taskNumber)}
-                                >
-                                  {t('goldenEgg') || 'Golden Egg'}
                                 </Button>
                               </div>
                             </TableCell>

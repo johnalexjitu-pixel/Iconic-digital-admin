@@ -2037,6 +2037,56 @@ export default async function handler(req, res) {
       });
     }
     
+    // Toggle Golden Egg for combo task
+    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/toggle-golden-egg')) {
+      const customerId = path.split('/')[3];
+      const { taskNumber, hasGoldenEgg } = req.body;
+      
+      console.log("🟡 Toggling golden egg:", { customerId, taskNumber, hasGoldenEgg });
+
+      try {
+        const customerTasksCollection = database.collection('customerTasks');
+        
+        // Update the golden egg status for the specific task
+        const result = await customerTasksCollection.updateOne(
+          { 
+            customerId: customerId,
+            taskNumber: Number(taskNumber)
+          },
+          { 
+            $set: { 
+              hasGoldenEgg: Boolean(hasGoldenEgg),
+              updatedAt: new Date()
+            }
+          }
+        );
+
+        if (result.matchedCount === 0) {
+          console.log("⚠️ No task found for customer:", customerId, "task:", taskNumber);
+          return res.status(404).json({
+            success: false,
+            error: "Task not found"
+          });
+        }
+
+        console.log("✅ Golden egg status updated successfully");
+        
+        res.json({
+          success: true,
+          message: `Golden egg ${hasGoldenEgg ? 'activated' : 'deactivated'} successfully`,
+          taskNumber: taskNumber,
+          hasGoldenEgg: hasGoldenEgg
+        });
+      } catch (error) {
+        console.error("❌ Error toggling golden egg:", error);
+        res.status(500).json({
+          success: false,
+          error: "Failed to toggle golden egg",
+          details: error.message
+        });
+      }
+    }
+    
     // Get combo task statistics for a user
     else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks-stats/')) {
       const customerId = path.split('/')[3];
