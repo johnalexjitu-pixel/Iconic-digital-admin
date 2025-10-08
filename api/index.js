@@ -894,9 +894,21 @@ export default async function handler(req, res) {
     else if (req.method === 'POST' && path === '/api/frontend/customer-tasks') {
       const { customerId, taskNumber, taskCommission, taskPrice, expiredDate, estimatedNegativeAmount, negativeAmount, priceFrom, priceTo } = req.body;
       console.log("💾 Saving customer task:", { customerId, taskNumber, taskCommission, taskPrice, estimatedNegativeAmount, priceFrom, priceTo });
-
+      
       const customerTasksCollection = database.collection('customerTasks');
       
+      // Check if task exists first
+      const existingTask = await customerTasksCollection.findOne({ customerId, taskNumber: Number(taskNumber) });
+      console.log("🔍 Existing task found:", !!existingTask);
+      if (existingTask) {
+        console.log("🔍 Existing task details:", {
+          _id: existingTask._id,
+          customerId: existingTask.customerId,
+          taskNumber: existingTask.taskNumber,
+          taskPrice: existingTask.taskPrice
+        });
+      }
+
       const updateData = {
         taskCommission: Number(taskCommission),
         taskPrice: Number(taskPrice),
@@ -907,20 +919,50 @@ export default async function handler(req, res) {
         updatedAt: new Date()
       };
 
-      const result = await customerTasksCollection.findOneAndUpdate(
+      // First try to find and update existing task
+      let result = await customerTasksCollection.findOneAndUpdate(
         { customerId, taskNumber: Number(taskNumber) },
         { $set: updateData },
         { returnDocument: 'after' }
       );
 
+      // If task not found, create a new one
       if (!result) {
-        return res.status(404).json({
-          success: false,
-          error: "Task not found"
-        });
+        console.log("💡 Task not found, creating new task for customer:", customerId, "taskNumber:", taskNumber);
+        
+        // Get customer info for new task creation
+        const usersCollection = database.collection('users');
+        let customer;
+        try {
+          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        } catch (objectIdError) {
+          customer = await usersCollection.findOne({ _id: customerId });
+        }
+
+        const newTask = {
+          _id: new ObjectId(),
+          customerId: customerId,
+          customerCode: customer?.membershipId || customer?.code || "",
+          taskNumber: Number(taskNumber),
+          campaignId: `task_${taskNumber}_${Date.now()}`,
+          taskCommission: Number(taskCommission),
+          taskPrice: Number(taskPrice),
+          estimatedNegativeAmount: Number(estimatedNegativeAmount || negativeAmount || 0),
+          priceFrom: Number(priceFrom),
+          priceTo: Number(priceTo),
+          hasGoldenEgg: false,
+          expiredDate: new Date(expiredDate),
+          status: 'pending',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        result = await customerTasksCollection.insertOne(newTask);
+        console.log("✅ New customer task created successfully");
+      } else {
+        console.log("✅ Existing customer task updated successfully");
       }
 
-      console.log("✅ Customer task saved successfully");
       res.json({
         success: true,
         data: result,
