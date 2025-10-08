@@ -379,6 +379,32 @@ export default async function handler(req, res) {
       });
     }
     
+    // Simple test endpoint for balance update
+    else if (req.method === 'GET' && path === '/api/test-balance') {
+      try {
+        if (!database) {
+          return res.status(500).json({ success: false, error: "Database not connected" });
+        }
+        
+        const usersCollection = database.collection('users');
+        const testUser = await usersCollection.findOne({ membershipId: "77480" });
+        
+        res.json({
+          success: true,
+          message: "Balance update API is working",
+          testUser: testUser ? {
+            name: testUser.name,
+            membershipId: testUser.membershipId,
+            accountBalance: testUser.accountBalance
+          } : null,
+          databaseConnected: !!database,
+          collectionName: usersCollection.collectionName
+        });
+      } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+      }
+    }
+    
     // Test endpoint for debugging user lookup
     else if (req.method === 'GET' && path.includes('/api/debug/user/')) {
       const userId = path.split('/').pop();
@@ -436,17 +462,29 @@ export default async function handler(req, res) {
     
     // Update user balance
     else if (req.method === 'PATCH' && path.includes('/api/frontend/users/') && path.includes('/balance')) {
-      const userId = path.split('/')[3];
+      // Extract userId from path - handle different path formats
+      let userId;
+      const pathParts = path.split('/');
+      
+      // Find the user ID in the path (it should be after /api/frontend/users/)
+      const usersIndex = pathParts.indexOf('users');
+      if (usersIndex !== -1 && pathParts[usersIndex + 1]) {
+        userId = pathParts[usersIndex + 1];
+      } else {
+        userId = pathParts[pathParts.length - 2]; // Fallback to second to last part
+      }
+      
       const { amount, operation } = req.body;
 
       console.log(`💰 Updating balance for user ${userId}: ${operation} ${amount}`);
       console.log(`🔍 Full path: ${path}`);
+      console.log(`🔍 Path parts: ${JSON.stringify(pathParts)}`);
       console.log(`🔍 Extracted userId: ${userId}`);
       console.log(`🔍 UserId type: ${typeof userId}`);
       console.log(`🔍 UserId length: ${userId?.length}`);
 
       // Validate userId
-      if (!userId || userId === 'undefined' || userId === 'null') {
+      if (!userId || userId === 'undefined' || userId === 'null' || userId === 'balance') {
         console.log(`❌ Invalid userId: ${userId}`);
         return res.status(400).json({ 
           success: false, 
@@ -483,52 +521,49 @@ export default async function handler(req, res) {
       console.log(`🔍 MongoDB collection: ${usersCollection.collectionName}`);
       console.log(`🔍 Database name: ${database.databaseName}`);
       
-      // Handle ObjectId conversion with error handling
-      let user;
-      console.log(`🔍 Attempting to find user with ObjectId: ${userId}`);
+      // Find user by multiple methods
+      let user = null;
+      console.log(`🔍 Searching for user with ID: ${userId}`);
       
-      // First try ObjectId search
+      // Method 1: Try ObjectId search
       try {
         user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-        console.log(`🔍 ObjectId search result:`, user ? `Found user: ${user.name}` : 'No user found');
+        if (user) {
+          console.log(`✅ Found user by ObjectId: ${user.name} (${user.membershipId})`);
+        }
       } catch (objectIdError) {
-        console.error("❌ ObjectId conversion error for userId:", userId, objectIdError);
-        user = null;
+        console.log(`❌ ObjectId search failed for: ${userId}`);
       }
       
-      // If ObjectId search failed, try string ID
+      // Method 2: Try string ID search
       if (!user) {
-        console.log(`🔍 Trying string ID fallback: ${userId}`);
         user = await usersCollection.findOne({ _id: userId });
-        console.log(`🔍 String ID search result:`, user ? `Found user: ${user.name}` : 'No user found');
+        if (user) {
+          console.log(`✅ Found user by string ID: ${user.name} (${user.membershipId})`);
+        }
       }
       
-      // If still not found, try membershipId search
+      // Method 3: Try membershipId search
       if (!user) {
-        console.log(`🔍 Trying membershipId search: ${userId}`);
         user = await usersCollection.findOne({ membershipId: userId });
-        console.log(`🔍 MembershipId search result:`, user ? `Found user: ${user.name}` : 'No user found');
+        if (user) {
+          console.log(`✅ Found user by membershipId: ${user.name} (${user.membershipId})`);
+        }
       }
       
-      // If still not found, try to find by any field containing the userId
+      // Method 4: Try email search
       if (!user) {
-        console.log(`🔍 Trying broad search for: ${userId}`);
-        user = await usersCollection.findOne({
-          $or: [
-            { _id: userId },
-            { membershipId: userId },
-            { email: userId },
-            { name: { $regex: userId, $options: 'i' } }
-          ]
-        });
-        console.log(`🔍 Broad search result:`, user ? `Found user: ${user.name}` : 'No user found');
+        user = await usersCollection.findOne({ email: userId });
+        if (user) {
+          console.log(`✅ Found user by email: ${user.name} (${user.membershipId})`);
+        }
       }
       
       if (!user) {
         console.log(`❌ User not found with any method for userId: ${userId}`);
-        // Get total users count for debugging
-        const totalUsers = await usersCollection.countDocuments();
-        console.log(`🔍 Total users in collection: ${totalUsers}`);
+        // Get some sample users for debugging
+        const sampleUsers = await usersCollection.find({}).limit(3).toArray();
+        console.log(`🔍 Sample users in database:`, sampleUsers.map(u => ({ _id: u._id, membershipId: u.membershipId, name: u.name })));
         
         return res.status(404).json({ 
           success: false, 
@@ -545,12 +580,17 @@ export default async function handler(req, res) {
         newBalance = currentBalance + numericAmount;
       } else if (operation === "subtract") {
         newBalance = currentBalance - numericAmount;
+      } else {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Invalid operation. Use 'add' or 'subtract'." 
+        });
       }
 
-      // Handle ObjectId conversion for update operation
+      // Update the user's balance using the user's actual _id
       let result;
-      console.log(`🔍 Attempting to update user balance with ObjectId: ${userId}`);
-      console.log(`🔍 Update data: accountBalance ${currentBalance} → ${newBalance}`);
+      console.log(`🔍 Updating balance for user _id: ${user._id}`);
+      console.log(`🔍 Balance change: ${currentBalance} → ${newBalance} (${operation} ${numericAmount})`);
       
       const updateData = { 
         $set: { 
@@ -564,67 +604,39 @@ export default async function handler(req, res) {
         projection: { password: 0, withdrawalPassword: 0 }
       };
       
-      // Try ObjectId update first
       try {
         result = await usersCollection.findOneAndUpdate(
-          { _id: new ObjectId(userId) },
+          { _id: user._id },
           updateData,
           updateOptions
         );
-        console.log(`✅ ObjectId update successful:`, result ? `Updated user: ${result.name}` : 'No result');
-      } catch (objectIdError) {
-        console.error("❌ ObjectId conversion error for update userId:", userId, objectIdError);
-        result = null;
-      }
-      
-      // If ObjectId update failed, try string ID
-      if (!result) {
-        console.log(`🔍 Trying string ID update fallback: ${userId}`);
-        result = await usersCollection.findOneAndUpdate(
-          { _id: userId },
-          updateData,
-          updateOptions
-        );
-        console.log(`✅ String ID update result:`, result ? `Updated user: ${result.name}` : 'No result');
-      }
-      
-      // If still no result, try membershipId update
-      if (!result) {
-        console.log(`🔍 Trying membershipId update: ${userId}`);
-        result = await usersCollection.findOneAndUpdate(
-          { membershipId: userId },
-          updateData,
-          updateOptions
-        );
-        console.log(`✅ MembershipId update result:`, result ? `Updated user: ${result.name}` : 'No result');
-      }
-      
-      // If still no result, try broad search update
-      if (!result) {
-        console.log(`🔍 Trying broad search update: ${userId}`);
-        result = await usersCollection.findOneAndUpdate(
-          {
-            $or: [
-              { _id: userId },
-              { membershipId: userId },
-              { email: userId },
-              { name: { $regex: userId, $options: 'i' } }
-            ]
-          },
-          updateData,
-          updateOptions
-        );
-        console.log(`✅ Broad search update result:`, result ? `Updated user: ${result.name}` : 'No result');
+        console.log(`✅ Balance update successful:`, result ? `Updated user: ${result.name}` : 'No result');
+      } catch (updateError) {
+        console.error("❌ Balance update error:", updateError);
+        return res.status(500).json({ 
+          success: false, 
+          error: "Failed to update balance" 
+        });
       }
 
-      console.log(`✅ Balance updated: ${currentBalance} → ${newBalance}`);
+      if (!result) {
+        console.error("❌ No result returned from balance update");
+        return res.status(500).json({ 
+          success: false, 
+          error: "Failed to update balance - no result returned" 
+        });
+      }
+
+      console.log(`✅ Balance updated successfully: ${currentBalance} → ${newBalance}`);
 
       res.json({
         success: true,
         data: result,
         message: `Balance ${operation === "add" ? "added" : "subtracted"} successfully`,
         oldBalance: currentBalance,
-        newBalance: newBalance
+        newBalance: newBalance,
+        operation: operation,
+        amount: numericAmount
       });
     }
     
