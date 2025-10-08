@@ -37,6 +37,9 @@ export default async function handler(req, res) {
     res.status(200).end();
     return;
   }
+  
+  // Log all requests for debugging
+  console.log(`📥 API Request: ${req.method} ${req.url}`);
 
   try {
     console.log("🚀 API Request:", req.method, req.url);
@@ -283,8 +286,9 @@ export default async function handler(req, res) {
     }
     
     // Toggle user account status (suspend/activate)
-    else if (req.method === 'PATCH' && path.includes('/api/frontend/users/') && path.includes('/toggle-status')) {
-      console.log(`🔄 Toggle status request - Method: ${req.method}, Path: ${path}`);
+    else if (req.method === 'PATCH' && path.match(/^\/api\/frontend\/users\/[^\/]+\/toggle-status$/)) {
+      console.log(`🔄 Toggle status request matched - Method: ${req.method}, Path: ${path}`);
+      console.log(`🔄 Regex test result:`, /^\/api\/frontend\/users\/[^\/]+\/toggle-status$/.test(path));
       const pathParts = path.split('/');
       console.log(`🔄 Path parts:`, pathParts);
       const userId = pathParts[pathParts.length - 2]; // Get userId from the path
