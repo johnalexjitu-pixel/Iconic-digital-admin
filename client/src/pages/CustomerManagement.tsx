@@ -529,6 +529,8 @@ export default function CustomerManagement() {
   const updateBalanceMutation = useMutation({
     mutationFn: async ({ userId, amount, operation }: { userId: string; amount: number; operation: string }) => {
       console.log("📤 Updating balance:", { userId, amount, operation });
+      console.log("📤 Using userId type:", typeof userId, "length:", userId?.length);
+      console.log("📤 Full API URL:", `/api/frontend/users/${userId}/balance`);
       const response = await apiRequest("PATCH", `/api/frontend/users/${userId}/balance`, { amount, operation });
       console.log("📥 Balance update response:", response);
       return response;
@@ -573,8 +575,16 @@ export default function CustomerManagement() {
       return;
     }
 
+    const customerId = editBalanceModal.customer.membershipId || editBalanceModal.customer.code || editBalanceModal.customer.id;
+    console.log("📤 Customer data:", {
+      id: editBalanceModal.customer.id,
+      membershipId: editBalanceModal.customer.membershipId,
+      code: editBalanceModal.customer.code,
+      selectedId: customerId
+    });
+
     updateBalanceMutation.mutate({
-      userId: editBalanceModal.customer.id,
+      userId: customerId,
       amount: Number(balanceAmount),
       operation: balanceOperation,
     });
