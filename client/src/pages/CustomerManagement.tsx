@@ -505,9 +505,16 @@ export default function CustomerManagement() {
       ...customer,
       walletBalance: latestCustomer?.accountBalance?.toString() || customer.walletBalance,
       actualWalletBalance: latestCustomer?.accountBalance?.toString() || customer.actualWalletBalance,
+      membershipId: latestCustomer?.membershipId || customer.membershipId || customer.code,
     };
     
     console.log("💰 Current balance:", updatedCustomer.walletBalance);
+    console.log("📊 Updated customer data:", {
+      id: updatedCustomer.id,
+      membershipId: updatedCustomer.membershipId,
+      code: updatedCustomer.code,
+      walletBalance: updatedCustomer.walletBalance
+    });
     
     setEditBalanceModal({
       open: true,
