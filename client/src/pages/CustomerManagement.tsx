@@ -1161,7 +1161,12 @@ export default function CustomerManagement() {
                   <div className="flex items-center justify-between">
                     <div className="text-lg font-semibold">{t('comboTaskNumber') || 'Combo Task Number'}</div>
                     <div className="text-sm text-muted-foreground">
-                      Showing {comboTasksData?.data?.length || 0} / 30 tasks
+                      Showing {comboTasksData?.data?.length || 0} future tasks
+                      {taskDetailsModal.customer?.currentTask && (
+                        <span className="ml-2 text-blue-600">
+                          (Current: {taskDetailsModal.customer.currentTask})
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="max-h-96 overflow-y-auto border rounded-md">
@@ -1195,11 +1200,9 @@ export default function CustomerManagement() {
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
                                 <span>Task {task.taskNumber}</span>
-                                {task.taskNumber > 19 && (
-                                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                    New
-                                  </span>
-                                )}
+                                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                  Future
+                                </span>
                               </div>
                             </TableCell>
                             <TableCell>

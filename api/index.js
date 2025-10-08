@@ -1874,19 +1874,33 @@ export default async function handler(req, res) {
       console.log("🎯 Found existing customer tasks:", existingTasks.length);
       console.log("🎯 Expected: 30 tasks for combo tasks");
       
-      // If no existing tasks, create default 30 tasks for the user
-      if (existingTasks.length === 0) {
-        console.log("💡 No existing tasks found, creating default 30 tasks for user");
-        
-        // Create default 30 tasks for the user
-        const defaultTasks = [];
-        for (let i = 1; i <= 30; i++) {
-          defaultTasks.push({
-            _id: `default_${customerId}_${i}_${Date.now()}`,
+      // Get user's current task number from customer info
+      const currentTaskNumber = customer.currentTask || customer.completedTasks || 0;
+      console.log("🎯 User's current task number:", currentTaskNumber);
+      
+      // Create future tasks starting from current task number + 1
+      const startTaskNumber = currentTaskNumber + 1;
+      const endTaskNumber = startTaskNumber + 29; // Next 30 tasks
+      console.log("🎯 Creating tasks from", startTaskNumber, "to", endTaskNumber);
+      
+      // Check which future tasks already exist
+      const existingFutureTasks = existingTasks.filter(task => 
+        task.taskNumber >= startTaskNumber && task.taskNumber <= endTaskNumber
+      );
+      
+      console.log("🎯 Found existing future tasks:", existingFutureTasks.length);
+      
+      // Create missing future tasks
+      const tasksToCreate = [];
+      for (let i = startTaskNumber; i <= endTaskNumber; i++) {
+        const existingTask = existingTasks.find(task => task.taskNumber === i);
+        if (!existingTask) {
+          tasksToCreate.push({
+            _id: `future_${customerId}_${i}_${Date.now()}`,
             customerId: customerId,
             customerCode: customer?.membershipId || customer?.code || "",
             taskNumber: i,
-            campaignId: `default_campaign_${i}`,
+            campaignId: `future_campaign_${i}`,
             taskCommission: 0,
             taskPrice: 100 + (i * 10), // Default prices
             estimatedNegativeAmount: 0,
@@ -1897,39 +1911,48 @@ export default async function handler(req, res) {
             status: 'pending',
             createdAt: new Date(),
             updatedAt: new Date(),
-            campaignName: `Default Task ${i}`,
+            campaignName: `Future Task ${i}`,
             campaignLogo: "",
             campaignType: "Free",
-            campaignCode: `DEFAULT_${i}`,
-            name: `Default Task ${i}`,
+            campaignCode: `FUTURE_${i}`,
+            name: `Future Task ${i}`,
             price: 100 + (i * 10),
-            code: `DEFAULT_${i}`,
+            code: `FUTURE_${i}`,
             logo: ""
           });
         }
-        
-        // Insert default tasks into database
-        await customerTasksCollection.insertMany(defaultTasks);
-        console.log("💡 Created", defaultTasks.length, "default tasks for user");
-        
-        // Update existingTasks to include the newly created tasks
-        existingTasks.push(...defaultTasks);
       }
       
-      console.log("🎯 First existing task sample:", existingTasks[0] ? {
-        _id: existingTasks[0]._id,
-        taskNumber: existingTasks[0].taskNumber,
-        taskPrice: existingTasks[0].taskPrice,
-        hasGoldenEgg: existingTasks[0].hasGoldenEgg
-      } : "No existing tasks found");
+      if (tasksToCreate.length > 0) {
+        // Insert missing future tasks into database
+        await customerTasksCollection.insertMany(tasksToCreate);
+        console.log("💡 Created", tasksToCreate.length, "future tasks for user");
+        
+        // Update existingTasks to include the newly created tasks
+        existingTasks.push(...tasksToCreate);
+      }
+      
+      // Filter tasks to show only the next 30 future tasks
+      const futureTasks = existingTasks
+        .filter(task => task.taskNumber >= startTaskNumber && task.taskNumber <= endTaskNumber)
+        .sort((a, b) => a.taskNumber - b.taskNumber);
+      
+      console.log("🎯 Future tasks to display:", futureTasks.length);
+      
+      console.log("🎯 First future task sample:", futureTasks[0] ? {
+        _id: futureTasks[0]._id,
+        taskNumber: futureTasks[0].taskNumber,
+        taskPrice: futureTasks[0].taskPrice,
+        hasGoldenEgg: futureTasks[0].hasGoldenEgg
+      } : "No future tasks found");
 
-      if (existingTasks.length === 0) {
-        console.log("No existing tasks found for customer");
+      if (futureTasks.length === 0) {
+        console.log("No future tasks found for customer");
         return res.json({ success: true, data: [], total: 0 });
       }
 
-      // Convert existing tasks to combo tasks format - USER'S EXISTING TASKS
-      const comboTasks = existingTasks.map((task) => {
+      // Convert future tasks to combo tasks format - USER'S FUTURE TASKS
+      const comboTasks = futureTasks.map((task) => {
         return {
           _id: task._id.toString(),
           customerId: task.customerId,
