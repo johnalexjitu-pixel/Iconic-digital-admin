@@ -822,7 +822,7 @@ export default async function handler(req, res) {
         const totalCampaigns = await campaignsCollection.countDocuments();
         console.log("📋 Total campaigns in collection:", totalCampaigns);
       
-      // Get all campaigns (remove limit to see all)
+      // Get all campaigns (same as Task Management page)
       const campaigns = await campaignsCollection
         .find({})
         .sort({ createdAt: -1 })
@@ -833,7 +833,8 @@ export default async function handler(req, res) {
         _id: campaigns[0]._id,
         brand: campaigns[0].brand,
         baseAmount: campaigns[0].baseAmount,
-        logo: campaigns[0].logo
+        logo: campaigns[0].logo,
+        code: campaigns[0].code
       } : "No campaigns found");
 
       if (campaigns.length === 0) {
@@ -856,7 +857,7 @@ export default async function handler(req, res) {
         return res.json({ success: true, data: [], total: 0 });
       }
 
-      // Convert campaigns to customer tasks format - DIRECT FROM CAMPAIGNS
+      // Convert campaigns to customer tasks format - SAME AS TASK MANAGEMENT
       const customerTasks = campaigns.map((campaign, index) => ({
         _id: campaign._id.toString(),
         customerId,
@@ -873,10 +874,16 @@ export default async function handler(req, res) {
         status: 'pending',
         createdAt: campaign.createdAt || new Date(),
         updatedAt: new Date(),
-        // Campaign fields directly from campaigns collection
-        campaignName: campaign.brand || `Campaign ${index + 1}`,
+        // Campaign fields - SAME AS TASK MANAGEMENT PAGE
+        campaignName: campaign.brand || campaign.name || `Campaign ${index + 1}`,
         campaignLogo: campaign.logo || "",
-        campaignType: campaign.type || "Free"
+        campaignType: campaign.type || "Free",
+        campaignCode: campaign.code || campaign.taskCode || `TASK${index + 1}`,
+        // Additional fields for compatibility
+        name: campaign.brand || campaign.name,
+        price: campaign.baseAmount || 0,
+        code: campaign.code || campaign.taskCode,
+        logo: campaign.logo || ""
       }));
 
       console.log("📋 Converted to customer tasks:", customerTasks.length);
