@@ -1635,7 +1635,9 @@ export default async function handler(req, res) {
               _id: customer._id,
               name: customer.name,
               email: customer.email,
-              membershipId: customer.membershipId
+              membershipId: customer.membershipId,
+              phoneNumber: customer.phoneNumber,
+              accountBalance: customer.accountBalance
             } : null
           };
         })
@@ -1709,6 +1711,7 @@ export default async function handler(req, res) {
             name: customer.name,
             email: customer.email,
             membershipId: customer.membershipId,
+            phoneNumber: customer.phoneNumber,
             accountBalance: customer.accountBalance
           } : null
         }
