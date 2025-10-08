@@ -57,23 +57,7 @@ export default function WithdrawalManagement() {
       pages: number;
     };
   }>({
-    queryKey: ["/api/frontend/withdrawals", queryParams.toString()],
-    queryFn: async () => {
-      const url = `/api/frontend/withdrawals?${queryParams.toString()}`;
-      console.log("🔍 Withdrawals API URL:", url);
-      console.log("🔍 Query params:", queryParams.toString());
-      console.log("🔍 Current filters:", filters);
-      console.log("🔍 Date range:", { startDate, endDate });
-      
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.error("❌ API request failed:", response.status, response.statusText);
-        throw new Error(`Failed to fetch withdrawals: ${response.status} ${response.statusText}`);
-      }
-      const data = await response.json();
-      console.log("📥 Withdrawals response:", data);
-      return data;
-    },
+    queryKey: ["/api/frontend/withdrawals?" + queryParams.toString()],
     staleTime: 0, // Always fetch fresh data
     refetchOnMount: true,
     refetchOnWindowFocus: true,
