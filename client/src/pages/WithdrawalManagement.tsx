@@ -185,6 +185,10 @@ export default function WithdrawalManagement() {
   console.log("  - withdrawalsResponse:", withdrawalsResponse);
   console.log("  - displayWithdrawals length:", displayWithdrawals?.length || 0);
   console.log("  - totalWithdrawals:", totalWithdrawals);
+  console.log("  - queryParams:", queryParams.toString());
+  console.log("  - startDate:", startDate);
+  console.log("  - endDate:", endDate);
+  console.log("  - filters:", filters);
 
   return (
     <div className="p-6">
@@ -195,6 +199,8 @@ export default function WithdrawalManagement() {
             <div>MONGODB_URI: mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/</div>
             <div>Total Withdrawals: {totalWithdrawals}</div>
             <div>Last Updated: {new Date().toLocaleString()}</div>
+            <div>Production Fix Applied - v2.0</div>
+            <div>Debug: {JSON.stringify({startDate, endDate, filters, queryParams: queryParams.toString()})}</div>
           </div>
         </div>
 

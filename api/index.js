@@ -1572,6 +1572,16 @@ export default async function handler(req, res) {
     
     // Frontend Withdrawal Management
     
+    // Test endpoint for debugging
+    else if (req.method === 'GET' && path === '/api/test') {
+      res.json({
+        success: true,
+        message: "API is working in production",
+        timestamp: new Date().toISOString(),
+        env: process.env.NODE_ENV || 'unknown'
+      });
+    }
+    
     // Get all withdrawals
     else if (req.method === 'GET' && path === '/api/frontend/withdrawals') {
       console.log("💰 Fetching all withdrawals from withdrawals collection");
