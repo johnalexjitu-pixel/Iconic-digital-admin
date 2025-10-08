@@ -26,23 +26,28 @@ export default function WithdrawalManagement() {
   });
   const [isFiltered, setIsFiltered] = useState(false);
 
-  const { data: withdrawals, isLoading } = useQuery<Withdrawal[]>({
-    queryKey: ["/api/withdrawals"],
+  // Fetch withdrawals from MongoDB withdrawals collection
+  const { data: withdrawalsResponse, isLoading: withdrawalsLoading } = useQuery<{
+    success: boolean;
+    data: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>({
+    queryKey: ["/api/frontend/withdrawals"],
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const { data: customers } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
-  // Fetch transactions from MongoDB (as withdrawals)
-  const { data: transactionsResponse, isLoading: transactionsLoading } = useQuery<{
-    success: boolean;
-    data: any[];
-  }>({
-    queryKey: ["/api/frontend/transactions"],
-  });
-
-  // Fetch users from MongoDB
+  // Fetch users from MongoDB for customer details
   const { data: usersResponse } = useQuery<{
     success: boolean;
     data: any[];
@@ -85,29 +90,31 @@ export default function WithdrawalManagement() {
     });
   };
 
-  // Convert transactions to withdrawals format
-  let displayWithdrawals = transactionsResponse?.data?.map((transaction: any) => {
-    const user = usersResponse?.data?.find((u: any) => u._id === transaction.userId);
+  // Use withdrawals data directly from the new API
+  let displayWithdrawals = withdrawalsResponse?.data?.map((withdrawal: any) => {
     return {
-      id: transaction._id,
-      customerId: transaction.userId,
-      amount: transaction.amount?.toString() || "0",
-      status: transaction.status === "completed" ? "Approved" : "Pending",
-      bankName: user?.withdrawalInfo?.bankName || "N/A",
-      accountHolder: user?.withdrawalInfo?.accountHolderName || "N/A",
-      iban: user?.withdrawalInfo?.accountNumber || "N/A",
-      contactNumber: user?.phoneNumber || "",
-      branch: user?.withdrawalInfo?.branch || "N/A",
-      adminName: "TEAM 1 - RUPEE",
-      createdBy: "ooo001",
-      createdAt: new Date(transaction.createdAt),
-      updatedAt: new Date(transaction.updatedAt),
-      customer: {
-        code: user?.membershipId,
-        username: user?.name,
-        walletBalance: user?.accountBalance?.toString(),
-        phoneNumber: user?.phoneNumber,
-      }
+      id: withdrawal._id,
+      customerId: withdrawal.customerId,
+      amount: withdrawal.amount?.toString() || "0",
+      status: withdrawal.status === "completed" ? "Approved" : 
+              withdrawal.status === "processing" ? "Processing" : "Pending",
+      bankName: withdrawal.accountDetails?.provider || "N/A",
+      accountHolder: withdrawal.accountDetails?.accountHolderName || "N/A",
+      iban: withdrawal.accountDetails?.accountNumber || withdrawal.accountDetails?.mobileNumber || "N/A",
+      contactNumber: withdrawal.accountDetails?.mobileNumber || "",
+      branch: withdrawal.accountDetails?.branch || "N/A",
+      adminName: withdrawal.processedBy || "TEAM 1 - RUPEE",
+      createdBy: "System",
+      createdAt: new Date(withdrawal.submittedAt || withdrawal.createdAt),
+      updatedAt: new Date(withdrawal.updatedAt),
+      adminNotes: withdrawal.adminNotes || "",
+      processedAt: withdrawal.processedAt,
+      customer: withdrawal.customer ? {
+        code: withdrawal.customer.membershipId,
+        username: withdrawal.customer.name,
+        walletBalance: withdrawal.customer.accountBalance?.toString(),
+        phoneNumber: withdrawal.customer.phoneNumber,
+      } : null
     };
   }) || [];
 
@@ -149,10 +156,14 @@ export default function WithdrawalManagement() {
 
   const updateWithdrawalMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      return apiRequest("PATCH", `/api/withdrawals/${id}`, { status });
+      return apiRequest("PATCH", `/api/frontend/withdrawals/${id}/update-status`, { 
+        status: status === "Approved" ? "completed" : status === "Rejected" ? "rejected" : status.toLowerCase(),
+        adminNotes: `Status updated to ${status} via admin panel`,
+        processedBy: "admin"
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/withdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/frontend/withdrawals"] });
       toast({
         title: "Success",
         description: "Withdrawal status updated successfully",
@@ -167,7 +178,7 @@ export default function WithdrawalManagement() {
     },
   });
 
-  if (isLoading || transactionsLoading) {
+  if (withdrawalsLoading) {
     return (
       <div className="p-6">
         <div className="h-96 bg-muted animate-pulse rounded-lg" />
@@ -175,10 +186,19 @@ export default function WithdrawalManagement() {
     );
   }
 
+  // Get total withdrawals count for display
+  const totalWithdrawals = withdrawalsResponse?.pagination?.total || 0;
+
   return (
     <div className="p-6">
       <div className="bg-card rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-6">{t('withdrawalManagement')}</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">{t('withdrawalManagement')}</h2>
+          <div className="text-sm text-muted-foreground">
+            <div>MONGODB_URI: mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/</div>
+            <div>Total Withdrawals: {totalWithdrawals}</div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div>
@@ -348,7 +368,7 @@ export default function WithdrawalManagement() {
             </Select>
           </div>
           <div className="text-sm text-muted-foreground">
-            1-{displayWithdrawals?.length} of {displayWithdrawals?.length}
+            1-{displayWithdrawals?.length || 0} of {totalWithdrawals}
           </div>
         </div>
       </div>
