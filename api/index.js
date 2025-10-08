@@ -406,6 +406,7 @@ export default async function handler(req, res) {
     // Get users with filters
     else if (req.method === 'GET' && path === '/api/frontend/users') {
       console.log("🔍 Frontend users API called with query params:", req.query);
+      console.log("🔍 Request URL:", req.url);
       
       const { 
         page = 1, 
@@ -456,6 +457,10 @@ export default async function handler(req, res) {
 
       const usersCollection = database.collection('users');
       
+      // Check total users in collection
+      const totalUsersInCollection = await usersCollection.countDocuments({});
+      console.log(`📊 Total users in collection: ${totalUsersInCollection}`);
+      
       const users = await usersCollection
         .find(query)
         .sort({ createdAt: -1 })
@@ -467,6 +472,7 @@ export default async function handler(req, res) {
 
       console.log(`📊 Found ${users.length} users (total: ${total}) with filters:`, query);
       console.log(`📊 Final query object:`, JSON.stringify(query, null, 2));
+      console.log(`📊 Sample user data:`, users.length > 0 ? JSON.stringify(users[0], null, 2) : "No users found");
 
       res.json({
         success: true,

@@ -296,16 +296,15 @@ export default function CustomerManagement() {
   const queryParams = new URLSearchParams();
   queryParams.append("limit", "100");
   
-  if (isFiltered) {
-    if (filters.username) queryParams.append("search", filters.username);
-    if (filters.code) queryParams.append("membershipId", filters.code);
-    if (filters.phoneNumber) queryParams.append("phoneNumber", filters.phoneNumber);
-    if (filters.customerStatus && filters.customerStatus !== "all") {
-      queryParams.append("isActive", filters.customerStatus === "active" ? "true" : "false");
-    }
-    if (startDate) queryParams.append("startDate", startDate);
-    if (endDate) queryParams.append("endDate", endDate);
+  // Always include filters if they have values (like TaskManagement style)
+  if (filters.username) queryParams.append("search", filters.username);
+  if (filters.code) queryParams.append("membershipId", filters.code);
+  if (filters.phoneNumber) queryParams.append("phoneNumber", filters.phoneNumber);
+  if (filters.customerStatus && filters.customerStatus !== "all") {
+    queryParams.append("isActive", filters.customerStatus === "active" ? "true" : "false");
   }
+  if (startDate) queryParams.append("startDate", startDate);
+  if (endDate) queryParams.append("endDate", endDate);
 
   // Fetch users from MongoDB frontend database
   const { data: frontendUsers, isLoading: frontendUsersLoading } = useQuery<{
@@ -314,9 +313,14 @@ export default function CustomerManagement() {
   }>({
     queryKey: ["/api/frontend/users", queryParams.toString()],
     queryFn: async () => {
-      const response = await fetch(`/api/frontend/users?${queryParams.toString()}`);
+      const url = `/api/frontend/users?${queryParams.toString()}`;
+      console.log("🔍 Frontend users API URL:", url);
+      console.log("🔍 Query params:", queryParams.toString());
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch users');
-      return response.json();
+      const data = await response.json();
+      console.log("📥 Frontend users response:", data);
+      return data;
     },
     staleTime: 0, // Always fetch fresh data
     refetchOnMount: true, // Refetch when component mounts
