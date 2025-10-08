@@ -100,8 +100,14 @@ export default function CustomerManagement() {
       if (!taskDetailsModal.customer?.id) return { success: true, data: [], total: 0 };
       console.log("📋 Fetching tasks for customer ID:", taskDetailsModal.customer.id);
       const response = await fetch(`/api/frontend/customer-tasks/${taskDetailsModal.customer.id}`);
+      if (!response.ok) {
+        console.error("❌ API response not ok:", response.status, response.statusText);
+        throw new Error(`API Error: ${response.status}`);
+      }
       const data = await response.json();
       console.log("📥 Customer tasks response:", data);
+      console.log("📊 Data length:", data.data?.length);
+      console.log("📊 Total:", data.total);
       return data;
     },
     enabled: taskDetailsModal.open && !!taskDetailsModal.customer?.id,
@@ -996,7 +1002,10 @@ export default function CustomerManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {customerTasksData?.data?.slice(0, 10).map((task: any) => (
+                      {(() => {
+                        console.log("🔍 Rendering table body with data:", customerTasksData?.data?.length);
+                        console.log("🔍 First task:", customerTasksData?.data?.[0]);
+                        return customerTasksData?.data?.slice(0, 10).map((task: any) => (
                         <TableRow key={task._id}>
                           <TableCell>
                             <div className="space-y-1">
@@ -1018,7 +1027,8 @@ export default function CustomerManagement() {
                             </span>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ));
+                      })()}
                       {!customerTasksData?.data?.length && (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center text-muted-foreground">
