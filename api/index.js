@@ -386,6 +386,14 @@ export default async function handler(req, res) {
 
       console.log(`💰 Updating balance for user ${userId}: ${operation} ${amount}`);
 
+      // Validate userId
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Invalid user ID provided" 
+        });
+      }
+
       if (!amount || !operation) {
         return res.status(400).json({ 
           success: false, 
@@ -393,8 +401,26 @@ export default async function handler(req, res) {
         });
       }
 
+      // Validate amount
+      const numericAmount = Number(amount);
+      if (isNaN(numericAmount) || numericAmount < 0) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Invalid amount provided. Amount must be a positive number." 
+        });
+      }
+
       const usersCollection = database.collection('users');
-      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+      
+      // Handle ObjectId conversion with error handling
+      let user;
+      try {
+        user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+      } catch (objectIdError) {
+        console.error("❌ ObjectId conversion error for userId:", userId, objectIdError);
+        // Try to find user with string ID as fallback
+        user = await usersCollection.findOne({ _id: userId });
+      }
       
       if (!user) {
         return res.status(404).json({ 
@@ -407,24 +433,44 @@ export default async function handler(req, res) {
       let newBalance = currentBalance;
 
       if (operation === "add") {
-        newBalance = currentBalance + Number(amount);
+        newBalance = currentBalance + numericAmount;
       } else if (operation === "subtract") {
-        newBalance = currentBalance - Number(amount);
+        newBalance = currentBalance - numericAmount;
       }
 
-      const result = await usersCollection.findOneAndUpdate(
-        { _id: new ObjectId(userId) },
-        { 
-          $set: { 
-            accountBalance: newBalance,
-            updatedAt: new Date()
-          } 
-        },
-        { 
-          returnDocument: 'after',
-          projection: { password: 0, withdrawalPassword: 0 }
-        }
-      );
+      // Handle ObjectId conversion for update operation
+      let result;
+      try {
+        result = await usersCollection.findOneAndUpdate(
+          { _id: new ObjectId(userId) },
+          { 
+            $set: { 
+              accountBalance: newBalance,
+              updatedAt: new Date()
+            } 
+          },
+          { 
+            returnDocument: 'after',
+            projection: { password: 0, withdrawalPassword: 0 }
+          }
+        );
+      } catch (objectIdError) {
+        console.error("❌ ObjectId conversion error for update userId:", userId, objectIdError);
+        // Try to update user with string ID as fallback
+        result = await usersCollection.findOneAndUpdate(
+          { _id: userId },
+          { 
+            $set: { 
+              accountBalance: newBalance,
+              updatedAt: new Date()
+            } 
+          },
+          { 
+            returnDocument: 'after',
+            projection: { password: 0, withdrawalPassword: 0 }
+          }
+        );
+      }
 
       console.log(`✅ Balance updated: ${currentBalance} → ${newBalance}`);
 
