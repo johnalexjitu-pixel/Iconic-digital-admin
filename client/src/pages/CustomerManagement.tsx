@@ -280,7 +280,12 @@ export default function CustomerManagement() {
       });
 
       // Invalidate queries to refresh data
+      console.log("🔄 Invalidating combo tasks query after golden egg toggle");
       await queryClient.invalidateQueries({ queryKey: ["/api/frontend/combo-tasks", taskDetailsModal.customer?.id] });
+      
+      // Also refetch the combo tasks data
+      console.log("🔄 Refetching combo tasks data");
+      await refetchComboTasks();
       
     } catch (error: any) {
       console.error("❌ Error toggling golden egg:", error);

@@ -1987,6 +1987,12 @@ export default async function handler(req, res) {
         taskPrice: futureTasks[0].taskPrice,
         hasGoldenEgg: futureTasks[0].hasGoldenEgg
       } : "No future tasks found");
+      
+      // Log golden egg status for all tasks
+      console.log("🎯 Golden egg status for all tasks:", futureTasks.map(t => ({
+        taskNumber: t.taskNumber,
+        hasGoldenEgg: t.hasGoldenEgg
+      })));
 
       if (futureTasks.length === 0) {
         console.log("No future tasks found for customer");
@@ -1995,6 +2001,9 @@ export default async function handler(req, res) {
 
       // Convert future tasks to combo tasks format - USER'S FUTURE TASKS
       const comboTasks = futureTasks.map((task) => {
+        const hasGoldenEgg = task.hasGoldenEgg || false;
+        console.log(`🎯 Mapping task ${task.taskNumber}: hasGoldenEgg = ${hasGoldenEgg} (original: ${task.hasGoldenEgg})`);
+        
         return {
           _id: task._id.toString(),
           customerId: task.customerId,
@@ -2006,7 +2015,7 @@ export default async function handler(req, res) {
           estimatedNegativeAmount: task.estimatedNegativeAmount || 0,
           priceFrom: task.priceFrom || 0,
           priceTo: task.priceTo || 0,
-          hasGoldenEgg: task.hasGoldenEgg || false,
+          hasGoldenEgg: hasGoldenEgg,
           expiredDate: task.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           status: task.status || 'pending',
           createdAt: task.createdAt || new Date(),
@@ -2030,6 +2039,12 @@ export default async function handler(req, res) {
       console.log("🎯 Sample combo task:", comboTasks[0]);
       
       console.log("🎯 Combo tasks created from existing customer tasks:", comboTasks.length);
+      
+      // Log golden egg status in final response
+      console.log("🎯 Final golden egg status in response:", comboTasks.map(t => ({
+        taskNumber: t.taskNumber,
+        hasGoldenEgg: t.hasGoldenEgg
+      })));
       
       console.log("🎯 Sending response with", comboTasks.length, "combo tasks");
       
@@ -2159,6 +2174,8 @@ export default async function handler(req, res) {
         const customerTasksCollection = database.collection('customerTasks');
         
         // Update the golden egg status for the specific task
+        console.log("🟡 Updating golden egg status:", { customerId, taskNumber, hasGoldenEgg, booleanValue: Boolean(hasGoldenEgg) });
+        
         const result = await customerTasksCollection.updateOne(
           { 
             customerId: customerId,
@@ -2171,6 +2188,8 @@ export default async function handler(req, res) {
             }
           }
         );
+        
+        console.log("🟡 Update result:", { matchedCount: result.matchedCount, modifiedCount: result.modifiedCount });
 
         if (result.matchedCount === 0) {
           console.log("⚠️ No task found for customer:", customerId, "task:", taskNumber);
