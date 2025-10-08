@@ -589,9 +589,22 @@ export default function CustomerManagement() {
       code: editBalanceModal.customer.code,
       selectedId: customerId
     });
+    
+    // Force use membershipId/code instead of ObjectId
+    const finalCustomerId = editBalanceModal.customer.membershipId || editBalanceModal.customer.code;
+    console.log("🔧 FORCING customer ID to:", finalCustomerId, "instead of ObjectId");
+    
+    if (!finalCustomerId) {
+      toast({
+        title: "Error",
+        description: "Customer membership ID not found",
+        variant: "destructive",
+      });
+      return;
+    }
 
     updateBalanceMutation.mutate({
-      userId: customerId,
+      userId: finalCustomerId,
       amount: Number(balanceAmount),
       operation: balanceOperation,
     });
