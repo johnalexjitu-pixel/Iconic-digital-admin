@@ -194,6 +194,7 @@ export default function WithdrawalManagement() {
           <div className="text-sm text-muted-foreground">
             <div>MONGODB_URI: mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/</div>
             <div>Total Withdrawals: {totalWithdrawals}</div>
+            <div>Last Updated: {new Date().toLocaleString()}</div>
           </div>
         </div>
 
