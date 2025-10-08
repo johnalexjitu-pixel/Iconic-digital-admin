@@ -775,17 +775,18 @@ export default async function handler(req, res) {
       console.log("📋 Full path:", path);
       console.log("📋 Customer ID extracted:", customerId);
 
-      // Get all campaigns from campaignsCollection
-      const campaignsCollection = database.collection('campaigns');
-      console.log("📋 Fetching from campaignsCollection");
-      
-      // First, let's check what collections exist
-      const collections = await database.listCollections().toArray();
-      console.log("📋 Available collections:", collections.map(c => c.name));
-      
-      // Check total count in campaigns collection
-      const totalCampaigns = await campaignsCollection.countDocuments();
-      console.log("📋 Total campaigns in collection:", totalCampaigns);
+      try {
+        // Get all campaigns from campaignsCollection
+        const campaignsCollection = database.collection('campaigns');
+        console.log("📋 Fetching from campaignsCollection");
+        
+        // First, let's check what collections exist
+        const collections = await database.listCollections().toArray();
+        console.log("📋 Available collections:", collections.map(c => c.name));
+        
+        // Check total count in campaigns collection
+        const totalCampaigns = await campaignsCollection.countDocuments();
+        console.log("📋 Total campaigns in collection:", totalCampaigns);
       
       // Get all campaigns (remove limit to see all)
       const campaigns = await campaignsCollection
@@ -849,13 +850,22 @@ export default async function handler(req, res) {
       console.log("📋 Sending response with", customerTasks.length, "customer tasks");
       
       const response = { success: true, data: customerTasks, total: customerTasks.length };
-      console.log("📋 Response structure:", {
-        success: response.success,
-        dataLength: response.data.length,
-        total: response.total
-      });
-      
-      res.json(response);
+        console.log("📋 Response structure:", {
+          success: response.success,
+          dataLength: response.data.length,
+          total: response.total
+        });
+        
+        res.json(response);
+      } catch (error) {
+        console.error("❌ Error in customer tasks endpoint:", error);
+        console.error("❌ Error stack:", error.stack);
+        res.status(500).json({
+          success: false,
+          error: "Internal server error",
+          details: error.message
+        });
+      }
     }
     
     // Save/Update customer task
