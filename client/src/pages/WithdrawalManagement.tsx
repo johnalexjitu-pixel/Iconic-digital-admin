@@ -24,29 +24,26 @@ export default function WithdrawalManagement() {
     code: "",
     status: "all"
   });
-  const [isFiltered, setIsFiltered] = useState(false);
 
   // Build query parameters for API call
   const queryParams = new URLSearchParams();
   queryParams.append("limit", "100");
   
-  // Add filter parameters
-  if (isFiltered) {
-    if (filters.status && filters.status !== "all") {
-      queryParams.append("status", filters.status.toLowerCase());
-    }
-    if (filters.code) {
-      queryParams.append("customerId", filters.code);
-    }
-    if (filters.username) {
-      queryParams.append("search", filters.username);
-    }
-    if (startDate) {
-      queryParams.append("startDate", startDate);
-    }
-    if (endDate) {
-      queryParams.append("endDate", endDate);
-    }
+  // Add filter parameters - always include filters if they have values
+  if (filters.status && filters.status !== "all") {
+    queryParams.append("status", filters.status.toLowerCase());
+  }
+  if (filters.code) {
+    queryParams.append("customerId", filters.code);
+  }
+  if (filters.username) {
+    queryParams.append("search", filters.username);
+  }
+  if (startDate) {
+    queryParams.append("startDate", startDate);
+  }
+  if (endDate) {
+    queryParams.append("endDate", endDate);
   }
 
   // Fetch withdrawals from MongoDB withdrawals collection
@@ -65,8 +62,14 @@ export default function WithdrawalManagement() {
       const url = `/api/frontend/withdrawals?${queryParams.toString()}`;
       console.log("🔍 Withdrawals API URL:", url);
       console.log("🔍 Query params:", queryParams.toString());
+      console.log("🔍 Current filters:", filters);
+      console.log("🔍 Date range:", { startDate, endDate });
+      
       const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch withdrawals');
+      if (!response.ok) {
+        console.error("❌ API request failed:", response.status, response.statusText);
+        throw new Error(`Failed to fetch withdrawals: ${response.status} ${response.statusText}`);
+      }
       const data = await response.json();
       console.log("📥 Withdrawals response:", data);
       return data;
@@ -102,7 +105,6 @@ export default function WithdrawalManagement() {
 
   const handleApplyFilter = async () => {
     console.log("🔍 Applying filters:", { filters, startDate, endDate });
-    setIsFiltered(true);
     toast({
       title: "Success",
       description: "Filters applied successfully",
@@ -120,7 +122,6 @@ export default function WithdrawalManagement() {
     });
     setStartDate("2025-09-25");
     setEndDate("2025-10-02");
-    setIsFiltered(false);
     toast({
       title: "Success",
       description: "Filters cleared successfully",
@@ -193,6 +194,13 @@ export default function WithdrawalManagement() {
 
   // Get total withdrawals count for display
   const totalWithdrawals = withdrawalsResponse?.pagination?.total || 0;
+  
+  // Debug logging
+  console.log("🔍 Withdrawal Management Debug:");
+  console.log("  - withdrawalsLoading:", withdrawalsLoading);
+  console.log("  - withdrawalsResponse:", withdrawalsResponse);
+  console.log("  - displayWithdrawals length:", displayWithdrawals?.length || 0);
+  console.log("  - totalWithdrawals:", totalWithdrawals);
 
   return (
     <div className="p-6">
