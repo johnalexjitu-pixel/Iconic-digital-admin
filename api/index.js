@@ -385,9 +385,14 @@ export default async function handler(req, res) {
       const { amount, operation } = req.body;
 
       console.log(`💰 Updating balance for user ${userId}: ${operation} ${amount}`);
+      console.log(`🔍 Full path: ${path}`);
+      console.log(`🔍 Extracted userId: ${userId}`);
+      console.log(`🔍 UserId type: ${typeof userId}`);
+      console.log(`🔍 UserId length: ${userId?.length}`);
 
       // Validate userId
       if (!userId || userId === 'undefined' || userId === 'null') {
+        console.log(`❌ Invalid userId: ${userId}`);
         return res.status(400).json({ 
           success: false, 
           error: "Invalid user ID provided" 
@@ -411,23 +416,42 @@ export default async function handler(req, res) {
       }
 
       const usersCollection = database.collection('users');
+      console.log(`🔍 MongoDB collection: ${usersCollection.collectionName}`);
       
       // Handle ObjectId conversion with error handling
       let user;
+      console.log(`🔍 Attempting to find user with ObjectId: ${userId}`);
       try {
         user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        console.log(`🔍 ObjectId search result:`, user ? `Found user: ${user.name}` : 'No user found');
       } catch (objectIdError) {
         console.error("❌ ObjectId conversion error for userId:", userId, objectIdError);
+        console.log(`🔍 Trying string ID fallback: ${userId}`);
         // Try to find user with string ID as fallback
         user = await usersCollection.findOne({ _id: userId });
+        console.log(`🔍 String ID search result:`, user ? `Found user: ${user.name}` : 'No user found');
+      }
+      
+      // Also try to find by membershipId as additional fallback
+      if (!user) {
+        console.log(`🔍 Trying membershipId search: ${userId}`);
+        user = await usersCollection.findOne({ membershipId: userId });
+        console.log(`🔍 MembershipId search result:`, user ? `Found user: ${user.name}` : 'No user found');
       }
       
       if (!user) {
+        console.log(`❌ User not found with any method for userId: ${userId}`);
+        // Get total users count for debugging
+        const totalUsers = await usersCollection.countDocuments();
+        console.log(`🔍 Total users in collection: ${totalUsers}`);
+        
         return res.status(404).json({ 
           success: false, 
           error: "User not found" 
         });
       }
+      
+      console.log(`✅ User found: ${user.name} (${user.membershipId}) with balance: ${user.accountBalance}`);
 
       const currentBalance = user.accountBalance || 0;
       let newBalance = currentBalance;
@@ -440,6 +464,9 @@ export default async function handler(req, res) {
 
       // Handle ObjectId conversion for update operation
       let result;
+      console.log(`🔍 Attempting to update user balance with ObjectId: ${userId}`);
+      console.log(`🔍 Update data: accountBalance ${currentBalance} → ${newBalance}`);
+      
       try {
         result = await usersCollection.findOneAndUpdate(
           { _id: new ObjectId(userId) },
@@ -454,8 +481,10 @@ export default async function handler(req, res) {
             projection: { password: 0, withdrawalPassword: 0 }
           }
         );
+        console.log(`✅ ObjectId update successful:`, result ? `Updated user: ${result.name}` : 'No result');
       } catch (objectIdError) {
         console.error("❌ ObjectId conversion error for update userId:", userId, objectIdError);
+        console.log(`🔍 Trying string ID update fallback: ${userId}`);
         // Try to update user with string ID as fallback
         result = await usersCollection.findOneAndUpdate(
           { _id: userId },
@@ -470,6 +499,26 @@ export default async function handler(req, res) {
             projection: { password: 0, withdrawalPassword: 0 }
           }
         );
+        console.log(`✅ String ID update result:`, result ? `Updated user: ${result.name}` : 'No result');
+      }
+      
+      // If still no result, try updating by membershipId
+      if (!result) {
+        console.log(`🔍 Trying membershipId update: ${userId}`);
+        result = await usersCollection.findOneAndUpdate(
+          { membershipId: userId },
+          { 
+            $set: { 
+              accountBalance: newBalance,
+              updatedAt: new Date()
+            } 
+          },
+          { 
+            returnDocument: 'after',
+            projection: { password: 0, withdrawalPassword: 0 }
+          }
+        );
+        console.log(`✅ MembershipId update result:`, result ? `Updated user: ${result.name}` : 'No result');
       }
 
       console.log(`✅ Balance updated: ${currentBalance} → ${newBalance}`);
