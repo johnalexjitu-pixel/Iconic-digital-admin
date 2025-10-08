@@ -1863,6 +1863,36 @@ export default async function handler(req, res) {
         .toArray();
       
       console.log("🎯 Found campaigns:", campaigns.length);
+      console.log("🎯 Expected: 30 campaigns for combo tasks");
+      console.log("🎯 Available campaigns in database:", campaigns.length);
+      
+      if (campaigns.length < 30) {
+        console.log("⚠️ WARNING: Only", campaigns.length, "campaigns found, but combo tasks need 30");
+        console.log("💡 Creating additional virtual campaigns to reach 30...");
+        
+        // Create virtual campaigns to reach 30
+        const virtualCampaigns = [];
+        for (let i = campaigns.length; i < 30; i++) {
+          virtualCampaigns.push({
+            _id: `virtual_${i + 1}_${Date.now()}`,
+            brand: `Virtual Campaign ${i + 1}`,
+            baseAmount: 100 + (i * 10), // Default prices
+            commissionAmount: 5 + (i * 2),
+            logo: "",
+            type: "Free",
+            code: `VIRTUAL_${i + 1}`,
+            taskCode: `VT${i + 1}`,
+            name: `Virtual Campaign ${i + 1}`,
+            createdAt: new Date(),
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          });
+        }
+        
+        // Combine real and virtual campaigns
+        campaigns.push(...virtualCampaigns);
+        console.log("🎯 Total campaigns after adding virtual ones:", campaigns.length);
+      }
+      
       console.log("🎯 First campaign sample:", campaigns[0] ? {
         _id: campaigns[0]._id,
         brand: campaigns[0].brand,

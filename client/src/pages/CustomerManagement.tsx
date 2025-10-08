@@ -279,11 +279,21 @@ export default function CustomerManagement() {
   };
 
   const handleTaskPriceChange = (task: any, value: string) => {
-    const price = parseFloat(value) || 0;
-    setTaskPrices(prev => ({
-      ...prev,
-      [task._id]: price
-    }));
+    // Allow empty string, negative numbers, and positive numbers
+    if (value === '' || value === '-') {
+      setTaskPrices(prev => ({
+        ...prev,
+        [task._id]: value
+      }));
+    } else {
+      const price = parseFloat(value);
+      if (!isNaN(price)) {
+        setTaskPrices(prev => ({
+          ...prev,
+          [task._id]: price
+        }));
+      }
+    }
   };
 
   const handleSaveTaskPrice = async (task: any) => {
@@ -295,14 +305,20 @@ export default function CustomerManagement() {
       }
 
       const newPrice = taskPrices[task._id];
-      if (!newPrice || newPrice <= 0) {
+      if (newPrice === undefined || newPrice === null || newPrice === '') {
         throw new Error("Please enter a valid price");
+      }
+      
+      // Allow negative prices for special cases
+      const numericPrice = parseFloat(newPrice);
+      if (isNaN(numericPrice)) {
+        throw new Error("Please enter a valid numeric price");
       }
 
       // Call API to save task price
       const response = await apiRequest("PATCH", `/api/frontend/combo-tasks/${taskDetailsModal.customer.id}/save-task-price`, {
         taskNumber: task.taskNumber,
-        taskPrice: newPrice,
+        taskPrice: numericPrice,
         customerId: taskDetailsModal.customer.id
       });
 
@@ -315,7 +331,7 @@ export default function CustomerManagement() {
       // Show success message
       toast({
         title: "Success",
-        description: `Task ${task.taskNumber} price updated to ${newPrice}`,
+        description: `Task ${task.taskNumber} price updated to ${numericPrice}`,
       });
 
       // Invalidate queries to refresh data
@@ -1140,7 +1156,8 @@ export default function CustomerManagement() {
               {taskDetailsModal.activeTab === "comboTaskSetting" && (
                 <div className="space-y-4">
                   <div className="text-lg font-semibold">{t('comboTaskNumber') || 'Combo Task Number'}</div>
-                  <Table>
+                  <div className="max-h-96 overflow-y-auto border rounded-md">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-16">#</TableHead>
@@ -1164,7 +1181,16 @@ export default function CustomerManagement() {
 
                         return (
                           <TableRow key={task._id}>
-                            <TableCell className="font-medium">Task {task.taskNumber}</TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <span>Task {task.taskNumber}</span>
+                                {task.taskNumber > 19 && (
+                                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                    New
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>
                               {commission > 0 ? (
                                 <span className="font-medium">{commission}</span>
@@ -1180,14 +1206,14 @@ export default function CustomerManagement() {
                                   onChange={(e) => handleTaskPriceChange(task, e.target.value)}
                                   className="w-20 h-8 text-sm"
                                   placeholder="0"
-                                  min="0"
+                                  step="0.01"
                                 />
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleSaveTaskPrice(task)}
                                   className="h-8 px-2 text-xs"
-                                  disabled={!taskPrices[task._id] || taskPrices[task._id] <= 0}
+                                  disabled={taskPrices[task._id] === undefined || taskPrices[task._id] === null || taskPrices[task._id] === ''}
                                 >
                                   {t('save')}
                                 </Button>
@@ -1240,6 +1266,7 @@ export default function CustomerManagement() {
                       )}
                     </TableBody>
                   </Table>
+                  </div>
                 </div>
               )}
 
