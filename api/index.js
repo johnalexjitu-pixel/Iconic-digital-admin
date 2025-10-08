@@ -245,47 +245,7 @@ export default async function handler(req, res) {
       });
     }
     
-    // Update user profile
-    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/users/') && !path.includes('/balance')) {
-      const userId = path.split('/').pop();
-      const updateData = req.body;
-
-      console.log(`✏️ Updating user ${userId}:`, updateData);
-
-      delete updateData.password;
-      delete updateData.withdrawalPassword;
-      delete updateData._id;
-      delete updateData.createdAt;
-
-      updateData.updatedAt = new Date();
-
-      const usersCollection = database.collection('users');
-      const result = await usersCollection.findOneAndUpdate(
-        { _id: new ObjectId(userId) },
-        { $set: updateData },
-        { 
-          returnDocument: 'after',
-          projection: { password: 0, withdrawalPassword: 0 }
-        }
-      );
-
-      if (!result) {
-        return res.status(404).json({ 
-          success: false, 
-          error: "User not found" 
-        });
-      }
-
-      console.log(`✅ User updated successfully:`, result._id);
-
-      res.json({
-        success: true,
-        data: result,
-        message: "User profile updated successfully"
-      });
-    }
-    
-    // Toggle user account status (suspend/activate)
+    // Toggle user account status (suspend/activate) - MUST BE BEFORE user profile update
     else if (req.method === 'PATCH' && path.match(/^\/api\/frontend\/users\/[^\/]+\/toggle-status$/)) {
       console.log(`🔄 Toggle status request matched - Method: ${req.method}, Path: ${path}`);
       console.log(`🔄 Regex test result:`, /^\/api\/frontend\/users\/[^\/]+\/toggle-status$/.test(path));
@@ -324,6 +284,46 @@ export default async function handler(req, res) {
           userId,
           isActive: newStatus
         }
+      });
+    }
+    
+    // Update user profile
+    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/users/') && !path.includes('/balance') && !path.includes('/toggle-status')) {
+      const userId = path.split('/').pop();
+      const updateData = req.body;
+
+      console.log(`✏️ Updating user ${userId}:`, updateData);
+
+      delete updateData.password;
+      delete updateData.withdrawalPassword;
+      delete updateData._id;
+      delete updateData.createdAt;
+
+      updateData.updatedAt = new Date();
+
+      const usersCollection = database.collection('users');
+      const result = await usersCollection.findOneAndUpdate(
+        { _id: new ObjectId(userId) },
+        { $set: updateData },
+        { 
+          returnDocument: 'after',
+          projection: { password: 0, withdrawalPassword: 0 }
+        }
+      );
+
+      if (!result) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "User not found" 
+        });
+      }
+
+      console.log(`✅ User updated successfully:`, result._id);
+
+      res.json({
+        success: true,
+        data: result,
+        message: "User profile updated successfully"
       });
     }
     
