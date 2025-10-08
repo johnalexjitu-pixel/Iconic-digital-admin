@@ -763,7 +763,16 @@ export default async function handler(req, res) {
 
       console.log("📋 Converted to customer tasks:", customerTasks.length);
       console.log("📋 Sample task:", customerTasks[0]);
-      res.json({ success: true, data: customerTasks, total: customerTasks.length });
+      console.log("📋 Sending response with", customerTasks.length, "customer tasks");
+      
+      const response = { success: true, data: customerTasks, total: customerTasks.length };
+      console.log("📋 Response structure:", {
+        success: response.success,
+        dataLength: response.data.length,
+        total: response.total
+      });
+      
+      res.json(response);
     }
     
     // Save/Update customer task
@@ -1713,9 +1722,11 @@ export default async function handler(req, res) {
     
     // Get combo tasks for a specific user - Fetch from campaigns collection
     else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks/')) {
+      console.log("🎯 MATCHED: Combo tasks endpoint");
       const customerId = path.split('/')[3];
       console.log("🎯 Fetching combo tasks from campaignsCollection for customer:", customerId);
       console.log("🎯 Full path:", path);
+      console.log("🎯 Customer ID extracted:", customerId);
 
       // Get all campaigns from campaignsCollection
       const campaignsCollection = database.collection('campaigns');
@@ -1787,7 +1798,16 @@ export default async function handler(req, res) {
 
       console.log("🎯 Converted to combo tasks:", comboTasks.length);
       console.log("🎯 Sample combo task:", comboTasks[0]);
-      res.json({ success: true, data: comboTasks, total: comboTasks.length });
+      console.log("🎯 Sending response with", comboTasks.length, "combo tasks");
+      
+      const response = { success: true, data: comboTasks, total: comboTasks.length };
+      console.log("🎯 Response structure:", {
+        success: response.success,
+        dataLength: response.data.length,
+        total: response.total
+      });
+      
+      res.json(response);
     }
     
     // Update combo task prices by range
