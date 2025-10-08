@@ -738,30 +738,31 @@ export default async function handler(req, res) {
         return res.json({ success: true, data: [], total: 0 });
       }
 
-      // Convert campaigns to customer tasks format
+      // Convert campaigns to customer tasks format - DIRECT FROM CAMPAIGNS
       const customerTasks = campaigns.map((campaign, index) => ({
         _id: campaign._id.toString(),
         customerId,
         customerCode: customer.membershipId || customer.code || "",
         taskNumber: index + 1,
         campaignId: campaign._id.toString(),
-        taskCommission: campaign.commissionAmount || campaign.commission || 0,
-        taskPrice: campaign.baseAmount || campaign.price || 0,
-        estimatedNegativeAmount: (campaign.commissionAmount || campaign.commission || 0) * -1,
+        taskCommission: campaign.commissionAmount || 0,
+        taskPrice: campaign.baseAmount || 0,
+        estimatedNegativeAmount: (campaign.commissionAmount || 0) * -1,
         priceFrom: 0,
         priceTo: 0,
         hasGoldenEgg: campaign.type === "Paid" || (campaign.baseAmount || 0) > 10000,
-        expiredDate: campaign.endDate || campaign.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        expiredDate: campaign.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         status: 'pending',
         createdAt: campaign.createdAt || new Date(),
         updatedAt: new Date(),
-        // Additional campaign fields
-        campaignName: campaign.brand || campaign.name || `Campaign ${index + 1}`,
+        // Campaign fields directly from campaigns collection
+        campaignName: campaign.brand || `Campaign ${index + 1}`,
         campaignLogo: campaign.logo || "",
         campaignType: campaign.type || "Free"
       }));
 
       console.log("📋 Converted to customer tasks:", customerTasks.length);
+      console.log("📋 Sample task:", customerTasks[0]);
       res.json({ success: true, data: customerTasks, total: customerTasks.length });
     }
     
@@ -1761,30 +1762,31 @@ export default async function handler(req, res) {
         return res.json({ success: true, data: [], total: 0 });
       }
 
-      // Convert campaigns to combo tasks format
+      // Convert campaigns to combo tasks format - DIRECT FROM CAMPAIGNS
       const comboTasks = campaigns.map((campaign, index) => ({
         _id: campaign._id.toString(),
         customerId,
         customerCode: customer.membershipId || customer.code || "",
         taskNumber: index + 1,
         campaignId: campaign._id.toString(),
-        taskCommission: campaign.commissionAmount || campaign.commission || 0,
-        taskPrice: campaign.baseAmount || campaign.price || 0,
-        estimatedNegativeAmount: (campaign.commissionAmount || campaign.commission || 0) * -1,
+        taskCommission: campaign.commissionAmount || 0,
+        taskPrice: campaign.baseAmount || 0,
+        estimatedNegativeAmount: (campaign.commissionAmount || 0) * -1,
         priceFrom: 0,
         priceTo: 0,
         hasGoldenEgg: campaign.type === "Paid" || (campaign.baseAmount || 0) > 10000,
-        expiredDate: campaign.endDate || campaign.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        expiredDate: campaign.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         status: 'pending',
         createdAt: campaign.createdAt || new Date(),
         updatedAt: new Date(),
-        // Additional campaign fields for combo tasks
-        campaignName: campaign.brand || campaign.name || `Campaign ${index + 1}`,
+        // Campaign fields directly from campaigns collection
+        campaignName: campaign.brand || `Campaign ${index + 1}`,
         campaignLogo: campaign.logo || "",
         campaignType: campaign.type || "Free"
       }));
 
       console.log("🎯 Converted to combo tasks:", comboTasks.length);
+      console.log("🎯 Sample combo task:", comboTasks[0]);
       res.json({ success: true, data: comboTasks, total: comboTasks.length });
     }
     
