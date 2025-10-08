@@ -2188,6 +2188,43 @@ export default async function handler(req, res) {
       }
     }
     
+    // Debug endpoint to check campaigns count
+    else if (req.method === 'GET' && path === '/api/debug-campaigns') {
+      console.log("🔍 DEBUG: Checking campaigns count");
+      
+      try {
+        const campaignsCollection = database.collection('campaigns');
+        const totalCampaigns = await campaignsCollection.countDocuments();
+        
+        const campaigns = await campaignsCollection
+          .find({})
+          .sort({ createdAt: -1 })
+          .limit(30)
+          .toArray();
+        
+        console.log("🔍 Total campaigns in database:", totalCampaigns);
+        console.log("🔍 Found campaigns (limit 30):", campaigns.length);
+        
+        res.json({
+          success: true,
+          totalCampaigns: totalCampaigns,
+          foundCampaigns: campaigns.length,
+          campaigns: campaigns.map(c => ({
+            _id: c._id,
+            brand: c.brand,
+            baseAmount: c.baseAmount,
+            commissionAmount: c.commissionAmount
+          }))
+        });
+      } catch (error) {
+        console.error("🔍 Error checking campaigns:", error);
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    }
+    
     // Get combo task statistics for a user
     else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks-stats/')) {
       const customerId = path.split('/')[3];

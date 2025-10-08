@@ -130,6 +130,9 @@ export default function CustomerManagement() {
       const response = await fetch(`/api/frontend/combo-tasks/${taskDetailsModal.customer.id}`);
       const data = await response.json();
       console.log("🎯 Combo tasks response:", data);
+      console.log("🎯 Combo tasks data length:", data.data?.length);
+      console.log("🎯 Combo tasks total:", data.total);
+      console.log("🎯 Expected: 30 combo tasks");
       return data;
     },
     enabled: taskDetailsModal.open && !!taskDetailsModal.customer?.id && taskDetailsModal.activeTab === "comboTaskSetting",
@@ -1155,7 +1158,12 @@ export default function CustomerManagement() {
 
               {taskDetailsModal.activeTab === "comboTaskSetting" && (
                 <div className="space-y-4">
-                  <div className="text-lg font-semibold">{t('comboTaskNumber') || 'Combo Task Number'}</div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-lg font-semibold">{t('comboTaskNumber') || 'Combo Task Number'}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Showing {comboTasksData?.data?.length || 0} / 30 tasks
+                    </div>
+                  </div>
                   <div className="max-h-96 overflow-y-auto border rounded-md">
                     <Table>
                     <TableHeader>
@@ -1170,7 +1178,10 @@ export default function CustomerManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {comboTasksData?.data?.map((task: any) => {
+                      {(() => {
+                        console.log("🎯 Rendering combo tasks table with data:", comboTasksData?.data?.length);
+                        console.log("🎯 Combo tasks data:", comboTasksData?.data);
+                        return comboTasksData?.data?.map((task: any) => {
                         const commission = task.taskCommission || 0;
                         const taskPrice = task.taskPrice || 0;
                         const estimatedNegative = task.estimatedNegativeAmount || 0;
@@ -1256,7 +1267,8 @@ export default function CustomerManagement() {
                             </TableCell>
                           </TableRow>
                         );
-                      })}
+                      });
+                      })()}
                       {!comboTasksData?.data?.length && (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center text-muted-foreground">
