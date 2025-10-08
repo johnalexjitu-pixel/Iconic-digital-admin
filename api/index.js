@@ -2174,19 +2174,57 @@ export default async function handler(req, res) {
 
         if (result.matchedCount === 0) {
           console.log("⚠️ No task found for customer:", customerId, "task:", taskNumber);
-          return res.status(404).json({
-            success: false,
-            error: "Task not found"
+          console.log("💡 Creating new task with golden egg status");
+          
+          // Get customer info for new task creation
+          const usersCollection = database.collection('users');
+          let customer;
+          try {
+            customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+          } catch (objectIdError) {
+            customer = await usersCollection.findOne({ _id: customerId });
+          }
+
+          const newTask = {
+            _id: new ObjectId(),
+            customerId: customerId,
+            customerCode: customer?.membershipId || customer?.code || "",
+            taskNumber: Number(taskNumber),
+            campaignId: `task_${taskNumber}_${Date.now()}`,
+            taskCommission: 0,
+            taskPrice: 100 + (taskNumber * 10), // Default price
+            estimatedNegativeAmount: 0,
+            priceFrom: 0,
+            priceTo: 0,
+            hasGoldenEgg: Boolean(hasGoldenEgg),
+            expiredDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            status: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+
+          const insertResult = await customerTasksCollection.insertOne(newTask);
+          console.log("✅ New task created with golden egg status:", hasGoldenEgg);
+          
+          res.json({
+            success: true,
+            message: `Golden egg ${hasGoldenEgg ? 'activated' : 'deactivated'} successfully`,
+            taskNumber: taskNumber,
+            hasGoldenEgg: hasGoldenEgg,
+            created: true
           });
+          return;
         }
 
         console.log("✅ Golden egg status updated successfully");
+        console.log("🟡 Final golden egg status:", hasGoldenEgg);
         
         res.json({
           success: true,
           message: `Golden egg ${hasGoldenEgg ? 'activated' : 'deactivated'} successfully`,
           taskNumber: taskNumber,
-          hasGoldenEgg: hasGoldenEgg
+          hasGoldenEgg: hasGoldenEgg,
+          updated: true
         });
       } catch (error) {
         console.error("❌ Error toggling golden egg:", error);

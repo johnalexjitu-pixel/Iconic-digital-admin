@@ -258,9 +258,20 @@ export default function CustomerManagement() {
 
       const result = await response.json();
       
+      console.log("🟡 Golden egg toggle response:", result);
+      
       if (!result.success) {
         throw new Error(result.error || "Failed to toggle golden egg");
       }
+
+      // Update the task data in the current combo tasks
+      setComboTasksData(prevData => 
+        prevData.map(t => 
+          t.taskNumber === task.taskNumber 
+            ? { ...t, hasGoldenEgg: checked }
+            : t
+        )
+      );
 
       // Show success message
       toast({
@@ -269,7 +280,7 @@ export default function CustomerManagement() {
       });
 
       // Invalidate queries to refresh data
-      await queryClient.invalidateQueries({ queryKey: ["/api/frontend/combo-tasks"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/frontend/combo-tasks", taskDetailsModal.customer?.id] });
       
     } catch (error: any) {
       console.error("❌ Error toggling golden egg:", error);
