@@ -39,10 +39,37 @@ export default function UserManagement() {
     setIsFiltered(true);
   };
 
-  const handleResetFilter = () => {
+  // Filter functions - TaskManagement style
+  const handleFilterChange = (field: string, value: string) => {
+    if (field === 'startDate') {
+      setStartDate(value);
+    } else if (field === 'endDate') {
+      setEndDate(value);
+    }
+  };
+
+  const handleApplyFilter = async () => {
+    console.log("🔍 Applying filters with date range:", { startDate, endDate });
+    setIsFiltered(true);
+    toast({
+      title: "Success",
+      description: "Filters applied successfully",
+    });
+    // Refetch with new filters
+    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+  };
+
+  const handleClearFilters = async () => {
+    console.log("🔄 Clearing filters");
     setStartDate("2025-10-01");
     setEndDate("2025-10-02");
     setIsFiltered(false);
+    toast({
+      title: "Success",
+      description: "Filters cleared successfully",
+    });
+    // Refetch all data
+    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
   };
 
   // Build query parameters for API
@@ -92,26 +119,24 @@ export default function UserManagement() {
                 data-testid="input-start-date"
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => handleFilterChange('startDate', e.target.value)}
               />
               <span className="flex items-center">-</span>
               <Input
                 data-testid="input-end-date"
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => handleFilterChange('endDate', e.target.value)}
               />
             </div>
           </div>
         </div>
 
         <div className="flex justify-center gap-3">
-          <Button data-testid="button-filter" className="px-8" onClick={handleFilter}>{t('filter')}</Button>
-          {isFiltered && (
-            <Button data-testid="button-reset-filter" variant="outline" className="px-8" onClick={handleResetFilter}>
-              Reset Filter
-            </Button>
-          )}
+          <Button data-testid="button-filter" className="px-8" onClick={handleApplyFilter}>{t('filter')}</Button>
+          <Button data-testid="button-clear-filter" variant="outline" className="px-8" onClick={handleClearFilters}>
+            Clear Filters
+          </Button>
         </div>
       </div>
 

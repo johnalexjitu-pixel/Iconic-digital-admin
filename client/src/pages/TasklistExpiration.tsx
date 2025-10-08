@@ -19,12 +19,23 @@ export default function TasklistExpiration() {
   });
   const [isFiltered, setIsFiltered] = useState(false);
   
-  // Filter functions
-  const handleFilter = () => {
-    setIsFiltered(true);
+  // Filter functions - TaskManagement style
+  const handleFilterChange = (field: string, value: string) => {
+    if (field === 'startDate') {
+      setStartDate(value);
+    } else if (field === 'endDate') {
+      setEndDate(value);
+    } else {
+      setFilters(prev => ({ ...prev, [field]: value }));
+    }
   };
 
-  const handleResetFilter = () => {
+  const handleApplyFilter = () => {
+    setIsFiltered(true);
+    // You can add toast here if needed
+  };
+
+  const handleClearFilters = () => {
     setFilters({
       username: "",
       code: "",
@@ -33,6 +44,7 @@ export default function TasklistExpiration() {
     setStartDate("2025-09-25");
     setEndDate("2025-10-09");
     setIsFiltered(false);
+    // You can add toast here if needed
   };
 
   return (
@@ -48,14 +60,14 @@ export default function TasklistExpiration() {
                 data-testid="input-start-date"
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => handleFilterChange('startDate', e.target.value)}
               />
               <span className="flex items-center">-</span>
               <Input
                 data-testid="input-end-date"
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => handleFilterChange('endDate', e.target.value)}
               />
             </div>
           </div>
@@ -66,7 +78,7 @@ export default function TasklistExpiration() {
               data-testid="input-username" 
               className="mt-1" 
               value={filters.username}
-              onChange={(e) => setFilters({ ...filters, username: e.target.value })}
+              onChange={(e) => handleFilterChange('username', e.target.value)}
               placeholder="Enter username"
             />
           </div>
@@ -77,14 +89,14 @@ export default function TasklistExpiration() {
               data-testid="input-code" 
               className="mt-1" 
               value={filters.code}
-              onChange={(e) => setFilters({ ...filters, code: e.target.value })}
+              onChange={(e) => handleFilterChange('code', e.target.value)}
               placeholder="Enter code"
             />
           </div>
 
           <div>
             <Label className="text-muted-foreground">{t('status')}:</Label>
-            <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
+            <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
               <SelectTrigger data-testid="select-status" className="mt-1">
                 <SelectValue />
               </SelectTrigger>
@@ -98,12 +110,10 @@ export default function TasklistExpiration() {
         </div>
 
         <div className="flex justify-center gap-3">
-          <Button data-testid="button-filter" className="px-8" onClick={handleFilter}>{t('filter')}</Button>
-          {isFiltered && (
-            <Button data-testid="button-reset-filter" variant="outline" className="px-8" onClick={handleResetFilter}>
-              Reset Filter
-            </Button>
-          )}
+          <Button data-testid="button-filter" className="px-8" onClick={handleApplyFilter}>{t('filter')}</Button>
+          <Button data-testid="button-clear-filter" variant="outline" className="px-8" onClick={handleClearFilters}>
+            Clear Filters
+          </Button>
         </div>
       </div>
 

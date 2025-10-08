@@ -405,6 +405,8 @@ export default async function handler(req, res) {
     
     // Get users with filters
     else if (req.method === 'GET' && path === '/api/frontend/users') {
+      console.log("🔍 Frontend users API called with query params:", req.query);
+      
       const { 
         page = 1, 
         limit = 10, 
@@ -436,6 +438,10 @@ export default async function handler(req, res) {
         query.phoneNumber = { $regex: phoneNumber, $options: 'i' };
       }
       
+      if (isActive !== undefined) {
+        query.isActive = isActive === 'true';
+      }
+      
       if (startDate || endDate) {
         query.createdAt = {};
         if (startDate) {
@@ -460,6 +466,7 @@ export default async function handler(req, res) {
       const total = await usersCollection.countDocuments(query);
 
       console.log(`📊 Found ${users.length} users (total: ${total}) with filters:`, query);
+      console.log(`📊 Final query object:`, JSON.stringify(query, null, 2));
 
       res.json({
         success: true,

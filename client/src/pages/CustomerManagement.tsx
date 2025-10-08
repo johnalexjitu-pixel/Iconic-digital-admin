@@ -312,7 +312,12 @@ export default function CustomerManagement() {
     success: boolean;
     data: any[];
   }>({
-    queryKey: ["/api/frontend/users?" + queryParams.toString()],
+    queryKey: ["/api/frontend/users", queryParams.toString()],
+    queryFn: async () => {
+      const response = await fetch(`/api/frontend/users?${queryParams.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return response.json();
+    },
     staleTime: 0, // Always fetch fresh data
     refetchOnMount: true, // Refetch when component mounts
     refetchOnWindowFocus: true, // Refetch when window gains focus
@@ -414,17 +419,31 @@ export default function CustomerManagement() {
     });
   };
 
-  // Apply filters
-  const handleFilter = async () => {
-    console.log("🔍 Applying filters:", filters);
-    setIsFiltered(true);
-    // Refetch with new filters
-    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
-    await queryClient.refetchQueries({ queryKey: ["/api/frontend/users"] });
+  // Filter functions - TaskManagement style
+  const handleFilterChange = (field: string, value: string) => {
+    if (field === 'startDate') {
+      setStartDate(value);
+    } else if (field === 'endDate') {
+      setEndDate(value);
+    } else {
+      setFilters(prev => ({ ...prev, [field]: value }));
+    }
   };
 
-  const handleResetFilter = async () => {
-    console.log("🔄 Resetting filters");
+  const handleApplyFilter = async () => {
+    console.log("🔍 Applying filters:", filters);
+    console.log("🔍 Date range:", { startDate, endDate });
+    setIsFiltered(true);
+    toast({
+      title: "Success",
+      description: "Filters applied successfully",
+    });
+    // Refetch with new filters - the query will automatically use new queryParams
+    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+  };
+
+  const handleClearFilters = async () => {
+    console.log("🔄 Clearing filters");
     setFilters({
       username: "",
       code: "",
@@ -436,9 +455,12 @@ export default function CustomerManagement() {
     setStartDate("2025-10-01");
     setEndDate("2025-10-02");
     setIsFiltered(false);
+    toast({
+      title: "Success",
+      description: "Filters cleared successfully",
+    });
     // Refetch all data
     await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
-    await queryClient.refetchQueries({ queryKey: ["/api/frontend/users"] });
   };
 
   // Use frontend users as customers
@@ -505,14 +527,14 @@ export default function CustomerManagement() {
                 data-testid="input-start-date"
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => handleFilterChange('startDate', e.target.value)}
               />
               <span className="flex items-center">-</span>
               <Input
                 data-testid="input-end-date"
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => handleFilterChange('endDate', e.target.value)}
               />
             </div>
           </div>
@@ -523,7 +545,7 @@ export default function CustomerManagement() {
               data-testid="input-username" 
               className="mt-1" 
               value={filters.username}
-              onChange={(e) => setFilters({ ...filters, username: e.target.value })}
+              onChange={(e) => handleFilterChange('username', e.target.value)}
               placeholder="Enter username"
             />
           </div>
@@ -534,7 +556,7 @@ export default function CustomerManagement() {
               data-testid="input-code" 
               className="mt-1" 
               value={filters.code}
-              onChange={(e) => setFilters({ ...filters, code: e.target.value })}
+              onChange={(e) => handleFilterChange('code', e.target.value)}
               placeholder="Enter code"
             />
           </div>
@@ -545,7 +567,7 @@ export default function CustomerManagement() {
               data-testid="input-ip" 
               className="mt-1" 
               value={filters.ipAddress}
-              onChange={(e) => setFilters({ ...filters, ipAddress: e.target.value })}
+              onChange={(e) => handleFilterChange('ipAddress', e.target.value)}
               placeholder="Enter IP address"
             />
           </div>
@@ -556,14 +578,14 @@ export default function CustomerManagement() {
               data-testid="input-phone" 
               className="mt-1" 
               value={filters.phoneNumber}
-              onChange={(e) => setFilters({ ...filters, phoneNumber: e.target.value })}
+              onChange={(e) => handleFilterChange('phoneNumber', e.target.value)}
               placeholder="Enter phone number"
             />
           </div>
 
           <div>
             <Label className="text-muted-foreground">{t('customerStatus')}:</Label>
-            <Select value={filters.customerStatus} onValueChange={(value) => setFilters({ ...filters, customerStatus: value })}>
+            <Select value={filters.customerStatus} onValueChange={(value) => handleFilterChange('customerStatus', value)}>
               <SelectTrigger data-testid="select-status" className="mt-1">
                 <SelectValue placeholder={t('pleaseSelectStatus')} />
               </SelectTrigger>
@@ -577,7 +599,7 @@ export default function CustomerManagement() {
 
           <div>
             <Label className="text-muted-foreground">{t('onlineOffline')}:</Label>
-            <Select value={filters.onlineStatus} onValueChange={(value) => setFilters({ ...filters, onlineStatus: value })}>
+            <Select value={filters.onlineStatus} onValueChange={(value) => handleFilterChange('onlineStatus', value)}>
               <SelectTrigger data-testid="select-online-status" className="mt-1">
                 <SelectValue />
               </SelectTrigger>
@@ -591,12 +613,10 @@ export default function CustomerManagement() {
         </div>
 
         <div className="flex justify-center gap-3">
-          <Button data-testid="button-filter" className="px-8" onClick={handleFilter}>{t('filter')}</Button>
-          {isFiltered && (
-            <Button data-testid="button-reset-filter" variant="outline" className="px-8" onClick={handleResetFilter}>
-              Reset Filter
-            </Button>
-          )}
+          <Button data-testid="button-filter" className="px-8" onClick={handleApplyFilter}>{t('filter')}</Button>
+          <Button data-testid="button-clear-filter" variant="outline" className="px-8" onClick={handleClearFilters}>
+            Clear Filters
+          </Button>
         </div>
       </div>
 
