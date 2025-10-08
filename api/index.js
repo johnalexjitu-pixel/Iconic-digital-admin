@@ -245,6 +245,30 @@ export default async function handler(req, res) {
       });
     }
     
+    // Test endpoint to verify API routing
+    else if (req.method === 'GET' && path === '/api/test') {
+      res.json({
+        success: true,
+        message: "API is working",
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Simple toggle status endpoint - exact path match
+    else if (req.method === 'PATCH' && path.includes('/toggle-status')) {
+      console.log(`🔄 Simple toggle endpoint matched - Path: ${path}`);
+      const pathParts = path.split('/');
+      const userId = pathParts[pathParts.length - 2];
+      console.log(`🔄 UserId: ${userId}`);
+      
+      res.json({
+        success: true,
+        message: "Toggle endpoint reached",
+        userId: userId,
+        path: path
+      });
+    }
+    
     // Toggle user account status (suspend/activate) - MUST BE BEFORE user profile update
     else if (req.method === 'PATCH' && path.match(/^\/api\/frontend\/users\/[^\/]+\/toggle-status$/)) {
       console.log(`🔄 Toggle status request matched - Method: ${req.method}, Path: ${path}`);
