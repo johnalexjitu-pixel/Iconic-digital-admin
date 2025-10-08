@@ -1582,6 +1582,7 @@ export default async function handler(req, res) {
         status, 
         customerId,
         method,
+        search,
         startDate,
         endDate
       } = req.query;
@@ -1640,16 +1641,31 @@ export default async function handler(req, res) {
         })
       );
 
-      console.log(`📊 Found ${withdrawals.length} withdrawals with filters:`, query);
+      // Apply search filter after getting customer details
+      let filteredWithdrawals = withdrawalsWithCustomerDetails;
+      if (search) {
+        filteredWithdrawals = withdrawalsWithCustomerDetails.filter(withdrawal => {
+          const customer = withdrawal.customer;
+          if (!customer) return false;
+          
+          return customer.name?.toLowerCase().includes(search.toLowerCase()) ||
+                 customer.membershipId?.toLowerCase().includes(search.toLowerCase()) ||
+                 customer.email?.toLowerCase().includes(search.toLowerCase());
+        });
+      }
+
+      console.log(`📊 Found ${withdrawals.length} withdrawals, ${filteredWithdrawals.length} after search filter`);
+      console.log(`📊 Query filters:`, query);
+      if (search) console.log(`📊 Search term:`, search);
 
       res.json({
         success: true,
-        data: withdrawalsWithCustomerDetails,
+        data: filteredWithdrawals,
         pagination: {
           page: Number(page),
           limit: Number(limit),
-          total: totalWithdrawals,
-          pages: Math.ceil(totalWithdrawals / Number(limit))
+          total: filteredWithdrawals.length,
+          pages: Math.ceil(filteredWithdrawals.length / Number(limit))
         }
       });
     }

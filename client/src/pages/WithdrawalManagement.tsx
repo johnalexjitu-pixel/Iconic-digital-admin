@@ -26,6 +26,29 @@ export default function WithdrawalManagement() {
   });
   const [isFiltered, setIsFiltered] = useState(false);
 
+  // Build query parameters for API call
+  const queryParams = new URLSearchParams();
+  queryParams.append("limit", "100");
+  
+  // Add filter parameters
+  if (isFiltered) {
+    if (filters.status && filters.status !== "all") {
+      queryParams.append("status", filters.status.toLowerCase());
+    }
+    if (filters.code) {
+      queryParams.append("customerId", filters.code);
+    }
+    if (filters.username) {
+      queryParams.append("search", filters.username);
+    }
+    if (startDate) {
+      queryParams.append("startDate", startDate);
+    }
+    if (endDate) {
+      queryParams.append("endDate", endDate);
+    }
+  }
+
   // Fetch withdrawals from MongoDB withdrawals collection
   const { data: withdrawalsResponse, isLoading: withdrawalsLoading } = useQuery<{
     success: boolean;
@@ -37,7 +60,17 @@ export default function WithdrawalManagement() {
       pages: number;
     };
   }>({
-    queryKey: ["/api/frontend/withdrawals"],
+    queryKey: ["/api/frontend/withdrawals", queryParams.toString()],
+    queryFn: async () => {
+      const url = `/api/frontend/withdrawals?${queryParams.toString()}`;
+      console.log("🔍 Withdrawals API URL:", url);
+      console.log("🔍 Query params:", queryParams.toString());
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch withdrawals');
+      const data = await response.json();
+      console.log("📥 Withdrawals response:", data);
+      return data;
+    },
     staleTime: 0, // Always fetch fresh data
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -67,15 +100,19 @@ export default function WithdrawalManagement() {
     }
   };
 
-  const handleApplyFilter = () => {
+  const handleApplyFilter = async () => {
+    console.log("🔍 Applying filters:", { filters, startDate, endDate });
     setIsFiltered(true);
     toast({
       title: "Success",
       description: "Filters applied successfully",
     });
+    // Refetch with new filters
+    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/withdrawals"] });
   };
 
-  const handleClearFilters = () => {
+  const handleClearFilters = async () => {
+    console.log("🔄 Clearing filters");
     setFilters({
       username: "",
       code: "",
@@ -88,6 +125,8 @@ export default function WithdrawalManagement() {
       title: "Success",
       description: "Filters cleared successfully",
     });
+    // Refetch all data
+    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/withdrawals"] });
   };
 
   // Use withdrawals data directly from the new API
@@ -118,41 +157,7 @@ export default function WithdrawalManagement() {
     };
   }) || [];
 
-  // Apply filters to withdrawals
-  if (isFiltered && displayWithdrawals) {
-    displayWithdrawals = displayWithdrawals.filter((withdrawal: any) => {
-      // Filter by username
-      if (filters.username && !withdrawal.customer?.username?.toLowerCase().includes(filters.username.toLowerCase())) {
-        return false;
-      }
-
-      // Filter by code
-      if (filters.code && !withdrawal.customer?.code?.toLowerCase().includes(filters.code.toLowerCase())) {
-        return false;
-      }
-
-      // Filter by status
-      if (filters.status && filters.status !== "all") {
-        if (withdrawal.status !== filters.status) {
-          return false;
-        }
-      }
-
-      // Filter by date range
-      if (startDate && endDate) {
-        const withdrawalDate = new Date(withdrawal.createdAt);
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        
-        if (withdrawalDate < start || withdrawalDate > end) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }
+  // No client-side filtering needed - server handles all filtering
 
   const updateWithdrawalMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -250,9 +255,10 @@ export default function WithdrawalManagement() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('all')}</SelectItem>
-                <SelectItem value="Pending">{t('pending')}</SelectItem>
-                <SelectItem value="Approved">{t('approved')}</SelectItem>
-                <SelectItem value="Rejected">{t('rejected')}</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
           </div>
