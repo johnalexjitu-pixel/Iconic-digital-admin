@@ -1701,10 +1701,17 @@ export default async function handler(req, res) {
     
     // Update withdrawal status
     else if (req.method === 'PATCH' && path.startsWith('/api/frontend/withdrawals/') && path.includes('/update-status')) {
-      const withdrawalId = path.split('/')[3];
+      // Extract withdrawal ID from path - it should be the part before '/update-status'
+      const pathParts = path.split('/');
+      const updateStatusIndex = pathParts.indexOf('update-status');
+      const withdrawalId = updateStatusIndex > 0 ? pathParts[updateStatusIndex - 1] : pathParts[pathParts.length - 2];
+      
       const { status, adminNotes, processedBy } = req.body;
       
       console.log(`💰 Updating withdrawal status: ${withdrawalId} to ${status}`);
+      console.log(`🔍 Full path: ${path}`);
+      console.log(`🔍 Path parts: ${JSON.stringify(pathParts)}`);
+      console.log(`🔍 Extracted withdrawalId: ${withdrawalId}`);
 
       if (!status) {
         return res.status(400).json({ 
