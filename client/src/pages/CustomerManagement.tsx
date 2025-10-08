@@ -77,6 +77,9 @@ export default function CustomerManagement() {
     selectedOption: ""
   });
 
+  // Task Price Editing State
+  const [taskPrices, setTaskPrices] = useState<Record<string, number>>({});
+
   // Golden Egg Edit Modal State
   const [goldenEggModal, setGoldenEggModal] = useState<{
     open: boolean;
@@ -270,6 +273,59 @@ export default function CustomerManagement() {
       toast({
         title: "Error",
         description: error.message || "Failed to toggle golden egg",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTaskPriceChange = (task: any, value: string) => {
+    const price = parseFloat(value) || 0;
+    setTaskPrices(prev => ({
+      ...prev,
+      [task._id]: price
+    }));
+  };
+
+  const handleSaveTaskPrice = async (task: any) => {
+    try {
+      console.log("💰 Saving task price:", task.taskNumber, "price:", taskPrices[task._id]);
+      
+      if (!taskDetailsModal.customer?.id) {
+        throw new Error("Customer ID not found");
+      }
+
+      const newPrice = taskPrices[task._id];
+      if (!newPrice || newPrice <= 0) {
+        throw new Error("Please enter a valid price");
+      }
+
+      // Call API to save task price
+      const response = await apiRequest("PATCH", `/api/frontend/combo-tasks/${taskDetailsModal.customer.id}/save-task-price`, {
+        taskNumber: task.taskNumber,
+        taskPrice: newPrice,
+        customerId: taskDetailsModal.customer.id
+      });
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || "Failed to save task price");
+      }
+
+      // Show success message
+      toast({
+        title: "Success",
+        description: `Task ${task.taskNumber} price updated to ${newPrice}`,
+      });
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ["/api/frontend/combo-tasks"] });
+      
+    } catch (error: any) {
+      console.error("❌ Error saving task price:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save task price",
         variant: "destructive",
       });
     }
@@ -1117,11 +1173,25 @@ export default function CustomerManagement() {
                               )}
                             </TableCell>
                             <TableCell>
-                              {taskPrice > 0 ? (
-                                <span className="font-medium">{taskPrice}</span>
-                              ) : (
-                                <span className="text-red-600">{t('notSet') || 'Not Set'}</span>
-                              )}
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="number"
+                                  value={taskPrices[task._id] !== undefined ? taskPrices[task._id] : taskPrice}
+                                  onChange={(e) => handleTaskPriceChange(task, e.target.value)}
+                                  className="w-20 h-8 text-sm"
+                                  placeholder="0"
+                                  min="0"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleSaveTaskPrice(task)}
+                                  className="h-8 px-2 text-xs"
+                                  disabled={!taskPrices[task._id] || taskPrices[task._id] <= 0}
+                                >
+                                  {t('save')}
+                                </Button>
+                              </div>
                             </TableCell>
                             <TableCell>
                               {estimatedNegative < 0 ? (

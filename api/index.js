@@ -1889,34 +1889,55 @@ export default async function handler(req, res) {
         return res.json({ success: true, data: [], total: 0 });
       }
 
+      // Get existing customer tasks data to merge saved prices
+      const customerTasksCollection = database.collection('customerTasks');
+      const existingTasks = await customerTasksCollection
+        .find({ customerId: customerId })
+        .toArray();
+      
+      console.log("🎯 Found existing customer tasks:", existingTasks.length);
+      
+      // Create a map of taskNumber to existing task data
+      const existingTasksMap = {};
+      existingTasks.forEach(task => {
+        existingTasksMap[task.taskNumber] = task;
+      });
+
       // Convert campaigns to combo tasks format - USER'S DAILY 30 TASKS
-      const comboTasks = campaigns.map((campaign, index) => ({
-        _id: campaign._id.toString(),
-        customerId,
-        customerCode: customer?.membershipId || customer?.code || "",
-        taskNumber: index + 1,
-        campaignId: campaign._id.toString(),
-        taskCommission: campaign.commissionAmount || 0,
-        taskPrice: campaign.baseAmount || 0,
-        estimatedNegativeAmount: (campaign.commissionAmount || 0) * -1,
-        priceFrom: 0,
-        priceTo: 0,
-        hasGoldenEgg: campaign.type === "Paid" || (campaign.baseAmount || 0) > 10000,
-        expiredDate: campaign.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'pending',
-        createdAt: campaign.createdAt || new Date(),
-        updatedAt: new Date(),
-        // Campaign fields - SAME AS TASK MANAGEMENT PAGE
-        campaignName: campaign.brand || campaign.name || `Campaign ${index + 1}`,
-        campaignLogo: campaign.logo || "",
-        campaignType: campaign.type || "Free",
-        campaignCode: campaign.code || campaign.taskCode || `TASK${index + 1}`,
-        // Additional fields for compatibility
-        name: campaign.brand || campaign.name,
-        price: campaign.baseAmount || 0,
-        code: campaign.code || campaign.taskCode,
-        logo: campaign.logo || ""
-      }));
+      const comboTasks = campaigns.map((campaign, index) => {
+        const taskNumber = index + 1;
+        const existingTask = existingTasksMap[taskNumber];
+        
+        return {
+          _id: campaign._id.toString(),
+          customerId,
+          customerCode: customer?.membershipId || customer?.code || "",
+          taskNumber: taskNumber,
+          campaignId: campaign._id.toString(),
+          taskCommission: campaign.commissionAmount || 0,
+          // Use saved price if exists, otherwise use campaign baseAmount
+          taskPrice: existingTask?.taskPrice || campaign.baseAmount || 0,
+          estimatedNegativeAmount: (campaign.commissionAmount || 0) * -1,
+          priceFrom: 0,
+          priceTo: 0,
+          // Use saved golden egg status if exists, otherwise use campaign logic
+          hasGoldenEgg: existingTask?.hasGoldenEgg !== undefined ? existingTask.hasGoldenEgg : (campaign.type === "Paid" || (campaign.baseAmount || 0) > 10000),
+          expiredDate: campaign.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: existingTask?.status || 'pending',
+          createdAt: existingTask?.createdAt || campaign.createdAt || new Date(),
+          updatedAt: new Date(),
+          // Campaign fields - SAME AS TASK MANAGEMENT PAGE
+          campaignName: campaign.brand || campaign.name || `Campaign ${index + 1}`,
+          campaignLogo: campaign.logo || "",
+          campaignType: campaign.type || "Free",
+          campaignCode: campaign.code || campaign.taskCode || `TASK${index + 1}`,
+          // Additional fields for compatibility
+          name: campaign.brand || campaign.name,
+          price: existingTask?.taskPrice || campaign.baseAmount || 0,
+          code: campaign.code || campaign.taskCode,
+          logo: campaign.logo || ""
+        };
+      });
 
       console.log("🎯 Converted to combo tasks:", comboTasks.length);
       console.log("🎯 Sample combo task:", comboTasks[0]);
@@ -2082,6 +2103,56 @@ export default async function handler(req, res) {
         res.status(500).json({
           success: false,
           error: "Failed to toggle golden egg",
+          details: error.message
+        });
+      }
+    }
+    
+    // Save individual task price to customerTasks collection
+    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/save-task-price')) {
+      const customerId = path.split('/')[3];
+      const { taskNumber, taskPrice, customerId: bodyCustomerId } = req.body;
+      
+      console.log("💰 Saving task price:", { customerId, taskNumber, taskPrice, bodyCustomerId });
+
+      try {
+        const customerTasksCollection = database.collection('customerTasks');
+        
+        // Update or create the task in customerTasks collection
+        const result = await customerTasksCollection.updateOne(
+          { 
+            customerId: customerId,
+            taskNumber: Number(taskNumber)
+          },
+          { 
+            $set: { 
+              customerId: customerId,
+              taskNumber: Number(taskNumber),
+              taskPrice: Number(taskPrice),
+              updatedAt: new Date(),
+              // Set default values if creating new document
+              status: 'pending',
+              hasGoldenEgg: false,
+              createdAt: new Date()
+            }
+          },
+          { upsert: true } // Create if doesn't exist
+        );
+
+        console.log("✅ Task price saved successfully:", result);
+
+        res.json({
+          success: true,
+          message: `Task ${taskNumber} price saved successfully`,
+          taskNumber: taskNumber,
+          taskPrice: taskPrice,
+          customerId: customerId
+        });
+      } catch (error) {
+        console.error("❌ Error saving task price:", error);
+        res.status(500).json({
+          success: false,
+          error: "Failed to save task price",
           details: error.message
         });
       }
