@@ -57,7 +57,7 @@ export default function WithdrawalManagement() {
       pages: number;
     };
   }>({
-    queryKey: ["/api/frontend/withdrawals?" + queryParams.toString()],
+    queryKey: [`/api/frontend/withdrawals?${queryParams.toString()}`],
     staleTime: 0, // Always fetch fresh data
     refetchOnMount: true,
     refetchOnWindowFocus: true,
