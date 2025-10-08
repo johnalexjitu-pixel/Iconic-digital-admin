@@ -199,12 +199,12 @@ export default function CustomerManagement() {
         customerId: taskDetailsModal.customer.id,
         taskNumber: taskEditModal.taskNumber,
         data: {
-          taskCommission: taskEditModal.taskCommission,
-          taskPrice: taskEditModal.campaign.taskPrice || 0,
+          taskCommission: Number(taskEditModal.taskCommission),
+          taskPrice: Number(taskEditModal.campaign?.taskPrice || 0),
           expiredDate: taskEditModal.expiredDate,
-          negativeAmount: taskEditModal.negativeAmount,
-          priceFrom: taskEditModal.priceFrom,
-          priceTo: taskEditModal.priceTo,
+          estimatedNegativeAmount: Number(taskEditModal.negativeAmount),
+          priceFrom: Number(taskEditModal.priceFrom),
+          priceTo: Number(taskEditModal.priceTo),
         },
       });
 
@@ -1315,7 +1315,7 @@ export default function CustomerManagement() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="taskCommission">{t('taskCommission') || 'Task Commission'} *</Label>
                 <Input
@@ -1327,6 +1327,23 @@ export default function CustomerManagement() {
                 />
               </div>
 
+              <div>
+                <Label htmlFor="taskPrice">{t('taskPrice') || 'Task Price'} *</Label>
+                <Input
+                  id="taskPrice"
+                  type="number"
+                  value={taskEditModal.campaign?.taskPrice || 0}
+                  onChange={(e) => setTaskEditModal({ 
+                    ...taskEditModal, 
+                    campaign: { ...taskEditModal.campaign, taskPrice: Number(e.target.value) }
+                  })}
+                  className="mt-1"
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="expiredDate">{t('expiredDate') || 'Expired Date'}</Label>
                 <Input
@@ -1346,6 +1363,7 @@ export default function CustomerManagement() {
                   value={taskEditModal.negativeAmount}
                   onChange={(e) => setTaskEditModal({ ...taskEditModal, negativeAmount: e.target.value })}
                   className="mt-1"
+                  step="0.01"
                 />
               </div>
             </div>

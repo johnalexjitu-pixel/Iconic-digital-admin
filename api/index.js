@@ -892,15 +892,15 @@ export default async function handler(req, res) {
     
     // Save/Update customer task
     else if (req.method === 'POST' && path === '/api/frontend/customer-tasks') {
-      const { customerId, taskNumber, taskCommission, taskPrice, expiredDate, negativeAmount, priceFrom, priceTo } = req.body;
-      console.log("💾 Saving customer task:", { customerId, taskNumber });
+      const { customerId, taskNumber, taskCommission, taskPrice, expiredDate, estimatedNegativeAmount, negativeAmount, priceFrom, priceTo } = req.body;
+      console.log("💾 Saving customer task:", { customerId, taskNumber, taskCommission, taskPrice, estimatedNegativeAmount, priceFrom, priceTo });
 
       const customerTasksCollection = database.collection('customerTasks');
       
       const updateData = {
         taskCommission: Number(taskCommission),
         taskPrice: Number(taskPrice),
-        estimatedNegativeAmount: Number(negativeAmount),
+        estimatedNegativeAmount: Number(estimatedNegativeAmount || negativeAmount || 0),
         priceFrom: Number(priceFrom),
         priceTo: Number(priceTo),
         expiredDate: new Date(expiredDate),
