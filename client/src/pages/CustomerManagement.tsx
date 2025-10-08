@@ -65,6 +65,7 @@ export default function CustomerManagement() {
     priceFrom: string;
     priceTo: string;
     selectedOption: string;
+    hasGoldenEgg: boolean;
   }>({
     open: false,
     taskNumber: 0,
@@ -74,7 +75,8 @@ export default function CustomerManagement() {
     negativeAmount: "",
     priceFrom: "",
     priceTo: "",
-    selectedOption: ""
+    selectedOption: "",
+    hasGoldenEgg: false
   });
 
   // Task Price Editing State
@@ -187,7 +189,8 @@ export default function CustomerManagement() {
       negativeAmount: task.estimatedNegativeAmount?.toString() || "0",
       priceFrom: task.priceFrom?.toString() || "0",
       priceTo: task.priceTo?.toString() || "0",
-      selectedOption: ""
+      selectedOption: "",
+      hasGoldenEgg: task.hasGoldenEgg || false
     });
   };
 
@@ -205,6 +208,7 @@ export default function CustomerManagement() {
           estimatedNegativeAmount: Number(taskEditModal.negativeAmount),
           priceFrom: Number(taskEditModal.priceFrom),
           priceTo: Number(taskEditModal.priceTo),
+          hasGoldenEgg: taskEditModal.hasGoldenEgg,
         },
       });
 

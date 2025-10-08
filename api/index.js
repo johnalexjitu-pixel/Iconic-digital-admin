@@ -892,8 +892,8 @@ export default async function handler(req, res) {
     
     // Save/Update customer task
     else if (req.method === 'POST' && path === '/api/frontend/customer-tasks') {
-      const { customerId, taskNumber, taskCommission, taskPrice, expiredDate, estimatedNegativeAmount, negativeAmount, priceFrom, priceTo } = req.body;
-      console.log("💾 Saving customer task:", { customerId, taskNumber, taskCommission, taskPrice, estimatedNegativeAmount, priceFrom, priceTo });
+      const { customerId, taskNumber, taskCommission, taskPrice, expiredDate, estimatedNegativeAmount, negativeAmount, priceFrom, priceTo, hasGoldenEgg } = req.body;
+      console.log("💾 Saving customer task:", { customerId, taskNumber, taskCommission, taskPrice, estimatedNegativeAmount, priceFrom, priceTo, hasGoldenEgg });
       
       const customerTasksCollection = database.collection('customerTasks');
       
@@ -905,7 +905,8 @@ export default async function handler(req, res) {
           _id: existingTask._id,
           customerId: existingTask.customerId,
           taskNumber: existingTask.taskNumber,
-          taskPrice: existingTask.taskPrice
+          taskPrice: existingTask.taskPrice,
+          hasGoldenEgg: existingTask.hasGoldenEgg
         });
       }
 
@@ -916,6 +917,8 @@ export default async function handler(req, res) {
         priceFrom: Number(priceFrom),
         priceTo: Number(priceTo),
         expiredDate: new Date(expiredDate),
+        // Set hasGoldenEgg to true when price is edited (user's requirement)
+        hasGoldenEgg: typeof hasGoldenEgg === 'boolean' ? hasGoldenEgg : true,
         updatedAt: new Date()
       };
 
@@ -950,7 +953,7 @@ export default async function handler(req, res) {
           estimatedNegativeAmount: Number(estimatedNegativeAmount || negativeAmount || 0),
           priceFrom: Number(priceFrom),
           priceTo: Number(priceTo),
-          hasGoldenEgg: false,
+          hasGoldenEgg: typeof hasGoldenEgg === 'boolean' ? hasGoldenEgg : true,
           expiredDate: new Date(expiredDate),
           status: 'pending',
           createdAt: new Date(),
