@@ -486,22 +486,42 @@ export default async function handler(req, res) {
       // Handle ObjectId conversion with error handling
       let user;
       console.log(`🔍 Attempting to find user with ObjectId: ${userId}`);
+      
+      // First try ObjectId search
       try {
         user = await usersCollection.findOne({ _id: new ObjectId(userId) });
         console.log(`🔍 ObjectId search result:`, user ? `Found user: ${user.name}` : 'No user found');
       } catch (objectIdError) {
         console.error("❌ ObjectId conversion error for userId:", userId, objectIdError);
+        user = null;
+      }
+      
+      // If ObjectId search failed, try string ID
+      if (!user) {
         console.log(`🔍 Trying string ID fallback: ${userId}`);
-        // Try to find user with string ID as fallback
         user = await usersCollection.findOne({ _id: userId });
         console.log(`🔍 String ID search result:`, user ? `Found user: ${user.name}` : 'No user found');
       }
       
-      // Also try to find by membershipId as additional fallback
+      // If still not found, try membershipId search
       if (!user) {
         console.log(`🔍 Trying membershipId search: ${userId}`);
         user = await usersCollection.findOne({ membershipId: userId });
         console.log(`🔍 MembershipId search result:`, user ? `Found user: ${user.name}` : 'No user found');
+      }
+      
+      // If still not found, try to find by any field containing the userId
+      if (!user) {
+        console.log(`🔍 Trying broad search for: ${userId}`);
+        user = await usersCollection.findOne({
+          $or: [
+            { _id: userId },
+            { membershipId: userId },
+            { email: userId },
+            { name: { $regex: userId, $options: 'i' } }
+          ]
+        });
+        console.log(`🔍 Broad search result:`, user ? `Found user: ${user.name}` : 'No user found');
       }
       
       if (!user) {
@@ -532,58 +552,69 @@ export default async function handler(req, res) {
       console.log(`🔍 Attempting to update user balance with ObjectId: ${userId}`);
       console.log(`🔍 Update data: accountBalance ${currentBalance} → ${newBalance}`);
       
+      const updateData = { 
+        $set: { 
+          accountBalance: newBalance,
+          updatedAt: new Date()
+        } 
+      };
+      
+      const updateOptions = { 
+        returnDocument: 'after',
+        projection: { password: 0, withdrawalPassword: 0 }
+      };
+      
+      // Try ObjectId update first
       try {
         result = await usersCollection.findOneAndUpdate(
           { _id: new ObjectId(userId) },
-          { 
-            $set: { 
-              accountBalance: newBalance,
-              updatedAt: new Date()
-            } 
-          },
-          { 
-            returnDocument: 'after',
-            projection: { password: 0, withdrawalPassword: 0 }
-          }
+          updateData,
+          updateOptions
         );
         console.log(`✅ ObjectId update successful:`, result ? `Updated user: ${result.name}` : 'No result');
       } catch (objectIdError) {
         console.error("❌ ObjectId conversion error for update userId:", userId, objectIdError);
+        result = null;
+      }
+      
+      // If ObjectId update failed, try string ID
+      if (!result) {
         console.log(`🔍 Trying string ID update fallback: ${userId}`);
-        // Try to update user with string ID as fallback
         result = await usersCollection.findOneAndUpdate(
           { _id: userId },
-          { 
-            $set: { 
-              accountBalance: newBalance,
-              updatedAt: new Date()
-            } 
-          },
-          { 
-            returnDocument: 'after',
-            projection: { password: 0, withdrawalPassword: 0 }
-          }
+          updateData,
+          updateOptions
         );
         console.log(`✅ String ID update result:`, result ? `Updated user: ${result.name}` : 'No result');
       }
       
-      // If still no result, try updating by membershipId
+      // If still no result, try membershipId update
       if (!result) {
         console.log(`🔍 Trying membershipId update: ${userId}`);
         result = await usersCollection.findOneAndUpdate(
           { membershipId: userId },
-          { 
-            $set: { 
-              accountBalance: newBalance,
-              updatedAt: new Date()
-            } 
-          },
-          { 
-            returnDocument: 'after',
-            projection: { password: 0, withdrawalPassword: 0 }
-          }
+          updateData,
+          updateOptions
         );
         console.log(`✅ MembershipId update result:`, result ? `Updated user: ${result.name}` : 'No result');
+      }
+      
+      // If still no result, try broad search update
+      if (!result) {
+        console.log(`🔍 Trying broad search update: ${userId}`);
+        result = await usersCollection.findOneAndUpdate(
+          {
+            $or: [
+              { _id: userId },
+              { membershipId: userId },
+              { email: userId },
+              { name: { $regex: userId, $options: 'i' } }
+            ]
+          },
+          updateData,
+          updateOptions
+        );
+        console.log(`✅ Broad search update result:`, result ? `Updated user: ${result.name}` : 'No result');
       }
 
       console.log(`✅ Balance updated: ${currentBalance} → ${newBalance}`);
