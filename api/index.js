@@ -1584,122 +1584,198 @@ export default async function handler(req, res) {
     
     // Get all withdrawals
     else if (req.method === 'GET' && path === '/api/frontend/withdrawals') {
-      console.log("💰 Fetching all withdrawals from withdrawals collection");
+      console.log("💰 ===== WITHDRAWAL API CALLED =====");
+      console.log("💰 Fetching withdrawals from 'withdrawals' collection");
       console.log("💰 Query params:", req.query);
+      console.log("💰 Request URL:", req.url);
       
-      const { 
-        page = 1, 
-        limit = 100, 
-        status, 
-        customerId,
-        method,
-        search,
-        startDate,
-        endDate
-      } = req.query;
-      
-      const query = {};
-      
-      // Status filter - handle "all" case
-      if (status && status !== "all") {
-        query.status = status;
-      }
-      
-      if (customerId) query.customerId = customerId;
-      if (method) query.method = method;
-      
-      // Date filter - use submittedAt field
-      if (startDate || endDate) {
-        query.submittedAt = {};
-        if (startDate) {
-          query.submittedAt.$gte = new Date(startDate);
+      try {
+        const { 
+          page = 1, 
+          limit = 100, 
+          status, 
+          customerId,
+          method,
+          search,
+          startDate,
+          endDate
+        } = req.query;
+        
+        console.log("💰 Parsed params:", { page, limit, status, customerId, method, search, startDate, endDate });
+        
+        const query = {};
+        
+        // Status filter - handle "all" case
+        if (status && status !== "all") {
+          query.status = status;
+          console.log("💰 Added status filter:", status);
         }
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          query.submittedAt.$lte = end;
+        
+        if (customerId) {
+          query.customerId = customerId;
+          console.log("💰 Added customerId filter:", customerId);
         }
-      }
-
-      console.log("💰 MongoDB query:", JSON.stringify(query, null, 2));
-
-      const withdrawalsCollection = database.collection('withdrawals');
-      
-      // Get total withdrawals count
-      const totalWithdrawals = await withdrawalsCollection.countDocuments(query);
-      console.log(`📊 Total withdrawals in collection: ${totalWithdrawals}`);
-      
-      const withdrawals = await withdrawalsCollection
-        .find(query)
-        .sort({ submittedAt: -1 })
-        .limit(Number(limit))
-        .skip((Number(page) - 1) * Number(limit))
-        .toArray();
-
-      console.log(`📊 Found ${withdrawals.length} withdrawals from database`);
-
-      // Get customer details for each withdrawal
-      const usersCollection = database.collection('users');
-      const withdrawalsWithCustomerDetails = await Promise.all(
-        withdrawals.map(async (withdrawal) => {
-          let customer = null;
-          try {
-            customer = await usersCollection.findOne({ _id: new ObjectId(withdrawal.customerId) });
-          } catch (objectIdError) {
-            customer = await usersCollection.findOne({ _id: withdrawal.customerId });
+        
+        if (method) {
+          query.method = method;
+          console.log("💰 Added method filter:", method);
+        }
+        
+        // Date filter - use submittedAt field
+        if (startDate || endDate) {
+          query.submittedAt = {};
+          if (startDate) {
+            query.submittedAt.$gte = new Date(startDate);
+            console.log("💰 Added startDate filter:", startDate);
           }
-          
-          return {
-            ...withdrawal,
-            customer: customer ? {
-              _id: customer._id,
-              name: customer.name,
-              email: customer.email,
-              membershipId: customer.membershipId,
-              phoneNumber: customer.phoneNumber,
-              accountBalance: customer.accountBalance
-            } : null
-          };
-        })
-      );
-
-      // Apply search filter after getting customer details
-      let filteredWithdrawals = withdrawalsWithCustomerDetails;
-      if (search) {
-        filteredWithdrawals = withdrawalsWithCustomerDetails.filter(withdrawal => {
-          const customer = withdrawal.customer;
-          if (!customer) return false;
-          
-          return customer.name?.toLowerCase().includes(search.toLowerCase()) ||
-                 customer.membershipId?.toLowerCase().includes(search.toLowerCase()) ||
-                 customer.email?.toLowerCase().includes(search.toLowerCase());
-        });
-      }
-
-      console.log(`📊 Final result: ${filteredWithdrawals.length} withdrawals after all filters`);
-      console.log(`📊 Query filters:`, query);
-      if (search) console.log(`📊 Search term:`, search);
-
-      // Debug: Log first withdrawal if exists
-      if (filteredWithdrawals.length > 0) {
-        console.log("📊 Sample withdrawal:", {
-          id: filteredWithdrawals[0]._id,
-          status: filteredWithdrawals[0].status,
-          amount: filteredWithdrawals[0].amount,
-          customer: filteredWithdrawals[0].customer?.name
-        });
-      }
-
-      res.json({
-        success: true,
-        data: filteredWithdrawals,
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total: totalWithdrawals, // Use total from database, not filtered count
-          pages: Math.ceil(totalWithdrawals / Number(limit))
+          if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            query.submittedAt.$lte = end;
+            console.log("💰 Added endDate filter:", endDate);
+          }
         }
-      });
+
+        console.log("💰 Final MongoDB query:", JSON.stringify(query, null, 2));
+
+        const withdrawalsCollection = database.collection('withdrawals');
+        console.log("💰 Using collection: withdrawals");
+        
+        // Get total withdrawals count
+        const totalWithdrawals = await withdrawalsCollection.countDocuments(query);
+        console.log(`📊 Total withdrawals matching query: ${totalWithdrawals}`);
+        
+        // Get all withdrawals without pagination first to debug
+        const allWithdrawals = await withdrawalsCollection.find(query).toArray();
+        console.log(`📊 All withdrawals found: ${allWithdrawals.length}`);
+        
+        // Log first few withdrawals for debugging
+        if (allWithdrawals.length > 0) {
+          console.log("📊 Sample withdrawals from DB:");
+          allWithdrawals.slice(0, 3).forEach((w, i) => {
+            console.log(`  ${i+1}. ID: ${w._id}, Status: ${w.status}, Amount: ${w.amount}, CustomerId: ${w.customerId}, SubmittedAt: ${w.submittedAt}`);
+          });
+        }
+        
+        const withdrawals = await withdrawalsCollection
+          .find(query)
+          .sort({ submittedAt: -1 })
+          .limit(Number(limit))
+          .skip((Number(page) - 1) * Number(limit))
+          .toArray();
+
+        console.log(`📊 Paginated withdrawals: ${withdrawals.length}`);
+
+        // Get customer details for each withdrawal
+        const usersCollection = database.collection('users');
+        console.log("💰 Fetching customer details...");
+        
+        const withdrawalsWithCustomerDetails = await Promise.all(
+          withdrawals.map(async (withdrawal, index) => {
+            console.log(`💰 Processing withdrawal ${index + 1}/${withdrawals.length}: ${withdrawal._id}`);
+            
+            let customer = null;
+            try {
+              customer = await usersCollection.findOne({ _id: new ObjectId(withdrawal.customerId) });
+              if (customer) {
+                console.log(`  ✅ Found customer: ${customer.name} (${customer.membershipId})`);
+              } else {
+                console.log(`  ❌ Customer not found for ID: ${withdrawal.customerId}`);
+              }
+            } catch (objectIdError) {
+              console.log(`  ⚠️ ObjectId error, trying string search for: ${withdrawal.customerId}`);
+              customer = await usersCollection.findOne({ _id: withdrawal.customerId });
+              if (customer) {
+                console.log(`  ✅ Found customer with string search: ${customer.name}`);
+              }
+            }
+            
+            const result = {
+              ...withdrawal,
+              customer: customer ? {
+                _id: customer._id,
+                name: customer.name,
+                email: customer.email,
+                membershipId: customer.membershipId,
+                phoneNumber: customer.phoneNumber,
+                accountBalance: customer.accountBalance
+              } : null
+            };
+            
+            console.log(`  📋 Final withdrawal data:`, {
+              id: result._id,
+              status: result.status,
+              amount: result.amount,
+              customer: result.customer?.name || 'No customer'
+            });
+            
+            return result;
+          })
+        );
+
+        console.log(`📊 Withdrawals with customer details: ${withdrawalsWithCustomerDetails.length}`);
+
+        // Apply search filter after getting customer details
+        let filteredWithdrawals = withdrawalsWithCustomerDetails;
+        if (search) {
+          console.log(`📊 Applying search filter: "${search}"`);
+          filteredWithdrawals = withdrawalsWithCustomerDetails.filter(withdrawal => {
+            const customer = withdrawal.customer;
+            if (!customer) return false;
+            
+            const matches = customer.name?.toLowerCase().includes(search.toLowerCase()) ||
+                   customer.membershipId?.toLowerCase().includes(search.toLowerCase()) ||
+                   customer.email?.toLowerCase().includes(search.toLowerCase());
+            
+            console.log(`  🔍 Search check for ${customer.name}: ${matches}`);
+            return matches;
+          });
+          console.log(`📊 After search filter: ${filteredWithdrawals.length}`);
+        }
+
+        console.log(`📊 Final result: ${filteredWithdrawals.length} withdrawals`);
+        
+        // Debug: Log final result
+        if (filteredWithdrawals.length > 0) {
+          console.log("📊 Final sample withdrawal:");
+          console.log("  ID:", filteredWithdrawals[0]._id);
+          console.log("  Status:", filteredWithdrawals[0].status);
+          console.log("  Amount:", filteredWithdrawals[0].amount);
+          console.log("  Customer:", filteredWithdrawals[0].customer?.name);
+          console.log("  SubmittedAt:", filteredWithdrawals[0].submittedAt);
+        } else {
+          console.log("❌ No withdrawals found in final result!");
+        }
+
+        const response = {
+          success: true,
+          data: filteredWithdrawals,
+          pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total: totalWithdrawals,
+            pages: Math.ceil(totalWithdrawals / Number(limit))
+          }
+        };
+
+        console.log("💰 Final response structure:", {
+          success: response.success,
+          dataLength: response.data.length,
+          pagination: response.pagination
+        });
+
+        console.log("💰 ===== SENDING RESPONSE =====");
+        res.json(response);
+        
+      } catch (error) {
+        console.error("❌ Error in withdrawal API:", error);
+        console.error("❌ Error stack:", error.stack);
+        res.status(500).json({
+          success: false,
+          error: error.message,
+          details: "Check server logs for more information"
+        });
+      }
     }
     
     // Get single withdrawal by ID
@@ -1750,6 +1826,8 @@ export default async function handler(req, res) {
     
     // Update withdrawal status
     else if (req.method === 'PATCH' && path.startsWith('/api/frontend/withdrawals/') && path.includes('/update-status')) {
+      console.log("💰 ===== WITHDRAWAL STATUS UPDATE CALLED =====");
+      
       // Extract withdrawal ID from path - it should be the part before '/update-status'
       const pathParts = path.split('/');
       const updateStatusIndex = pathParts.indexOf('update-status');
@@ -1764,6 +1842,7 @@ export default async function handler(req, res) {
       console.log(`🔍 Request body:`, req.body);
 
       if (!status) {
+        console.log("❌ No status provided in request body");
         return res.status(400).json({ 
           success: false, 
           error: "Status is required" 
@@ -1774,9 +1853,12 @@ export default async function handler(req, res) {
       let dbStatus = status;
       if (status === 'Approved') dbStatus = 'completed';
       if (status === 'Rejected') dbStatus = 'rejected';
+      
+      console.log(`💰 Status mapping: ${status} -> ${dbStatus}`);
 
       const validStatuses = ['pending', 'processing', 'completed', 'rejected'];
       if (!validStatuses.includes(dbStatus)) {
+        console.log(`❌ Invalid status: ${dbStatus}`);
         return res.status(400).json({ 
           success: false, 
           error: "Invalid status. Must be one of: pending, processing, completed, rejected" 
@@ -1784,21 +1866,46 @@ export default async function handler(req, res) {
       }
 
       const withdrawalsCollection = database.collection('withdrawals');
+      console.log("💰 Using collection: withdrawals");
       
       // Get the withdrawal first
       let withdrawal;
       try {
+        console.log(`🔍 Searching for withdrawal with ObjectId: ${withdrawalId}`);
         withdrawal = await withdrawalsCollection.findOne({ _id: new ObjectId(withdrawalId) });
+        if (withdrawal) {
+          console.log(`✅ Found withdrawal with ObjectId: ${withdrawal._id}, current status: ${withdrawal.status}`);
+        }
       } catch (objectIdError) {
+        console.log(`⚠️ ObjectId error, trying string search for: ${withdrawalId}`);
         withdrawal = await withdrawalsCollection.findOne({ _id: withdrawalId });
+        if (withdrawal) {
+          console.log(`✅ Found withdrawal with string search: ${withdrawal._id}, current status: ${withdrawal.status}`);
+        }
       }
       
       if (!withdrawal) {
+        console.log(`❌ Withdrawal not found for ID: ${withdrawalId}`);
+        
+        // List some sample withdrawals for debugging
+        const sampleWithdrawals = await withdrawalsCollection.find({}).limit(3).toArray();
+        console.log("📋 Sample withdrawals in database:");
+        sampleWithdrawals.forEach((w, i) => {
+          console.log(`  ${i+1}. ID: ${w._id}, Status: ${w.status}, Amount: ${w.amount}`);
+        });
+        
         return res.status(404).json({ 
           success: false, 
           error: "Withdrawal not found" 
         });
       }
+
+      console.log(`💰 Current withdrawal data:`, {
+        id: withdrawal._id,
+        status: withdrawal.status,
+        amount: withdrawal.amount,
+        customerId: withdrawal.customerId
+      });
 
       const updateData = {
         status: dbStatus,
@@ -1808,38 +1915,60 @@ export default async function handler(req, res) {
       // Add admin notes if provided
       if (adminNotes) {
         updateData.adminNotes = adminNotes;
+        console.log(`💰 Adding admin notes: ${adminNotes}`);
       }
 
       // Add processed info for completed/rejected withdrawals
       if (dbStatus === 'completed' || dbStatus === 'rejected') {
         updateData.processedAt = new Date();
         updateData.processedBy = processedBy || 'admin';
+        console.log(`💰 Adding processed info: ${updateData.processedAt}, by: ${updateData.processedBy}`);
       }
+
+      console.log(`💰 Update data:`, updateData);
 
       // Update the withdrawal
       let result;
       try {
+        console.log(`🔍 Updating withdrawal with ObjectId: ${withdrawalId}`);
         result = await withdrawalsCollection.findOneAndUpdate(
           { _id: new ObjectId(withdrawalId) },
           { $set: updateData },
           { returnDocument: 'after' }
         );
+        if (result) {
+          console.log(`✅ Updated withdrawal with ObjectId successfully: ${result._id}`);
+        }
       } catch (objectIdError) {
+        console.log(`⚠️ ObjectId update failed, trying string update for: ${withdrawalId}`);
         result = await withdrawalsCollection.findOneAndUpdate(
           { _id: withdrawalId },
           { $set: updateData },
           { returnDocument: 'after' }
         );
+        if (result) {
+          console.log(`✅ Updated withdrawal with string ID successfully: ${result._id}`);
+        }
       }
 
       if (!result) {
+        console.log(`❌ Failed to update withdrawal: ${withdrawalId}`);
         return res.status(500).json({ 
           success: false, 
           error: "Failed to update withdrawal status" 
         });
       }
 
-      console.log(`✅ Withdrawal ${withdrawalId} status updated to ${dbStatus}`);
+      console.log(`✅ Withdrawal ${withdrawalId} status updated successfully`);
+      console.log(`💰 Updated withdrawal data:`, {
+        id: result._id,
+        status: result.status,
+        updatedAt: result.updatedAt,
+        processedAt: result.processedAt,
+        processedBy: result.processedBy
+      });
+
+      console.log("💰 ===== STATUS UPDATE COMPLETED =====");
 
       res.json({
         success: true,
