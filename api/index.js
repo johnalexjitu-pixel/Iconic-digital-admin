@@ -1839,73 +1839,11 @@ export default async function handler(req, res) {
     else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks/')) {
       console.log("🎯 MATCHED: Combo tasks endpoint");
       const customerId = path.split('/')[3];
-      console.log("🎯 Fetching combo tasks from campaignsCollection for customer:", customerId);
+      console.log("🎯 Fetching combo tasks for customer:", customerId);
       console.log("🎯 Full path:", path);
       console.log("🎯 Customer ID extracted:", customerId);
 
-      // Get all campaigns from campaignsCollection
-      const campaignsCollection = database.collection('campaigns');
-      console.log("🎯 Fetching from campaignsCollection");
-      
-      // Check what collections exist
-      const collections = await database.listCollections().toArray();
-      console.log("🎯 Available collections:", collections.map(c => c.name));
-      
-      // Check total count in campaigns collection
-      const totalCampaigns = await campaignsCollection.countDocuments();
-      console.log("🎯 Total campaigns in collection:", totalCampaigns);
-      
-      // Get first 30 campaigns for user's daily tasks
-      const campaigns = await campaignsCollection
-        .find({})
-        .sort({ createdAt: -1 })
-        .limit(30)
-        .toArray();
-      
-      console.log("🎯 Found campaigns:", campaigns.length);
-      console.log("🎯 Expected: 30 campaigns for combo tasks");
-      console.log("🎯 Available campaigns in database:", campaigns.length);
-      
-      if (campaigns.length < 30) {
-        console.log("⚠️ WARNING: Only", campaigns.length, "campaigns found, but combo tasks need 30");
-        console.log("💡 Creating additional virtual campaigns to reach 30...");
-        
-        // Create virtual campaigns to reach 30
-        const virtualCampaigns = [];
-        for (let i = campaigns.length; i < 30; i++) {
-          virtualCampaigns.push({
-            _id: `virtual_${i + 1}_${Date.now()}`,
-            brand: `Virtual Campaign ${i + 1}`,
-            baseAmount: 100 + (i * 10), // Default prices
-            commissionAmount: 5 + (i * 2),
-            logo: "",
-            type: "Free",
-            code: `VIRTUAL_${i + 1}`,
-            taskCode: `VT${i + 1}`,
-            name: `Virtual Campaign ${i + 1}`,
-            createdAt: new Date(),
-            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          });
-        }
-        
-        // Combine real and virtual campaigns
-        campaigns.push(...virtualCampaigns);
-        console.log("🎯 Total campaigns after adding virtual ones:", campaigns.length);
-      }
-      
-      console.log("🎯 First campaign sample:", campaigns[0] ? {
-        _id: campaigns[0]._id,
-        brand: campaigns[0].brand,
-        baseAmount: campaigns[0].baseAmount,
-        logo: campaigns[0].logo
-      } : "No campaigns found");
-
-      if (campaigns.length === 0) {
-        console.log("No campaigns found in campaignsCollection");
-        return res.json({ success: true, data: [], total: 0 });
-      }
-
-      // Get customer info
+      // Get customer info first
       const usersCollection = database.collection('users');
       let customer;
       try {
@@ -1919,77 +1857,38 @@ export default async function handler(req, res) {
         return res.json({ success: true, data: [], total: 0 });
       }
 
-      // Get existing customer tasks data to merge saved prices
+      // Get user's existing tasks from customerTasks collection
       const customerTasksCollection = database.collection('customerTasks');
+      console.log("🎯 Fetching user's existing tasks from customerTasks collection");
+      
+      // Check what collections exist
+      const collections = await database.listCollections().toArray();
+      console.log("🎯 Available collections:", collections.map(c => c.name));
+      
+      // Get existing customer tasks
       const existingTasks = await customerTasksCollection
         .find({ customerId: customerId })
+        .sort({ taskNumber: 1 })
         .toArray();
       
       console.log("🎯 Found existing customer tasks:", existingTasks.length);
+      console.log("🎯 Expected: 30 tasks for combo tasks");
       
-      // Create a map of taskNumber to existing task data
-      const existingTasksMap = {};
-      existingTasks.forEach(task => {
-        existingTasksMap[task.taskNumber] = task;
-      });
-
-      // Convert campaigns to combo tasks format - USER'S DAILY 30 TASKS
-      const comboTasks = campaigns.map((campaign, index) => {
-        const taskNumber = index + 1;
-        const existingTask = existingTasksMap[taskNumber];
+      // If no existing tasks, create default 30 tasks for the user
+      if (existingTasks.length === 0) {
+        console.log("💡 No existing tasks found, creating default 30 tasks for user");
         
-        return {
-          _id: campaign._id.toString(),
-          customerId,
-          customerCode: customer?.membershipId || customer?.code || "",
-          taskNumber: taskNumber,
-          campaignId: campaign._id.toString(),
-          taskCommission: campaign.commissionAmount || 0,
-          // Use saved price if exists, otherwise use campaign baseAmount
-          taskPrice: existingTask?.taskPrice || campaign.baseAmount || 0,
-          estimatedNegativeAmount: (campaign.commissionAmount || 0) * -1,
-          priceFrom: 0,
-          priceTo: 0,
-          // Use saved golden egg status if exists, otherwise use campaign logic
-          hasGoldenEgg: existingTask?.hasGoldenEgg !== undefined ? existingTask.hasGoldenEgg : (campaign.type === "Paid" || (campaign.baseAmount || 0) > 10000),
-          expiredDate: campaign.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          status: existingTask?.status || 'pending',
-          createdAt: existingTask?.createdAt || campaign.createdAt || new Date(),
-          updatedAt: new Date(),
-          // Campaign fields - SAME AS TASK MANAGEMENT PAGE
-          campaignName: campaign.brand || campaign.name || `Campaign ${index + 1}`,
-          campaignLogo: campaign.logo || "",
-          campaignType: campaign.type || "Free",
-          campaignCode: campaign.code || campaign.taskCode || `TASK${index + 1}`,
-          // Additional fields for compatibility
-          name: campaign.brand || campaign.name,
-          price: existingTask?.taskPrice || campaign.baseAmount || 0,
-          code: campaign.code || campaign.taskCode,
-          logo: campaign.logo || ""
-        };
-      });
-
-      console.log("🎯 Converted to combo tasks:", comboTasks.length);
-      console.log("🎯 Expected: 30 combo tasks");
-      console.log("🎯 Sample combo task:", comboTasks[0]);
-      
-      // Ensure we have exactly 30 tasks
-      if (comboTasks.length < 30) {
-        console.log("⚠️ WARNING: Only", comboTasks.length, "combo tasks created, expected 30");
-        console.log("💡 This should not happen if virtual campaigns were created properly");
-        
-        // Force create additional tasks to reach 30
-        console.log("🔧 FORCE FIX: Creating additional combo tasks to reach 30...");
-        const additionalTasks = [];
-        for (let i = comboTasks.length; i < 30; i++) {
-          additionalTasks.push({
-            _id: `force_virtual_${i + 1}_${Date.now()}`,
-            customerId,
+        // Create default 30 tasks for the user
+        const defaultTasks = [];
+        for (let i = 1; i <= 30; i++) {
+          defaultTasks.push({
+            _id: `default_${customerId}_${i}_${Date.now()}`,
+            customerId: customerId,
             customerCode: customer?.membershipId || customer?.code || "",
-            taskNumber: i + 1,
-            campaignId: `force_virtual_${i + 1}`,
+            taskNumber: i,
+            campaignId: `default_campaign_${i}`,
             taskCommission: 0,
-            taskPrice: 100 + (i * 10),
+            taskPrice: 100 + (i * 10), // Default prices
             estimatedNegativeAmount: 0,
             priceFrom: 0,
             priceTo: 0,
@@ -1998,20 +1897,74 @@ export default async function handler(req, res) {
             status: 'pending',
             createdAt: new Date(),
             updatedAt: new Date(),
-            campaignName: `Force Virtual Campaign ${i + 1}`,
+            campaignName: `Default Task ${i}`,
             campaignLogo: "",
             campaignType: "Free",
-            campaignCode: `FORCE_VIRTUAL_${i + 1}`,
-            name: `Force Virtual Campaign ${i + 1}`,
+            campaignCode: `DEFAULT_${i}`,
+            name: `Default Task ${i}`,
             price: 100 + (i * 10),
-            code: `FORCE_VIRTUAL_${i + 1}`,
+            code: `DEFAULT_${i}`,
             logo: ""
           });
         }
-        comboTasks.push(...additionalTasks);
-        console.log("🔧 FORCE FIX: Created", additionalTasks.length, "additional tasks");
-        console.log("🔧 FORCE FIX: Total combo tasks now:", comboTasks.length);
+        
+        // Insert default tasks into database
+        await customerTasksCollection.insertMany(defaultTasks);
+        console.log("💡 Created", defaultTasks.length, "default tasks for user");
+        
+        // Update existingTasks to include the newly created tasks
+        existingTasks.push(...defaultTasks);
       }
+      
+      console.log("🎯 First existing task sample:", existingTasks[0] ? {
+        _id: existingTasks[0]._id,
+        taskNumber: existingTasks[0].taskNumber,
+        taskPrice: existingTasks[0].taskPrice,
+        hasGoldenEgg: existingTasks[0].hasGoldenEgg
+      } : "No existing tasks found");
+
+      if (existingTasks.length === 0) {
+        console.log("No existing tasks found for customer");
+        return res.json({ success: true, data: [], total: 0 });
+      }
+
+      // Convert existing tasks to combo tasks format - USER'S EXISTING TASKS
+      const comboTasks = existingTasks.map((task) => {
+        return {
+          _id: task._id.toString(),
+          customerId: task.customerId,
+          customerCode: task.customerCode || customer?.membershipId || customer?.code || "",
+          taskNumber: task.taskNumber,
+          campaignId: task.campaignId || `task_${task.taskNumber}`,
+          taskCommission: task.taskCommission || 0,
+          taskPrice: task.taskPrice || 0,
+          estimatedNegativeAmount: task.estimatedNegativeAmount || 0,
+          priceFrom: task.priceFrom || 0,
+          priceTo: task.priceTo || 0,
+          hasGoldenEgg: task.hasGoldenEgg || false,
+          expiredDate: task.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: task.status || 'pending',
+          createdAt: task.createdAt || new Date(),
+          updatedAt: task.updatedAt || new Date(),
+          // Task fields
+          campaignName: task.campaignName || `Task ${task.taskNumber}`,
+          campaignLogo: task.campaignLogo || "",
+          campaignType: task.campaignType || "Free",
+          campaignCode: task.campaignCode || `TASK${task.taskNumber}`,
+          // Additional fields for compatibility
+          name: task.campaignName || `Task ${task.taskNumber}`,
+          price: task.taskPrice || 0,
+          code: task.campaignCode || `TASK${task.taskNumber}`,
+          logo: task.campaignLogo || ""
+        };
+      });
+
+
+      console.log("🎯 Converted to combo tasks:", comboTasks.length);
+      console.log("🎯 Expected: 30 combo tasks");
+      console.log("🎯 Sample combo task:", comboTasks[0]);
+      
+      console.log("🎯 Combo tasks created from existing customer tasks:", comboTasks.length);
       
       console.log("🎯 Sending response with", comboTasks.length, "combo tasks");
       
