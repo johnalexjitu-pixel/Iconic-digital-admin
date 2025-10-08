@@ -39,9 +39,14 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log("🚀 API Request:", req.method, req.url);
+    console.log("🚀 Request path:", req.url);
+    
     const database = await connectToDatabase();
     const url = new URL(req.url, `http://${req.headers.host}`);
     const path = url.pathname;
+    
+    console.log("🚀 Parsed path:", path);
     
     // Admin Authentication Routes
     
@@ -681,9 +686,11 @@ export default async function handler(req, res) {
     
     // Get customer tasks - Fetch directly from campaigns collection
     else if (req.method === 'GET' && path.startsWith('/api/frontend/customer-tasks/') && !path.includes('/allow')) {
+      console.log("🎯 MATCHED: Customer tasks endpoint");
       const customerId = path.split('/')[3];
       console.log("📋 Fetching customer tasks from campaignsCollection for customer:", customerId);
       console.log("📋 Full path:", path);
+      console.log("📋 Customer ID extracted:", customerId);
 
       // Get all campaigns from campaignsCollection
       const campaignsCollection = database.collection('campaigns');
