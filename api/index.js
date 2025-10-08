@@ -282,6 +282,47 @@ export default async function handler(req, res) {
       });
     }
     
+    // Toggle user account status (suspend/activate)
+    else if (req.method === 'PATCH' && path.includes('/api/frontend/users/') && path.includes('/toggle-status')) {
+      console.log(`🔄 Toggle status request - Method: ${req.method}, Path: ${path}`);
+      const pathParts = path.split('/');
+      console.log(`🔄 Path parts:`, pathParts);
+      const userId = pathParts[pathParts.length - 2]; // Get userId from the path
+      console.log(`🔄 Extracted userId: ${userId}`);
+
+      const usersCollection = database.collection('users');
+      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+      
+      if (!user) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "User not found" 
+        });
+      }
+
+      const newStatus = !user.isActive;
+      await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { 
+          $set: { 
+            isActive: newStatus,
+            updatedAt: new Date()
+          } 
+        }
+      );
+
+      console.log(`✅ User ${userId} status changed to: ${newStatus ? 'Active' : 'Suspended'}`);
+
+      res.json({
+        success: true,
+        message: `User ${newStatus ? 'activated' : 'suspended'} successfully`,
+        data: {
+          userId,
+          isActive: newStatus
+        }
+      });
+    }
+    
     // Update user balance
     else if (req.method === 'PATCH' && path.includes('/api/frontend/users/') && path.includes('/balance')) {
       const userId = path.split('/')[3];

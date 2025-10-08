@@ -146,6 +146,22 @@ export default function CustomerManagement() {
     },
   });
 
+  // Mutation for toggling user account status
+  const toggleUserStatusMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/frontend/users/${userId}/toggle-status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error("Failed to toggle user status");
+      return response.json();
+    },
+    onSuccess: () => {
+      // Refresh user list to show updated status
+      queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+    },
+  });
+
   const handleTaskClick = (task: any, taskNumber: number) => {
     setTaskEditModal({
       open: true,
@@ -467,6 +483,23 @@ export default function CustomerManagement() {
     await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
   };
 
+  const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
+    try {
+      await toggleUserStatusMutation.mutateAsync(userId);
+      toast({
+        title: "Success",
+        description: `User ${currentStatus ? 'suspended' : 'activated'} successfully`,
+      });
+    } catch (error: any) {
+      console.error("❌ Error toggling user status:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to toggle user status",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Use frontend users as customers
   const displayCustomers = frontendUsers?.data?.map((user: any) => ({
     id: user._id,
@@ -757,11 +790,12 @@ export default function CustomerManagement() {
                 <TableCell>
                   <Button
                     data-testid={`button-status-${customer.id}`}
-                    variant={customer.isActive ? "default" : "secondary"}
+                    variant={customer.isActive ? "default" : "destructive"}
                     size="sm"
-                    className={customer.isActive ? "bg-success hover:bg-success/90" : ""}
+                    className={customer.isActive ? "bg-green-500 hover:bg-green-600 text-white" : "bg-red-500 hover:bg-red-600 text-white"}
+                    onClick={() => handleToggleStatus(customer.id, customer.isActive)}
                   >
-                    {customer.isActive ? t('activate') : t('deactivate')}
+                    {customer.isActive ? t('activate') : t('suspend')}
                   </Button>
                 </TableCell>
               </TableRow>

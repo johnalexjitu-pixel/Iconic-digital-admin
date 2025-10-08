@@ -73,6 +73,7 @@ const resources = {
       resetTask: "Reset Task",
       activate: "Activate",
       deactivate: "Deactivate",
+      suspend: "Suspend",
       approve: "Approve",
       reject: "Reject",
       
@@ -276,6 +277,7 @@ const resources = {
       resetTask: "টাস্ক রিসেট",
       activate: "সক্রিয়",
       deactivate: "নিষ্ক্রিয়",
+      suspend: "স্থগিত",
       approve: "অনুমোদন",
       reject: "প্রত্যাখ্যান",
       
@@ -479,6 +481,7 @@ const resources = {
       resetTask: "重置任务",
       activate: "激活",
       deactivate: "停用",
+      suspend: "暂停",
       approve: "批准",
       reject: "拒绝",
       
