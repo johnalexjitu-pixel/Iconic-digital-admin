@@ -2265,6 +2265,17 @@ export default async function handler(req, res) {
       try {
         const customerTasksCollection = database.collection('customerTasks');
         
+        // Get existing task to preserve golden egg status
+        const existingTask = await customerTasksCollection.findOne({
+          customerId: customerId,
+          taskNumber: Number(taskNumber)
+        });
+        
+        console.log("💰 Existing task found:", !!existingTask);
+        if (existingTask) {
+          console.log("💰 Existing golden egg status:", existingTask.hasGoldenEgg);
+        }
+        
         // Update or create the task in customerTasks collection
         const result = await customerTasksCollection.updateOne(
           { 
@@ -2277,14 +2288,17 @@ export default async function handler(req, res) {
               taskNumber: Number(taskNumber),
               taskPrice: Number(taskPrice),
               updatedAt: new Date(),
+              // Preserve existing golden egg status or default to false
+              hasGoldenEgg: existingTask?.hasGoldenEgg || false,
               // Set default values if creating new document
-              status: 'pending',
-              hasGoldenEgg: false,
-              createdAt: new Date()
+              status: existingTask?.status || 'pending',
+              createdAt: existingTask?.createdAt || new Date()
             }
           },
           { upsert: true } // Create if doesn't exist
         );
+        
+        console.log("💰 Task price saved with golden egg status:", existingTask?.hasGoldenEgg || false);
 
         console.log("✅ Task price saved successfully:", result);
 
