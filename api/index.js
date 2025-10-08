@@ -255,6 +255,33 @@ export default async function handler(req, res) {
       });
     }
     
+    // Debug campaigns endpoint
+    else if (req.method === 'GET' && path === '/api/debug-campaigns') {
+      console.log("🔍 Debug campaigns endpoint called");
+      try {
+        const campaignsCollection = database.collection('campaigns');
+        const totalCampaigns = await campaignsCollection.countDocuments();
+        const campaigns = await campaignsCollection.find({}).limit(5).toArray();
+        
+        console.log("📊 Debug - Total campaigns:", totalCampaigns);
+        console.log("📊 Debug - Sample campaigns:", campaigns.length);
+        
+        res.json({
+          success: true,
+          totalCampaigns,
+          sampleCampaigns: campaigns,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("❌ Debug campaigns error:", error);
+        res.status(500).json({
+          success: false,
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
     // Simple toggle status endpoint - exact path match
     else if (req.method === 'PATCH' && path.includes('/toggle-status')) {
       console.log(`🔄 Simple toggle endpoint matched - Path: ${path}`);
