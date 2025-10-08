@@ -17,6 +17,14 @@ export default function WithdrawalManagement() {
   const [startDate, setStartDate] = useState("2025-09-25");
   const [endDate, setEndDate] = useState("2025-10-02");
   const { toast } = useToast();
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    username: "",
+    code: "",
+    status: "all"
+  });
+  const [isFiltered, setIsFiltered] = useState(false);
 
   const { data: withdrawals, isLoading } = useQuery<Withdrawal[]>({
     queryKey: ["/api/withdrawals"],
@@ -42,8 +50,24 @@ export default function WithdrawalManagement() {
     queryKey: ["/api/frontend/users"],
   });
 
+  // Apply filters
+  const handleFilter = () => {
+    setIsFiltered(true);
+  };
+
+  const handleResetFilter = () => {
+    setFilters({
+      username: "",
+      code: "",
+      status: "all"
+    });
+    setStartDate("2025-09-25");
+    setEndDate("2025-10-02");
+    setIsFiltered(false);
+  };
+
   // Convert transactions to withdrawals format
-  const displayWithdrawals = transactionsResponse?.data?.map((transaction: any) => {
+  let displayWithdrawals = transactionsResponse?.data?.map((transaction: any) => {
     const user = usersResponse?.data?.find((u: any) => u._id === transaction.userId);
     return {
       id: transaction._id,
@@ -67,6 +91,42 @@ export default function WithdrawalManagement() {
       }
     };
   }) || [];
+
+  // Apply filters to withdrawals
+  if (isFiltered && displayWithdrawals) {
+    displayWithdrawals = displayWithdrawals.filter((withdrawal: any) => {
+      // Filter by username
+      if (filters.username && !withdrawal.customer?.username?.toLowerCase().includes(filters.username.toLowerCase())) {
+        return false;
+      }
+
+      // Filter by code
+      if (filters.code && !withdrawal.customer?.code?.toLowerCase().includes(filters.code.toLowerCase())) {
+        return false;
+      }
+
+      // Filter by status
+      if (filters.status && filters.status !== "all") {
+        if (withdrawal.status !== filters.status) {
+          return false;
+        }
+      }
+
+      // Filter by date range
+      if (startDate && endDate) {
+        const withdrawalDate = new Date(withdrawal.createdAt);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        
+        if (withdrawalDate < start || withdrawalDate > end) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
 
   const updateWithdrawalMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -123,21 +183,34 @@ export default function WithdrawalManagement() {
 
           <div>
             <Label className="text-muted-foreground">{t('loginUserName')}:</Label>
-            <Input data-testid="input-username" className="mt-1" />
+            <Input 
+              data-testid="input-username" 
+              className="mt-1" 
+              value={filters.username}
+              onChange={(e) => setFilters({ ...filters, username: e.target.value })}
+              placeholder="Enter username"
+            />
           </div>
 
           <div>
             <Label className="text-muted-foreground">{t('code')}:</Label>
-            <Input data-testid="input-code" className="mt-1" />
+            <Input 
+              data-testid="input-code" 
+              className="mt-1" 
+              value={filters.code}
+              onChange={(e) => setFilters({ ...filters, code: e.target.value })}
+              placeholder="Enter code"
+            />
           </div>
 
           <div>
             <Label className="text-muted-foreground">{t('status')}:</Label>
-            <Select defaultValue="Pending">
+            <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
               <SelectTrigger data-testid="select-status" className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">{t('all')}</SelectItem>
                 <SelectItem value="Pending">{t('pending')}</SelectItem>
                 <SelectItem value="Approved">{t('approved')}</SelectItem>
                 <SelectItem value="Rejected">{t('rejected')}</SelectItem>
@@ -146,8 +219,13 @@ export default function WithdrawalManagement() {
           </div>
         </div>
 
-        <div className="flex justify-center">
-          <Button data-testid="button-filter" className="px-8">{t('filter')}</Button>
+        <div className="flex justify-center gap-3">
+          <Button data-testid="button-filter" className="px-8" onClick={handleFilter}>{t('filter')}</Button>
+          {isFiltered && (
+            <Button data-testid="button-reset-filter" variant="outline" className="px-8" onClick={handleResetFilter}>
+              Reset Filter
+            </Button>
+          )}
         </div>
       </div>
 

@@ -28,10 +28,31 @@ export default function UserManagement() {
   const { t } = useTranslation();
   const [startDate, setStartDate] = useState("2025-10-01");
   const [endDate, setEndDate] = useState("2025-10-02");
+  const [isFiltered, setIsFiltered] = useState(false);
 
   const { data: admins, isLoading } = useQuery<Admin[]>({
     queryKey: ["/api/admins"],
   });
+
+  // Filter functions
+  const handleFilter = () => {
+    setIsFiltered(true);
+  };
+
+  const handleResetFilter = () => {
+    setStartDate("2025-10-01");
+    setEndDate("2025-10-02");
+    setIsFiltered(false);
+  };
+
+  // Build query parameters for API
+  const queryParams = new URLSearchParams();
+  queryParams.append("limit", "100");
+  
+  if (isFiltered && (startDate || endDate)) {
+    if (startDate) queryParams.append("startDate", startDate);
+    if (endDate) queryParams.append("endDate", endDate);
+  }
 
   // Frontend users API call
   const { data: frontendUsers, isLoading: frontendUsersLoading } = useQuery<{
@@ -44,7 +65,7 @@ export default function UserManagement() {
       pages: number;
     };
   }>({
-    queryKey: ["/api/frontend/users?limit=100"],
+    queryKey: ["/api/frontend/users?" + queryParams.toString()],
     staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -84,8 +105,13 @@ export default function UserManagement() {
           </div>
         </div>
 
-        <div className="flex justify-center">
-          <Button data-testid="button-filter" className="px-8">{t('filter')}</Button>
+        <div className="flex justify-center gap-3">
+          <Button data-testid="button-filter" className="px-8" onClick={handleFilter}>{t('filter')}</Button>
+          {isFiltered && (
+            <Button data-testid="button-reset-filter" variant="outline" className="px-8" onClick={handleResetFilter}>
+              Reset Filter
+            </Button>
+          )}
         </div>
       </div>
 

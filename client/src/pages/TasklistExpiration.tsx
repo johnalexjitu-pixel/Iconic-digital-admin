@@ -10,6 +10,30 @@ export default function TasklistExpiration() {
   const { t } = useTranslation();
   const [startDate, setStartDate] = useState("2025-09-25");
   const [endDate, setEndDate] = useState("2025-10-09");
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    username: "",
+    code: "",
+    status: "all"
+  });
+  const [isFiltered, setIsFiltered] = useState(false);
+  
+  // Filter functions
+  const handleFilter = () => {
+    setIsFiltered(true);
+  };
+
+  const handleResetFilter = () => {
+    setFilters({
+      username: "",
+      code: "",
+      status: "all"
+    });
+    setStartDate("2025-09-25");
+    setEndDate("2025-10-09");
+    setIsFiltered(false);
+  };
 
   return (
     <div className="p-6">
@@ -38,21 +62,34 @@ export default function TasklistExpiration() {
 
           <div>
             <Label className="text-muted-foreground">{t('loginUserName')}:</Label>
-            <Input data-testid="input-username" className="mt-1" />
+            <Input 
+              data-testid="input-username" 
+              className="mt-1" 
+              value={filters.username}
+              onChange={(e) => setFilters({ ...filters, username: e.target.value })}
+              placeholder="Enter username"
+            />
           </div>
 
           <div>
             <Label className="text-muted-foreground">{t('code')}:</Label>
-            <Input data-testid="input-code" className="mt-1" />
+            <Input 
+              data-testid="input-code" 
+              className="mt-1" 
+              value={filters.code}
+              onChange={(e) => setFilters({ ...filters, code: e.target.value })}
+              placeholder="Enter code"
+            />
           </div>
 
           <div>
             <Label className="text-muted-foreground">{t('status')}:</Label>
-            <Select defaultValue="Pending">
+            <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
               <SelectTrigger data-testid="select-status" className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">{t('all')}</SelectItem>
                 <SelectItem value="Pending">{t('pending')}</SelectItem>
                 <SelectItem value="Expired">{t('expired')}</SelectItem>
               </SelectContent>
@@ -60,8 +97,13 @@ export default function TasklistExpiration() {
           </div>
         </div>
 
-        <div className="flex justify-center">
-          <Button data-testid="button-filter" className="px-8">{t('filter')}</Button>
+        <div className="flex justify-center gap-3">
+          <Button data-testid="button-filter" className="px-8" onClick={handleFilter}>{t('filter')}</Button>
+          {isFiltered && (
+            <Button data-testid="button-reset-filter" variant="outline" className="px-8" onClick={handleResetFilter}>
+              Reset Filter
+            </Button>
+          )}
         </div>
       </div>
 
