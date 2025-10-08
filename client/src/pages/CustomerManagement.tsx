@@ -1005,7 +1005,7 @@ export default function CustomerManagement() {
                       {(() => {
                         console.log("🔍 Rendering table body with data:", customerTasksData?.data?.length);
                         console.log("🔍 First task:", customerTasksData?.data?.[0]);
-                        return customerTasksData?.data?.slice(0, 10).map((task: any) => (
+                        return customerTasksData?.data?.map((task: any) => (
                         <TableRow key={task._id}>
                           <TableCell>
                             <div className="space-y-1">
