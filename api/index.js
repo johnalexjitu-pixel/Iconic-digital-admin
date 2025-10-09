@@ -2908,18 +2908,10 @@ export default async function handler(req, res) {
           return res.json({ success: true, data: [], total: 0 });
         }
 
-        // Get user's current task number
-        const currentTaskNumber = customer.currentTask || customer.completedTasks || 0;
-        const startTaskNumber = currentTaskNumber + 1;
-        const endTaskNumber = startTaskNumber + 29; // Next 30 tasks
-        
-        // Get existing customer tasks with simple query (like all tasks)
+        // Get ALL customer tasks (same as customer-tasks endpoint)
         const customerTasksCollection = database.collection('customerTasks');
         const existingTasks = await customerTasksCollection
-          .find({ 
-            customerId: customerId,
-            taskNumber: { $gte: startTaskNumber, $lte: endTaskNumber }
-          })
+          .find({ customerId: customerId })
           .sort({ taskNumber: 1 })
           .toArray();
         
