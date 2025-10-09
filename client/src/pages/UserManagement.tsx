@@ -59,13 +59,16 @@ export default function UserManagement() {
   // Handle user status toggle
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      await toggleUserStatusMutation.mutateAsync(userId);
+      console.log("🔄 Frontend: Toggling user status", { userId, currentStatus });
+      const result = await toggleUserStatusMutation.mutateAsync(userId);
+      console.log("✅ Frontend: Status toggle result", result);
+      
       toast({
         title: "Success",
         description: `User ${currentStatus ? 'suspended' : 'activated'} successfully`,
       });
     } catch (error: any) {
-      console.error("❌ Error toggling user status:", error);
+      console.error("❌ Frontend: Error toggling user status:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to toggle user status",

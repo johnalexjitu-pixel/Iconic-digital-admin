@@ -466,47 +466,76 @@ export default async function handler(req, res) {
     else if (req.method === 'PATCH' && path.match(/^\/api\/frontend\/users\/[^\/]+\/toggle-status$/)) {
       console.log(`🔄 Toggle status request matched - Method: ${req.method}, Path: ${path}`);
       console.log(`🔄 Regex test result:`, /^\/api\/frontend\/users\/[^\/]+\/toggle-status$/.test(path));
-      const pathParts = path.split('/');
-      console.log(`🔄 Path parts:`, pathParts);
-      const userId = pathParts[pathParts.length - 2]; // Get userId from the path
-      console.log(`🔄 Extracted userId: ${userId}`);
-
-      const usersCollection = database.collection('users');
-      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
       
-      if (!user) {
-        return res.status(404).json({ 
-          success: false, 
-          error: "User not found" 
+      try {
+        const pathParts = path.split('/');
+        console.log(`🔄 Path parts:`, pathParts);
+        const userId = pathParts[pathParts.length - 2]; // Get userId from the path
+        console.log(`🔄 Extracted userId: ${userId}`);
+
+        const usersCollection = database.collection('users');
+        console.log(`🔄 Looking for user with ID: ${userId}`);
+        
+        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        console.log(`🔄 User found:`, user ? 'Yes' : 'No');
+        
+        if (!user) {
+          console.log(`❌ User not found with ID: ${userId}`);
+          return res.status(404).json({ 
+            success: false, 
+            error: "User not found" 
+          });
+        }
+
+        console.log(`🔄 Current user data:`, {
+          _id: user._id,
+          name: user.name,
+          status: user.status,
+          isActive: user.isActive
+        });
+
+        // Get current status from database (check both isActive and status fields)
+        const currentStatus = user.status || (user.isActive ? 'active' : 'inactive');
+        const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+        
+        console.log(`🔄 Status change: ${currentStatus} -> ${newStatus}`);
+        
+        const updateResult = await usersCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { 
+            $set: { 
+              status: newStatus,
+              isActive: newStatus === 'active',
+              updatedAt: new Date()
+            } 
+          }
+        );
+
+        console.log(`🔄 Update result:`, {
+          matchedCount: updateResult.matchedCount,
+          modifiedCount: updateResult.modifiedCount,
+          acknowledged: updateResult.acknowledged
+        });
+
+        console.log(`✅ User ${userId} status changed from ${currentStatus} to: ${newStatus}`);
+
+        res.json({
+          success: true,
+          message: `User ${newStatus === 'active' ? 'activated' : 'suspended'} successfully`,
+          data: {
+            userId,
+            status: newStatus,
+            isActive: newStatus === 'active'
+          }
+        });
+      } catch (error) {
+        console.error(`❌ Error in toggle status endpoint:`, error);
+        res.status(500).json({
+          success: false,
+          error: "Internal server error",
+          details: error.message
         });
       }
-
-      // Get current status from database (check both isActive and status fields)
-      const currentStatus = user.status || (user.isActive ? 'active' : 'inactive');
-      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-      
-      await usersCollection.updateOne(
-        { _id: new ObjectId(userId) },
-        { 
-          $set: { 
-            status: newStatus,
-            isActive: newStatus === 'active',
-            updatedAt: new Date()
-          } 
-        }
-      );
-
-      console.log(`✅ User ${userId} status changed from ${currentStatus} to: ${newStatus}`);
-
-      res.json({
-        success: true,
-        message: `User ${newStatus === 'active' ? 'activated' : 'suspended'} successfully`,
-        data: {
-          userId,
-          status: newStatus,
-          isActive: newStatus === 'active'
-        }
-      });
     }
     
     // Update user profile
