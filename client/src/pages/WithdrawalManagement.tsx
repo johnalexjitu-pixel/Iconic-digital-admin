@@ -39,83 +39,164 @@ export default function WithdrawalManagement() {
 
   return (
     <div style={{ 
-      backgroundColor: '#ff0000', 
+      backgroundColor: '#f8f9fa', 
       minHeight: '100vh', 
       padding: '20px',
       fontFamily: 'Arial, sans-serif'
     }}>
       <div style={{ 
-        backgroundColor: '#ffff00', 
+        backgroundColor: '#ffffff', 
         padding: '20px', 
         borderRadius: '10px',
         marginBottom: '20px',
-        border: '5px solid #000000'
+        border: '1px solid #e9ecef',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
-        <h1 style={{ color: '#ff0000', margin: '0 0 10px 0', fontSize: '40px', fontWeight: 'bold' }}>
-          🔥 CRITICAL TEST - RED TEXT - DEPLOYMENT CHECK 🔥
+        <h1 style={{ color: '#495057', margin: '0 0 10px 0', fontSize: '24px', fontWeight: '600' }}>
+          💰 Withdrawal Management
         </h1>
-        <p style={{ color: '#ff0000', margin: '0', fontSize: '20px', fontWeight: 'bold' }}>
-          ⚠️ IF YOU SEE THIS RED TEXT, DEPLOYMENT IS WORKING! ⚠️
+        <p style={{ color: '#6c757d', margin: '0', fontSize: '14px' }}>
+          Manage withdrawal requests and transactions - Auto-refresh every 5s
         </p>
       </div>
 
-      {/* STATUS CARD */}
+      {/* FILTERING SECTION */}
       <div style={{ 
-        backgroundColor: loading ? '#fff3cd' : error ? '#f8d7da' : '#d4edda', 
-        padding: '15px', 
+        backgroundColor: '#ffffff', 
+        padding: '20px', 
         borderRadius: '8px',
         marginBottom: '20px',
-        border: `2px solid ${loading ? '#ffc107' : error ? '#dc3545' : '#28a745'}`
+        border: '1px solid #e9ecef',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
-        <h3 style={{ margin: '0 0 10px 0' }}>
-          {loading ? '⏳ Loading...' : error ? '❌ Error' : '✅ Data Loaded'}
+        <h3 style={{ margin: '0 0 15px 0', color: '#495057' }}>
+          🔍 Filter Withdrawals
         </h3>
-        <div style={{ fontSize: '14px' }}>
-          <div><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</div>
-          <div><strong>Error:</strong> {error?.message || 'None'}</div>
-          <div><strong>Data Available:</strong> {data ? 'Yes' : 'No'}</div>
-          {data && <div><strong>Success:</strong> {data.success ? 'Yes' : 'No'}</div>}
-          {data && <div><strong>Data Count:</strong> {data.data?.length || 0}</div>}
-          {data && <div><strong>Total:</strong> {data.pagination?.total || 0}</div>}
-          <div><strong>API Endpoint:</strong> /api/withdrawals</div>
-          {data && <div><strong>First Item ID:</strong> {data.data?.[0]?._id || 'N/A'}</div>}
-          {data && <div><strong>First Item Status:</strong> {data.data?.[0]?.status || 'N/A'}</div>}
+        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', color: '#6c757d' }}>
+              Status:
+            </label>
+            <select style={{ 
+              padding: '8px 12px', 
+              border: '1px solid #ced4da', 
+              borderRadius: '4px',
+              fontSize: '14px'
+            }}>
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', color: '#6c757d' }}>
+              Method:
+            </label>
+            <select style={{ 
+              padding: '8px 12px', 
+              border: '1px solid #ced4da', 
+              borderRadius: '4px',
+              fontSize: '14px'
+            }}>
+              <option value="">All Methods</option>
+              <option value="bkash">bKash</option>
+              <option value="bank">Bank Transfer</option>
+              <option value="crypto">Crypto</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', color: '#6c757d' }}>
+              Customer ID:
+            </label>
+            <input 
+              type="text" 
+              placeholder="Enter customer ID"
+              style={{ 
+                padding: '8px 12px', 
+                border: '1px solid #ced4da', 
+                borderRadius: '4px',
+                fontSize: '14px',
+                width: '150px'
+              }}
+            />
+          </div>
+          <div style={{ alignSelf: 'flex-end' }}>
+            <button style={{ 
+              backgroundColor: '#6f42c1',
+              color: 'white',
+              padding: '8px 16px',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}>
+              🔍 Filter
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* RAW DATA DISPLAY */}
-      {data && (
+      {/* STATUS CARD */}
+      {loading && (
         <div style={{ 
-          backgroundColor: '#f8f9fa', 
-          padding: '20px', 
+          backgroundColor: '#fff3cd', 
+          padding: '15px', 
           borderRadius: '8px',
           marginBottom: '20px',
-          border: '2px solid #6c757d'
+          border: '1px solid #ffc107'
         }}>
-          <h3 style={{ color: '#495057', margin: '0 0 15px 0' }}>
-            📊 RAW API DATA
+          <h3 style={{ margin: '0 0 10px 0', color: '#856404' }}>
+            ⏳ Loading withdrawal data...
           </h3>
-          <pre style={{ 
-            backgroundColor: '#ffffff', 
-            padding: '15px', 
-            borderRadius: '5px',
-            overflow: 'auto',
-            fontSize: '12px',
-            border: '1px solid #dee2e6',
-            maxHeight: '300px'
-          }}>
-            {JSON.stringify(data, null, 2)}
-          </pre>
+        </div>
+      )}
+      
+      {error && (
+        <div style={{ 
+          backgroundColor: '#f8d7da', 
+          padding: '15px', 
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #dc3545'
+        }}>
+          <h3 style={{ margin: '0 0 10px 0', color: '#721c24' }}>
+            ❌ Error loading data
+          </h3>
+          <p style={{ margin: '0', color: '#721c24', fontSize: '14px' }}>
+            {error.message}
+          </p>
         </div>
       )}
 
+
       {/* MODERN TABLE - Same as TaskManagement */}
       {processedWithdrawals && processedWithdrawals.length > 0 && (
-        <div className="bg-card rounded-lg overflow-hidden">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">
-              📋 Withdrawal Management ({processedWithdrawals.length} records)
+        <div style={{ 
+          backgroundColor: '#ffffff', 
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #e9ecef',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          overflow: 'hidden'
+        }}>
+          <div style={{ padding: '20px', borderBottom: '1px solid #e9ecef' }}>
+            <h3 style={{ 
+              margin: '0 0 10px 0', 
+              color: '#495057',
+              fontSize: '18px',
+              fontWeight: '600'
+            }}>
+              📋 Withdrawal Requests ({processedWithdrawals.length} records)
             </h3>
+            <p style={{ 
+              margin: '0', 
+              color: '#6c757d',
+              fontSize: '14px'
+            }}>
+              Showing all withdrawal requests with real-time updates
+            </p>
           </div>
           
           <Table>
@@ -219,22 +300,37 @@ export default function WithdrawalManagement() {
       )}
 
       {/* REFRESH BUTTON */}
-      <div style={{ textAlign: 'center', marginTop: '20px' }}>
+      <div style={{ 
+        textAlign: 'center', 
+        marginTop: '20px',
+        backgroundColor: '#ffffff',
+        padding: '20px',
+        borderRadius: '8px',
+        border: '1px solid #e9ecef',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
         <button 
           onClick={() => refetch()}
           style={{
-            backgroundColor: '#007bff',
+            backgroundColor: '#28a745',
             color: 'white',
-            padding: '12px 24px',
+            padding: '10px 20px',
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: 'bold'
+            fontSize: '14px',
+            fontWeight: '500',
+            marginRight: '10px'
           }}
         >
-          🔄 REFRESH DATA (Auto-refreshes every 5s)
+          🔄 Refresh Data
         </button>
+        <span style={{ 
+          color: '#6c757d',
+          fontSize: '14px'
+        }}>
+          Auto-refreshes every 5 seconds
+        </span>
       </div>
     </div>
   );
