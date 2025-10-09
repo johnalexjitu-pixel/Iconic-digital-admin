@@ -3133,6 +3133,111 @@ export default async function handler(req, res) {
       }
     }
     
+    // Save complete combo task data from modal to customerTasks collection
+    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/save-complete-task')) {
+      const customerId = path.split('/')[3];
+      const { 
+        taskNumber, 
+        taskPrice, 
+        taskCommission, 
+        expiredDate, 
+        estimatedNegativeAmount, 
+        priceFrom, 
+        priceTo,
+        hasGoldenEgg,
+        status
+      } = req.body;
+      
+      console.log("💾 Saving complete combo task:", { 
+        customerId, 
+        taskNumber, 
+        taskPrice, 
+        taskCommission, 
+        expiredDate, 
+        estimatedNegativeAmount, 
+        priceFrom, 
+        priceTo,
+        hasGoldenEgg,
+        status
+      });
+
+      try {
+        const customerTasksCollection = database.collection('customerTasks');
+        
+        // Get existing task to preserve some data
+        const existingTask = await customerTasksCollection.findOne({
+          customerId: customerId,
+          taskNumber: Number(taskNumber)
+        });
+        
+        console.log("💾 Existing task found:", !!existingTask);
+        
+        // Get customer info for customerCode
+        const usersCollection = database.collection('users');
+        let customer;
+        try {
+          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        } catch (objectIdError) {
+          customer = await usersCollection.findOne({ _id: customerId });
+        }
+        
+        // Prepare complete task data with all fields from modal
+        const taskData = {
+          customerId: customerId,
+          customerCode: existingTask?.customerCode || customer?.membershipId || customer?.code || "",
+          taskNumber: Number(taskNumber),
+          campaignId: existingTask?.campaignId || `manual_combo_task_${taskNumber}`,
+          taskCommission: taskCommission !== undefined ? Number(taskCommission) : (existingTask?.taskCommission || 0),
+          taskPrice: taskPrice !== undefined ? Number(taskPrice) : (existingTask?.taskPrice || 100 + (taskNumber * 10)),
+          estimatedNegativeAmount: estimatedNegativeAmount !== undefined ? Number(estimatedNegativeAmount) : (existingTask?.estimatedNegativeAmount || 0),
+          priceFrom: priceFrom !== undefined ? Number(priceFrom) : (existingTask?.priceFrom || 0),
+          priceTo: priceTo !== undefined ? Number(priceTo) : (existingTask?.priceTo || 0),
+          hasGoldenEgg: hasGoldenEgg !== undefined ? Boolean(hasGoldenEgg) : (existingTask?.hasGoldenEgg || false),
+          expiredDate: expiredDate ? new Date(expiredDate) : (existingTask?.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+          status: status || existingTask?.status || 'pending',
+          createdAt: existingTask?.createdAt || new Date(),
+          updatedAt: new Date()
+        };
+        
+        console.log("💾 Complete task data to save:", taskData);
+        
+        // Update or create the task in customerTasks collection
+        const result = await customerTasksCollection.updateOne(
+          { 
+            customerId: customerId,
+            taskNumber: Number(taskNumber)
+          },
+          { 
+            $set: taskData
+          },
+          { upsert: true } // Create if doesn't exist
+        );
+        
+        console.log("💾 Task saved successfully:", result);
+
+        // Get the updated task to return complete data
+        const updatedTask = await customerTasksCollection.findOne({
+          customerId: customerId,
+          taskNumber: Number(taskNumber)
+        });
+
+        res.json({
+          success: true,
+          message: `Task ${taskNumber} saved successfully with all fields`,
+          data: updatedTask,
+          taskNumber: taskNumber,
+          customerId: customerId
+        });
+      } catch (error) {
+        console.error("❌ Error saving complete combo task:", error);
+        res.status(500).json({
+          success: false,
+          error: "Failed to save complete combo task",
+          details: error.message
+        });
+      }
+    }
+    
     // Save individual task price to customerTasks collection
     else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/save-task-price')) {
       const customerId = path.split('/')[3];
