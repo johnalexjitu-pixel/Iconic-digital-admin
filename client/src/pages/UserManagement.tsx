@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPen, Key, Settings } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { UserPen, Key, Settings, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
@@ -217,18 +218,57 @@ export default function UserManagement() {
                     >
                       <Key className="w-5 h-5" />
                     </button>
-                    <button
-                      data-testid={`button-toggle-status-${user._id}`}
-                      className={`${
-                        user.isActive 
-                          ? 'text-green-600 hover:text-green-700' 
-                          : 'text-red-600 hover:text-red-700'
-                      } transition-colors`}
-                      onClick={() => handleToggleStatus(user._id, user.isActive)}
-                      title={user.isActive ? 'Click to suspend user' : 'Click to activate user'}
-                    >
-                      <Settings className="w-5 h-5" />
-                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          data-testid={`button-toggle-status-${user._id}`}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
+                            user.isActive 
+                              ? 'text-green-600 hover:bg-green-50' 
+                              : 'text-red-600 hover:bg-red-50'
+                          }`}
+                          title="Click to change user status"
+                        >
+                          <Settings className="w-4 h-4" />
+                          <span className="text-xs font-medium">
+                            {user.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem
+                          onClick={() => handleToggleStatus(user._id, user.isActive)}
+                          className={`cursor-pointer ${
+                            user.isActive 
+                              ? 'bg-green-50 text-green-700' 
+                              : 'hover:bg-green-50 hover:text-green-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${
+                              user.isActive ? 'bg-green-500' : 'bg-gray-300'
+                            }`}></div>
+                            <span>Active</span>
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleToggleStatus(user._id, user.isActive)}
+                          className={`cursor-pointer ${
+                            !user.isActive 
+                              ? 'bg-red-50 text-red-700' 
+                              : 'hover:bg-red-50 hover:text-red-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${
+                              !user.isActive ? 'bg-red-500' : 'bg-gray-300'
+                            }`}></div>
+                            <span>Inactive</span>
+                          </div>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </TableCell>
               </TableRow>
