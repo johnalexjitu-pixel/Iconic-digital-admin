@@ -26,6 +26,7 @@ interface FrontendUser {
   lastLogin: string;
   createdAt: string;
   isActive: boolean;
+  status: 'active' | 'inactive';
 }
 
 export default function UserManagement() {
@@ -223,7 +224,7 @@ export default function UserManagement() {
                         <button
                           data-testid={`button-toggle-status-${user._id}`}
                           className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-                            user.isActive 
+                            (user.status === 'active' || user.isActive) 
                               ? 'text-green-600 hover:bg-green-50' 
                               : 'text-red-600 hover:bg-red-50'
                           }`}
@@ -231,38 +232,38 @@ export default function UserManagement() {
                         >
                           <Settings className="w-4 h-4" />
                           <span className="text-xs font-medium">
-                            {user.isActive ? 'Active' : 'Inactive'}
+                            {(user.status === 'active' || user.isActive) ? 'Active' : 'Inactive'}
                           </span>
                           <ChevronDown className="w-3 h-3" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40">
                         <DropdownMenuItem
-                          onClick={() => handleToggleStatus(user._id, user.isActive)}
+                          onClick={() => handleToggleStatus(user._id, user.status === 'active' || user.isActive)}
                           className={`cursor-pointer ${
-                            user.isActive 
+                            (user.status === 'active' || user.isActive) 
                               ? 'bg-green-50 text-green-700' 
                               : 'hover:bg-green-50 hover:text-green-700'
                           }`}
                         >
                           <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${
-                              user.isActive ? 'bg-green-500' : 'bg-gray-300'
+                              (user.status === 'active' || user.isActive) ? 'bg-green-500' : 'bg-gray-300'
                             }`}></div>
                             <span>Active</span>
                           </div>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleToggleStatus(user._id, user.isActive)}
+                          onClick={() => handleToggleStatus(user._id, user.status === 'active' || user.isActive)}
                           className={`cursor-pointer ${
-                            !user.isActive 
+                            !(user.status === 'active' || user.isActive) 
                               ? 'bg-red-50 text-red-700' 
                               : 'hover:bg-red-50 hover:text-red-700'
                           }`}
                         >
                           <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${
-                              !user.isActive ? 'bg-red-500' : 'bg-gray-300'
+                              !(user.status === 'active' || user.isActive) ? 'bg-red-500' : 'bg-gray-300'
                             }`}></div>
                             <span>Inactive</span>
                           </div>

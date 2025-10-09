@@ -481,25 +481,30 @@ export default async function handler(req, res) {
         });
       }
 
-      const newStatus = !user.isActive;
+      // Get current status from database (check both isActive and status fields)
+      const currentStatus = user.status || (user.isActive ? 'active' : 'inactive');
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      
       await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
         { 
           $set: { 
-            isActive: newStatus,
+            status: newStatus,
+            isActive: newStatus === 'active',
             updatedAt: new Date()
           } 
         }
       );
 
-      console.log(`✅ User ${userId} status changed to: ${newStatus ? 'Active' : 'Suspended'}`);
+      console.log(`✅ User ${userId} status changed from ${currentStatus} to: ${newStatus}`);
 
       res.json({
         success: true,
-        message: `User ${newStatus ? 'activated' : 'suspended'} successfully`,
+        message: `User ${newStatus === 'active' ? 'activated' : 'suspended'} successfully`,
         data: {
           userId,
-          isActive: newStatus
+          status: newStatus,
+          isActive: newStatus === 'active'
         }
       });
     }
