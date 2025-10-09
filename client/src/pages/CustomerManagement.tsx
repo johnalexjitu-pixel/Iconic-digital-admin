@@ -269,13 +269,7 @@ export default function CustomerManagement() {
       }
 
       // Update the task data in the current combo tasks
-      setComboTasksData(prevData => 
-        prevData.map(t => 
-          t.taskNumber === task.taskNumber 
-            ? { ...t, hasGoldenEgg: checked }
-            : t
-        )
-      );
+      // Note: This will be handled by the refetch below
 
       // Show success message
       toast({
@@ -374,34 +368,43 @@ export default function CustomerManagement() {
     if (!goldenEggModal.campaign || !taskDetailsModal.customer?.id) return;
 
     try {
-      await updateCustomerTaskMutation.mutateAsync({
-        customerId: taskDetailsModal.customer.id,
+      console.log("🥚 Saving golden egg price:", goldenEggModal.taskNumber, "price:", goldenEggModal.taskPrice);
+      
+      // Call the golden egg price update API endpoint
+      const response = await apiRequest("PATCH", `/api/frontend/combo-tasks/${taskDetailsModal.customer.id}/golden-egg-price-update`, {
         taskNumber: goldenEggModal.taskNumber,
-        data: {
-          taskCommission: goldenEggModal.campaign.taskCommission || 0,
-          taskPrice: goldenEggModal.taskPrice,
-          expiredDate: goldenEggModal.campaign.expiredDate || new Date(),
-          negativeAmount: goldenEggModal.campaign.estimatedNegativeAmount || 0,
-          priceFrom: goldenEggModal.campaign.priceFrom || 0,
-          priceTo: goldenEggModal.campaign.priceTo || 0,
-        },
+        taskPrice: Number(goldenEggModal.taskPrice),
+        hasGoldenEgg: true // Automatically set golden egg to true when price is saved
       });
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || "Failed to save golden egg price");
+      }
 
       toast({
-        title: t("success") || "Success",
-        description: t("taskPriceUpdated") || "Task price updated successfully",
+        title: "Success",
+        description: `Golden egg activated and price updated to ${goldenEggModal.taskPrice} for Task ${goldenEggModal.taskNumber}`,
       });
 
+      // Close modal
       setGoldenEggModal({
         open: false,
         taskNumber: 0,
         campaign: null,
         taskPrice: ""
       });
-    } catch (error) {
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ["/api/frontend/combo-tasks", taskDetailsModal.customer?.id] });
+      await refetchComboTasks();
+      
+    } catch (error: any) {
+      console.error("❌ Error saving golden egg price:", error);
       toast({
-        title: t("error") || "Error",
-        description: t("failedToUpdateTaskPrice") || "Failed to update task price",
+        title: "Error",
+        description: error.message || "Failed to save golden egg price",
         variant: "destructive",
       });
     }
@@ -1291,13 +1294,44 @@ export default function CustomerManagement() {
                               )}
                             </TableCell>
                             <TableCell className="text-center">
-                              <div className="flex items-center justify-center">
-                                <Switch
-                                  checked={hasGoldenEgg}
-                                  onCheckedChange={(checked) => handleGoldenEggToggle(task, checked)}
-                                  className="data-[state=checked]:bg-yellow-500"
-                                />
-                                <span className={`ml-2 text-sm font-medium ${
+                              <div className="flex items-center justify-center gap-2">
+                                {/* Golden Egg Logo */}
+                                <div 
+                                  className={`w-8 h-8 rounded-full cursor-pointer transition-all duration-200 flex items-center justify-center text-lg ${
+                                    hasGoldenEgg 
+                                      ? 'bg-yellow-400 text-yellow-800 shadow-lg hover:bg-yellow-500' 
+                                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                  }`}
+                                  onClick={() => handleGoldenEggClick(task, task.taskNumber)}
+                                  title={hasGoldenEgg ? 'Golden Egg Active - Click to edit price' : 'Golden Egg Inactive - Click to activate'}
+                                >
+                                  🥚
+                                </div>
+                                
+                                {/* Price Input Field (shown when egg is clicked) */}
+                                {goldenEggModal.open && goldenEggModal.taskNumber === task.taskNumber && (
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      value={goldenEggModal.taskPrice}
+                                      onChange={(e) => setGoldenEggModal({ ...goldenEggModal, taskPrice: e.target.value })}
+                                      className="w-20 h-8 text-sm"
+                                      placeholder="0"
+                                      step="0.01"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={handleGoldenEggSave}
+                                      className="h-8 px-2 text-xs bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500"
+                                    >
+                                      {t('save')}
+                                    </Button>
+                                  </div>
+                                )}
+                                
+                                {/* Status Text */}
+                                <span className={`text-sm font-medium ${
                                   hasGoldenEgg ? 'text-yellow-600' : 'text-gray-500'
                                 }`}>
                                   {hasGoldenEgg ? t('activate') : t('inactive')}
