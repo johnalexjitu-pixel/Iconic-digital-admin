@@ -39,23 +39,23 @@ export default function WithdrawalManagement() {
 
   return (
     <div style={{ 
-      backgroundColor: '#f0f8ff', 
+      backgroundColor: '#ffe6f0', 
       minHeight: '100vh', 
       padding: '20px',
       fontFamily: 'Arial, sans-serif'
     }}>
       <div style={{ 
-        backgroundColor: '#e6f3ff', 
+        backgroundColor: '#ffe6f0', 
         padding: '20px', 
         borderRadius: '10px',
         marginBottom: '20px',
-        border: '2px solid #4CAF50'
+        border: '2px solid #ff69b4'
       }}>
         <h1 style={{ color: '#2196F3', margin: '0 0 10px 0' }}>
-          🚀 WITHDRAWAL MANAGEMENT - TASKMANAGEMENT PATTERN
+          🚀 WITHDRAWAL MANAGEMENT - DEPLOYMENT TEST
         </h1>
         <p style={{ color: '#666', margin: '0' }}>
-          Version: v12.4 - Using React Query (Same as TaskManagement) - Auto-refresh every 5s
+          Version: v12.5 - TESTING FRONTEND DEPLOYMENT - Auto-refresh every 5s - FILTERING REMOVED
         </p>
       </div>
 
