@@ -1430,11 +1430,34 @@ export default async function handler(req, res) {
       const usersCollection = database.collection('users');
       const campaignsCollection = database.collection('campaigns');
       const transactionsCollection = database.collection('transactions');
+      const withdrawalsCollection = database.collection('withdrawals');
 
       const totalUsers = await usersCollection.countDocuments();
       const totalCampaigns = await campaignsCollection.countDocuments();
       const activeCampaigns = await campaignsCollection.countDocuments({ status: 'Active' });
       const totalTransactions = await transactionsCollection.countDocuments();
+      
+      // Withdrawal statistics from MongoDB
+      const totalWithdrawals = await withdrawalsCollection.countDocuments();
+      const approvedWithdrawals = await withdrawalsCollection.countDocuments({ status: 'completed' });
+      const pendingWithdrawals = await withdrawalsCollection.countDocuments({ status: 'pending' });
+      const rejectedWithdrawals = await withdrawalsCollection.countDocuments({ status: 'rejected' });
+      
+      // Calculate total withdrawal amounts
+      const totalApprovedAmount = await withdrawalsCollection.aggregate([
+        { $match: { status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]).toArray();
+
+      const totalPendingAmount = await withdrawalsCollection.aggregate([
+        { $match: { status: 'pending' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]).toArray();
+
+      const totalRejectedAmount = await withdrawalsCollection.aggregate([
+        { $match: { status: 'rejected' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]).toArray();
       
       const totalEarnings = await transactionsCollection.aggregate([
         { $match: { type: 'campaign_earning', status: 'completed' } },
@@ -1453,7 +1476,15 @@ export default async function handler(req, res) {
           activeCampaigns,
           totalTransactions,
           totalEarnings: totalEarnings[0]?.total || 0,
-          totalBalance: totalBalance[0]?.total || 0
+          totalBalance: totalBalance[0]?.total || 0,
+          // Withdrawal statistics
+          totalWithdrawals,
+          approvedWithdrawals,
+          pendingWithdrawals,
+          rejectedWithdrawals,
+          totalApprovedAmount: totalApprovedAmount[0]?.total || 0,
+          totalPendingAmount: totalPendingAmount[0]?.total || 0,
+          totalRejectedAmount: totalRejectedAmount[0]?.total || 0
         }
       });
     }

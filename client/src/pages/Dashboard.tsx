@@ -10,6 +10,14 @@ interface FrontendStats {
   totalTransactions: number;
   totalEarnings: number;
   totalBalance: number;
+  // Withdrawal statistics
+  totalWithdrawals: number;
+  approvedWithdrawals: number;
+  pendingWithdrawals: number;
+  rejectedWithdrawals: number;
+  totalApprovedAmount: number;
+  totalPendingAmount: number;
+  totalRejectedAmount: number;
 }
 
 export default function Dashboard() {
@@ -59,21 +67,21 @@ export default function Dashboard() {
           title={t('approvedWithdrawal')}
           today={0}
           yesterday={0}
-          total={frontendStats?.totalEarnings || 0}
+          total={frontendStats?.approvedWithdrawals || 0}
           bgColor="hsl(0, 84%, 60%)"
         />
         <StatCard
           title={t('pendingWithdrawal')}
           today={0}
           yesterday={0}
-          total={frontendStats?.totalTransactions || 0}
+          total={frontendStats?.pendingWithdrawals || 0}
           bgColor="hsl(328, 86%, 70%)"
         />
         <StatCard
           title={t('rejectedWithdrawal')}
           today={0}
           yesterday={0}
-          total={frontendStats?.totalCampaigns || 0}
+          total={frontendStats?.rejectedWithdrawals || 0}
           bgColor="hsl(239, 84%, 67%)"
         />
         <StatCard
