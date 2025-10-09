@@ -447,20 +447,7 @@ export default async function handler(req, res) {
       }
     }
     
-    // Simple toggle status endpoint - exact path match
-    else if (req.method === 'PATCH' && path.includes('/toggle-status')) {
-      console.log(`🔄 Simple toggle endpoint matched - Path: ${path}`);
-      const pathParts = path.split('/');
-      const userId = pathParts[pathParts.length - 2];
-      console.log(`🔄 UserId: ${userId}`);
-      
-      res.json({
-        success: true,
-        message: "Toggle endpoint reached",
-        userId: userId,
-        path: path
-      });
-    }
+    // Remove this simple endpoint - it's interfering with the proper one
     
     // Toggle user account status (suspend/activate) - MUST BE BEFORE user profile update
     else if (req.method === 'PATCH' && path.match(/^\/api\/frontend\/users\/[^\/]+\/toggle-status$/)) {
