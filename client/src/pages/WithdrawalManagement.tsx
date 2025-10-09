@@ -67,33 +67,47 @@ export default function WithdrawalManagement() {
   // Apply filters
   // ALL FILTER FUNCTIONS REMOVED - NO FILTERING
 
-  // Use withdrawals data directly from the new API
-  let displayWithdrawals = withdrawalsResponse?.data?.map((withdrawal: any) => {
-    return {
-      id: withdrawal._id,
-      customerId: withdrawal.customerId,
-      amount: withdrawal.amount?.toString() || "0",
-      status: withdrawal.status === "completed" ? "Approved" : 
-              withdrawal.status === "processing" ? "Processing" : "Pending",
-      bankName: withdrawal.accountDetails?.provider || "N/A",
-      accountHolder: withdrawal.accountDetails?.accountHolderName || "N/A",
-      iban: withdrawal.accountDetails?.accountNumber || withdrawal.accountDetails?.mobileNumber || "N/A",
-      contactNumber: withdrawal.accountDetails?.mobileNumber || "",
-      branch: withdrawal.accountDetails?.branch || "N/A",
-      adminName: withdrawal.processedBy || "TEAM 1 - RUPEE",
-      createdBy: "System",
-      createdAt: new Date(withdrawal.submittedAt || withdrawal.createdAt),
-      updatedAt: new Date(withdrawal.updatedAt),
-      adminNotes: withdrawal.adminNotes || "",
-      processedAt: withdrawal.processedAt,
-      customer: withdrawal.customer ? {
-        code: withdrawal.customer.membershipId,
-        username: withdrawal.customer.name,
-        walletBalance: withdrawal.customer.accountBalance?.toString(),
-        phoneNumber: withdrawal.customer.phoneNumber,
-      } : null
-    };
-  }) || [];
+  // SIMPLIFIED DATA MAPPING - DIRECT FROM API
+  let displayWithdrawals = [];
+  
+  if (withdrawalsResponse?.data && Array.isArray(withdrawalsResponse.data)) {
+    console.log("🔍 Raw API data:", withdrawalsResponse.data);
+    displayWithdrawals = withdrawalsResponse.data.map((withdrawal: any, index: number) => {
+      console.log(`🔍 Processing withdrawal ${index + 1}:`, withdrawal);
+      return {
+        id: withdrawal._id || `withdrawal-${index}`,
+        customerId: withdrawal.customerId || "N/A",
+        amount: withdrawal.amount?.toString() || "0",
+        status: withdrawal.status || "pending",
+        bankName: withdrawal.accountDetails?.provider || "N/A",
+        accountHolder: withdrawal.accountDetails?.accountHolderName || "N/A",
+        iban: withdrawal.accountDetails?.accountNumber || withdrawal.accountDetails?.mobileNumber || "N/A",
+        contactNumber: withdrawal.accountDetails?.mobileNumber || "",
+        branch: withdrawal.accountDetails?.branch || "N/A",
+        adminName: withdrawal.processedBy || "TEAM 1 - RUPEE",
+        createdBy: "System",
+        createdAt: withdrawal.submittedAt ? new Date(withdrawal.submittedAt) : new Date(),
+        updatedAt: withdrawal.updatedAt ? new Date(withdrawal.updatedAt) : new Date(),
+        adminNotes: withdrawal.adminNotes || "",
+        processedAt: withdrawal.processedAt,
+        customer: withdrawal.customer ? {
+          code: withdrawal.customer.membershipId || "N/A",
+          username: withdrawal.customer.name || "N/A",
+          walletBalance: withdrawal.customer.accountBalance?.toString() || "0",
+          phoneNumber: withdrawal.customer.phoneNumber || "N/A",
+        } : {
+          code: "N/A",
+          username: "N/A", 
+          walletBalance: "0",
+          phoneNumber: "N/A"
+        }
+      };
+    });
+  } else {
+    console.log("❌ No data or invalid data structure:", withdrawalsResponse);
+  }
+  
+  console.log("🔍 Final displayWithdrawals:", displayWithdrawals);
 
   // No client-side filtering needed - server handles all filtering
 
@@ -150,10 +164,12 @@ export default function WithdrawalManagement() {
             <div>MONGODB_URI: mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/</div>
             <div>Total Withdrawals: {totalWithdrawals}</div>
             <div>Last Updated: {new Date().toLocaleString()}</div>
-            <div>Production Fix Applied - v7.0 (CACHE HEADERS FIXED)</div>
+            <div>Production Fix Applied - v8.0 (DEEP FIX - SIMPLIFIED RENDERING)</div>
             <div>Debug: {JSON.stringify({queryParams: queryParams.toString()})}</div>
             <div>🚫 ALL FILTERING REMOVED - Showing all withdrawal data always</div>
             <div>🔄 CACHE PREVENTION ENABLED - Fresh data every time</div>
+            <div>🔍 SIMPLIFIED DATA MAPPING - Direct from API response</div>
+            <div>📊 Data Status: {withdrawalsResponse ? `Received ${withdrawalsResponse.data?.length || 0} items` : 'No response'}</div>
           </div>
         </div>
 
@@ -178,78 +194,94 @@ export default function WithdrawalManagement() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {displayWithdrawals?.map((withdrawal: any) => {
-              return (
-                <TableRow key={withdrawal.id} data-testid={`row-withdrawal-${withdrawal.id}`} className="hover:bg-muted/50">
-                  <TableCell>
-                    <div className="text-sm space-y-1">
-                      <div><span className="text-muted-foreground">ID:</span> {withdrawal.id.substring(0, 4)}</div>
-                      <div>Created at {withdrawal.createdAt?.toLocaleString() ?? 'N/A'}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm space-y-1">
-                      <div><span className="text-muted-foreground">{t('code')}:</span> {withdrawal.customer?.code}</div>
-                      <div>{withdrawal.customer?.username}</div>
-                      <div><span className="text-muted-foreground">{t('walletBalance')}:</span> {withdrawal.customer?.walletBalance}</div>
-                      <div><span className="text-muted-foreground">{t('phoneNumber')}:</span> {withdrawal.customer?.phoneNumber}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm space-y-1">
-                      <div>{t('admin')}: {withdrawal.adminName}</div>
-                      <div>{t('by')}: {withdrawal.createdBy} {t('recommend')}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm space-y-1">
-                      <div><span className="text-muted-foreground">{t('withdrawalAmount')}:</span> {withdrawal.amount}</div>
-                      <div><span className="text-muted-foreground">{t('bankName')}:</span> {withdrawal.bankName}</div>
-                      <div><span className="text-muted-foreground">{t('bankAccountHolder')}:</span> {withdrawal.accountHolder}</div>
-                      <div><span className="text-muted-foreground">{t('iban')}:</span> {withdrawal.iban}</div>
-                      <div><span className="text-muted-foreground">{t('contactNumber')}:</span> {withdrawal.contactNumber}</div>
-                      <div><span className="text-muted-foreground">{t('branch')}:</span> {withdrawal.branch}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm space-y-1">
-                      <div className="text-red-600">{withdrawal.amount}</div>
-                      <div className="text-red-600">{withdrawal.status}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <button
-                      data-testid={`button-view-details-${withdrawal.id}`}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <FileText className="w-5 h-5" />
-                    </button>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        data-testid={`button-approve-${withdrawal.id}`}
-                        size="sm"
-                        className="bg-success hover:bg-success/90"
-                        onClick={() => updateWithdrawalMutation.mutate({ id: withdrawal.id, status: "Approved" })}
-                        disabled={updateWithdrawalMutation.isPending}
-                      >
-                        {t('approve')}
-                      </Button>
-                      <Button
-                        data-testid={`button-reject-${withdrawal.id}`}
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => updateWithdrawalMutation.mutate({ id: withdrawal.id, status: "Rejected" })}
-                        disabled={updateWithdrawalMutation.isPending}
-                      >
-                        {t('reject')}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {displayWithdrawals && displayWithdrawals.length > 0 ? (
+              displayWithdrawals.map((withdrawal: any, index: number) => {
+                console.log(`🔍 Rendering withdrawal ${index + 1}:`, withdrawal);
+                return (
+                  <TableRow key={withdrawal.id || index} data-testid={`row-withdrawal-${withdrawal.id}`} className="hover:bg-muted/50">
+                    <TableCell>
+                      <div className="text-sm space-y-1">
+                        <div><span className="text-muted-foreground">ID:</span> {withdrawal.id?.substring(0, 8) || 'N/A'}</div>
+                        <div>Created: {withdrawal.createdAt?.toLocaleString() || 'N/A'}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm space-y-1">
+                        <div><span className="text-muted-foreground">Code:</span> {withdrawal.customer?.code || 'N/A'}</div>
+                        <div>Name: {withdrawal.customer?.username || 'N/A'}</div>
+                        <div><span className="text-muted-foreground">Balance:</span> {withdrawal.customer?.walletBalance || '0'}</div>
+                        <div><span className="text-muted-foreground">Phone:</span> {withdrawal.customer?.phoneNumber || 'N/A'}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm space-y-1">
+                        <div>Admin: {withdrawal.adminName || 'N/A'}</div>
+                        <div>By: {withdrawal.createdBy || 'System'}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm space-y-1">
+                        <div><span className="text-muted-foreground">Amount:</span> {withdrawal.amount || '0'}</div>
+                        <div><span className="text-muted-foreground">Bank:</span> {withdrawal.bankName || 'N/A'}</div>
+                        <div><span className="text-muted-foreground">Holder:</span> {withdrawal.accountHolder || 'N/A'}</div>
+                        <div><span className="text-muted-foreground">Account:</span> {withdrawal.iban || 'N/A'}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm space-y-1">
+                        <div className="text-red-600 font-bold">{withdrawal.amount || '0'}</div>
+                        <div className={`font-bold ${
+                          withdrawal.status === 'completed' ? 'text-green-600' : 
+                          withdrawal.status === 'rejected' ? 'text-red-600' : 
+                          'text-yellow-600'
+                        }`}>
+                          {withdrawal.status?.toUpperCase() || 'PENDING'}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <button className="text-blue-600 hover:text-blue-800">
+                        <FileText className="w-5 h-5" />
+                      </button>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => updateWithdrawalMutation.mutate({ id: withdrawal.id, status: "Approved" })}
+                          disabled={updateWithdrawalMutation.isPending}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => updateWithdrawalMutation.mutate({ id: withdrawal.id, status: "Rejected" })}
+                          disabled={updateWithdrawalMutation.isPending}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8">
+                  <div className="text-lg font-semibold text-gray-500">
+                    {withdrawalsLoading ? "Loading withdrawals..." : "No withdrawals found"}
+                  </div>
+                  <div className="text-sm text-gray-400 mt-2">
+                    API Response: {withdrawalsResponse ? "Data received" : "No response"}
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    Data Count: {withdrawalsResponse?.data?.length || 0}
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
 
