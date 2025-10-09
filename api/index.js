@@ -3024,18 +3024,28 @@ export default async function handler(req, res) {
       });
     }
     
-    // Toggle Golden Egg for combo task
+    // Toggle Golden Egg for combo task with price update
     else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/toggle-golden-egg')) {
       const customerId = path.split('/')[3];
-      const { taskNumber, hasGoldenEgg } = req.body;
+      const { taskNumber, hasGoldenEgg, taskPrice } = req.body;
       
-      console.log("🟡 Toggling golden egg:", { customerId, taskNumber, hasGoldenEgg });
+      console.log("🟡 Toggling golden egg with price update:", { customerId, taskNumber, hasGoldenEgg, taskPrice });
 
       try {
         const customerTasksCollection = database.collection('customerTasks');
         
-        // Update the golden egg status for the specific task
-        console.log("🟡 Updating golden egg status:", { customerId, taskNumber, hasGoldenEgg, booleanValue: Boolean(hasGoldenEgg) });
+        // Update the golden egg status and price for the specific task
+        console.log("🟡 Updating golden egg status and price:", { customerId, taskNumber, hasGoldenEgg, taskPrice });
+        
+        const updateData = {
+          hasGoldenEgg: Boolean(hasGoldenEgg),
+          updatedAt: new Date()
+        };
+        
+        // If price is provided, update it too
+        if (taskPrice !== undefined) {
+          updateData.taskPrice = Number(taskPrice);
+        }
         
         const result = await customerTasksCollection.updateOne(
           { 
@@ -3043,10 +3053,7 @@ export default async function handler(req, res) {
             taskNumber: Number(taskNumber)
           },
           { 
-            $set: { 
-              hasGoldenEgg: Boolean(hasGoldenEgg),
-              updatedAt: new Date()
-            }
+            $set: updateData
           }
         );
         
@@ -3072,7 +3079,7 @@ export default async function handler(req, res) {
             taskNumber: Number(taskNumber),
             campaignId: `task_${taskNumber}_${Date.now()}`,
             taskCommission: 0,
-            taskPrice: 100 + (taskNumber * 10), // Default price
+            taskPrice: taskPrice !== undefined ? Number(taskPrice) : (100 + (taskNumber * 10)), // Use provided price or default
             estimatedNegativeAmount: 0,
             priceFrom: 0,
             priceTo: 0,
@@ -3089,8 +3096,10 @@ export default async function handler(req, res) {
           res.json({
             success: true,
             message: `Golden egg ${hasGoldenEgg ? 'activated' : 'deactivated'} successfully`,
+            data: newTask,
             taskNumber: taskNumber,
             hasGoldenEgg: hasGoldenEgg,
+            taskPrice: newTask.taskPrice,
             created: true
           });
           return;
@@ -3099,11 +3108,19 @@ export default async function handler(req, res) {
         console.log("✅ Golden egg status updated successfully");
         console.log("🟡 Final golden egg status:", hasGoldenEgg);
         
+        // Get the updated task to return complete data
+        const updatedTask = await customerTasksCollection.findOne({
+          customerId: customerId,
+          taskNumber: Number(taskNumber)
+        });
+        
         res.json({
           success: true,
           message: `Golden egg ${hasGoldenEgg ? 'activated' : 'deactivated'} successfully`,
+          data: updatedTask,
           taskNumber: taskNumber,
           hasGoldenEgg: hasGoldenEgg,
+          taskPrice: updatedTask?.taskPrice,
           updated: true
         });
       } catch (error) {
@@ -3126,7 +3143,7 @@ export default async function handler(req, res) {
       try {
         const customerTasksCollection = database.collection('customerTasks');
         
-        // Get existing task to preserve golden egg status
+        // Get existing task to preserve all existing data
         const existingTask = await customerTasksCollection.findOne({
           customerId: customerId,
           taskNumber: Number(taskNumber)
@@ -3137,6 +3154,33 @@ export default async function handler(req, res) {
           console.log("💰 Existing golden egg status:", existingTask.hasGoldenEgg);
         }
         
+        // Get customer info for new task creation
+        const usersCollection = database.collection('users');
+        let customer;
+        try {
+          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        } catch (objectIdError) {
+          customer = await usersCollection.findOne({ _id: customerId });
+        }
+        
+        // Prepare complete task data with all required fields
+        const taskData = {
+          customerId: customerId,
+          customerCode: existingTask?.customerCode || customer?.membershipId || customer?.code || "",
+          taskNumber: Number(taskNumber),
+          campaignId: existingTask?.campaignId || `manual_combo_task_${taskNumber}`,
+          taskCommission: existingTask?.taskCommission || 0,
+          taskPrice: Number(taskPrice),
+          estimatedNegativeAmount: existingTask?.estimatedNegativeAmount || 0,
+          priceFrom: existingTask?.priceFrom || 0,
+          priceTo: existingTask?.priceTo || 0,
+          hasGoldenEgg: existingTask?.hasGoldenEgg || false,
+          expiredDate: existingTask?.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: existingTask?.status || 'pending',
+          createdAt: existingTask?.createdAt || new Date(),
+          updatedAt: new Date()
+        };
+        
         // Update or create the task in customerTasks collection
         const result = await customerTasksCollection.updateOne(
           { 
@@ -3144,17 +3188,7 @@ export default async function handler(req, res) {
             taskNumber: Number(taskNumber)
           },
           { 
-            $set: { 
-              customerId: customerId,
-              taskNumber: Number(taskNumber),
-              taskPrice: Number(taskPrice),
-              updatedAt: new Date(),
-              // Preserve existing golden egg status or default to false
-              hasGoldenEgg: existingTask?.hasGoldenEgg || false,
-              // Set default values if creating new document
-              status: existingTask?.status || 'pending',
-              createdAt: existingTask?.createdAt || new Date()
-            }
+            $set: taskData
           },
           { upsert: true } // Create if doesn't exist
         );
