@@ -2573,24 +2573,6 @@ export default async function handler(req, res) {
       });
     }
     
-    // Get Combo Tasks for Customer
-    else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks/')) {
-      const customerId = path.split('/').pop();
-      console.log("📋 Fetching combo tasks for customer:", customerId);
-
-      const comboTasksCollection = database.collection('comboTasks');
-      const comboTasks = await comboTasksCollection
-        .find({ customerId })
-        .sort({ createdAt: -1 })
-        .toArray();
-
-      res.json({
-        success: true,
-        data: comboTasks,
-        total: comboTasks.length
-      });
-    }
-    
     // Update Combo Task
     else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/')) {
       const comboTaskId = path.split('/').pop();
