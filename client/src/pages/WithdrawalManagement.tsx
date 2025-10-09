@@ -82,7 +82,7 @@ export default function WithdrawalManagement() {
         <h2 className="text-xl font-semibold">{t('withdrawalManagement')}</h2>
         <div className="text-sm text-muted-foreground">
           <div>Last Updated: {new Date().toLocaleString()}</div>
-          <div>Production Fix Applied - v9.0 (COMPLETE REWRITE)</div>
+          <div>Production Fix Applied - v10.0 (FORCE DEPLOY)</div>
         </div>
       </div>
 

@@ -1983,7 +1983,7 @@ export default async function handler(req, res) {
       });
     }
     
-    // Withdrawals (legacy) - Frontend calls this endpoint
+    // Withdrawals (legacy) - Frontend calls this endpoint - v10.0 FORCE DEPLOY
     else if (req.method === 'GET' && path === '/api/withdrawals') {
       console.log("💰 ===== LEGACY WITHDRAWALS API CALLED =====");
       console.log("💰 Frontend calling /api/withdrawals endpoint");
