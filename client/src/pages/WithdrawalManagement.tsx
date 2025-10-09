@@ -39,23 +39,23 @@ export default function WithdrawalManagement() {
 
   return (
     <div style={{ 
-      backgroundColor: '#ffe6f0', 
+      backgroundColor: '#ff0000', 
       minHeight: '100vh', 
       padding: '20px',
       fontFamily: 'Arial, sans-serif'
     }}>
       <div style={{ 
-        backgroundColor: '#ffe6f0', 
+        backgroundColor: '#ffff00', 
         padding: '20px', 
         borderRadius: '10px',
         marginBottom: '20px',
-        border: '2px solid #ff69b4'
+        border: '5px solid #000000'
       }}>
-        <h1 style={{ color: '#2196F3', margin: '0 0 10px 0' }}>
-          🚀 WITHDRAWAL MANAGEMENT - DEPLOYMENT TEST
+        <h1 style={{ color: '#ff0000', margin: '0 0 10px 0', fontSize: '40px', fontWeight: 'bold' }}>
+          🔥 CRITICAL TEST - RED TEXT - DEPLOYMENT CHECK 🔥
         </h1>
-        <p style={{ color: '#666', margin: '0' }}>
-          Version: v12.5 - TESTING FRONTEND DEPLOYMENT - Auto-refresh every 5s - FILTERING REMOVED
+        <p style={{ color: '#ff0000', margin: '0', fontSize: '20px', fontWeight: 'bold' }}>
+          ⚠️ IF YOU SEE THIS RED TEXT, DEPLOYMENT IS WORKING! ⚠️
         </p>
       </div>
 
