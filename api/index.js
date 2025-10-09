@@ -56,26 +56,43 @@ export default async function handler(req, res) {
       console.log("✅ Database connected successfully");
       
       const withdrawalsCollection = database.collection('withdrawals');
-      const totalDocs = await withdrawalsCollection.countDocuments({});
-      console.log(`📊 Total documents in withdrawals collection: ${totalDocs}`);
+      const usersCollection = database.collection('users');
       
-      const sampleDoc = await withdrawalsCollection.findOne({});
-      console.log("📄 Sample document:", sampleDoc ? "Found" : "Not found");
+      const withdrawalsCount = await withdrawalsCollection.countDocuments({});
+      const usersCount = await usersCollection.countDocuments({});
+      
+      console.log(`📊 Total documents in withdrawals collection: ${withdrawalsCount}`);
+      console.log(`📊 Total documents in users collection: ${usersCount}`);
+      
+      const sampleWithdrawal = await withdrawalsCollection.findOne({});
+      const sampleUser = await usersCollection.findOne({});
       
       res.json({
         success: true,
         message: "Database connection successful",
-        totalDocuments: totalDocs,
-        hasSampleData: !!sampleDoc,
         databaseName: database.databaseName,
-        sampleData: sampleDoc
+        collections: {
+          withdrawals: {
+            count: withdrawalsCount,
+            hasSampleData: !!sampleWithdrawal
+          },
+          users: {
+            count: usersCount,
+            hasSampleData: !!sampleUser
+          }
+        },
+        sampleData: {
+          withdrawal: sampleWithdrawal,
+          user: sampleUser
+        }
       });
     } catch (error) {
       console.error("❌ Database connection failed:", error);
       res.status(500).json({
         success: false,
         message: "Database connection failed",
-        error: error.message
+        error: error.message,
+        stack: error.stack
       });
     }
     return;
@@ -1547,12 +1564,25 @@ export default async function handler(req, res) {
     
     // Customers (legacy)
     else if (req.method === 'GET' && path === '/api/customers') {
-      const usersCollection = database.collection('users');
-      const customers = await usersCollection
-        .find({})
-        .sort({ createdAt: -1 })
-        .toArray();
-      res.json(customers);
+      console.log("🔍 ===== CUSTOMERS API CALLED =====");
+      try {
+        const usersCollection = database.collection('users');
+        console.log("📊 Fetching customers from users collection...");
+        
+        const customers = await usersCollection
+          .find({})
+          .sort({ createdAt: -1 })
+          .toArray();
+        
+        console.log(`📊 Found ${customers.length} customers`);
+        res.json(customers);
+      } catch (error) {
+        console.error("❌ Customers API error:", error);
+        res.status(500).json({ 
+          error: "Failed to fetch customers",
+          message: error.message 
+        });
+      }
     }
     
     else if (req.method === 'GET' && path.startsWith('/api/customers/')) {
