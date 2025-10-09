@@ -1,20 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 
 export default function WithdrawalManagement() {
-  // Fetch withdrawals from MongoDB using React Query - same pattern as TaskManagement
-  const { data: withdrawalsResponse, isLoading, error, refetch } = useQuery<{
-    success: boolean;
-    data: any[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      pages: number;
-    };
-  }>({
-    queryKey: ["/api/withdrawals"], // Using legacy endpoint that works
-    queryFn: async () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchWithdrawals = async () => {
+    try {
       console.log("🔍 Fetching withdrawals...");
+      setLoading(true);
+      setError(null);
+      
       const response = await fetch("/api/withdrawals?_t=" + Date.now(), {
         headers: {
           'Cache-Control': 'no-cache',
@@ -22,22 +18,33 @@ export default function WithdrawalManagement() {
         }
       });
       
+      console.log("🔍 Response status:", response.status);
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const result = await response.json();
       console.log("🔍 API Response:", result);
-      return result;
-    },
-    refetchInterval: 5000, // Auto-refresh every 5 seconds for real-time updates
-    retry: 3, // Retry failed requests 3 times
-    retryDelay: 1000, // Wait 1 second between retries
-  });
+      console.log("🔍 Data array length:", result.data?.length);
+      console.log("🔍 First item:", result.data?.[0]);
+      
+      setData(result);
+    } catch (err) {
+      console.error("❌ Error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Extract data for easier access
-  const data = withdrawalsResponse || null;
-  const loading = isLoading;
+  useEffect(() => {
+    fetchWithdrawals();
+    
+    // Auto-refresh every 5 seconds
+    const interval = setInterval(fetchWithdrawals, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div style={{ 
@@ -54,10 +61,10 @@ export default function WithdrawalManagement() {
         border: '2px solid #4CAF50'
       }}>
         <h1 style={{ color: '#2196F3', margin: '0 0 10px 0' }}>
-          🚀 WITHDRAWAL MANAGEMENT - REACT QUERY
+          🚀 WITHDRAWAL MANAGEMENT - DIRECT FETCH
         </h1>
         <p style={{ color: '#666', margin: '0' }}>
-          Version: v12.0 - Using React Query (Same as TaskManagement) - Auto-refresh every 5s
+          Version: v12.2 - Using useState/useEffect (Direct fetch) - Auto-refresh every 5s
         </p>
       </div>
 
@@ -74,13 +81,14 @@ export default function WithdrawalManagement() {
         </h3>
         <div style={{ fontSize: '14px' }}>
           <div><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</div>
-          <div><strong>Error:</strong> {error?.message || 'None'}</div>
+          <div><strong>Error:</strong> {error || 'None'}</div>
           <div><strong>Data Available:</strong> {data ? 'Yes' : 'No'}</div>
           {data && <div><strong>Success:</strong> {data.success ? 'Yes' : 'No'}</div>}
           {data && <div><strong>Data Count:</strong> {data.data?.length || 0}</div>}
           {data && <div><strong>Total:</strong> {data.pagination?.total || 0}</div>}
-          <div><strong>Query Key:</strong> /api/withdrawals</div>
-          <div><strong>Raw Response:</strong> {JSON.stringify(withdrawalsResponse, null, 2).substring(0, 200)}...</div>
+          <div><strong>API Endpoint:</strong> /api/withdrawals</div>
+          {data && <div><strong>First Item ID:</strong> {data.data?.[0]?._id || 'N/A'}</div>}
+          {data && <div><strong>First Item Status:</strong> {data.data?.[0]?.status || 'N/A'}</div>}
         </div>
       </div>
 
@@ -211,7 +219,7 @@ export default function WithdrawalManagement() {
       {/* REFRESH BUTTON */}
       <div style={{ textAlign: 'center', marginTop: '20px' }}>
         <button 
-          onClick={() => refetch()}
+          onClick={fetchWithdrawals}
           style={{
             backgroundColor: '#007bff',
             color: 'white',
