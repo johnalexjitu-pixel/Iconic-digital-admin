@@ -47,56 +47,6 @@ export default async function handler(req, res) {
   
   // Log all requests for debugging
   console.log(`📥 API Request: ${req.method} ${req.url}`);
-  
-  // Database connection test endpoint
-  if (req.method === 'GET' && path === '/api/db-test') {
-    console.log("🔍 ===== DATABASE CONNECTION TEST =====");
-    try {
-      const database = await connectToDatabase();
-      console.log("✅ Database connected successfully");
-      
-      const withdrawalsCollection = database.collection('withdrawals');
-      const usersCollection = database.collection('users');
-      
-      const withdrawalsCount = await withdrawalsCollection.countDocuments({});
-      const usersCount = await usersCollection.countDocuments({});
-      
-      console.log(`📊 Total documents in withdrawals collection: ${withdrawalsCount}`);
-      console.log(`📊 Total documents in users collection: ${usersCount}`);
-      
-      const sampleWithdrawal = await withdrawalsCollection.findOne({});
-      const sampleUser = await usersCollection.findOne({});
-      
-      res.json({
-        success: true,
-        message: "Database connection successful",
-        databaseName: database.databaseName,
-        collections: {
-          withdrawals: {
-            count: withdrawalsCount,
-            hasSampleData: !!sampleWithdrawal
-          },
-          users: {
-            count: usersCount,
-            hasSampleData: !!sampleUser
-          }
-        },
-        sampleData: {
-          withdrawal: sampleWithdrawal,
-          user: sampleUser
-        }
-      });
-    } catch (error) {
-      console.error("❌ Database connection failed:", error);
-      res.status(500).json({
-        success: false,
-        message: "Database connection failed",
-        error: error.message,
-        stack: error.stack
-      });
-    }
-    return;
-  }
 
   try {
     console.log("🚀 API Request:", req.method, req.url);
@@ -1564,25 +1514,12 @@ export default async function handler(req, res) {
     
     // Customers (legacy)
     else if (req.method === 'GET' && path === '/api/customers') {
-      console.log("🔍 ===== CUSTOMERS API CALLED =====");
-      try {
-        const usersCollection = database.collection('users');
-        console.log("📊 Fetching customers from users collection...");
-        
-        const customers = await usersCollection
-          .find({})
-          .sort({ createdAt: -1 })
-          .toArray();
-        
-        console.log(`📊 Found ${customers.length} customers`);
-        res.json(customers);
-      } catch (error) {
-        console.error("❌ Customers API error:", error);
-        res.status(500).json({ 
-          error: "Failed to fetch customers",
-          message: error.message 
-        });
-      }
+      const usersCollection = database.collection('users');
+      const customers = await usersCollection
+        .find({})
+        .sort({ createdAt: -1 })
+        .toArray();
+      res.json(customers);
     }
     
     else if (req.method === 'GET' && path.startsWith('/api/customers/')) {
@@ -2046,13 +1983,11 @@ export default async function handler(req, res) {
       });
     }
     
-    // Withdrawals (legacy) - Frontend calls this endpoint - v13.0 IMPROVED
+    // Withdrawals (legacy) - Frontend calls this endpoint - v10.0 FORCE DEPLOY
     else if (req.method === 'GET' && path === '/api/withdrawals') {
       console.log("💰 ===== LEGACY WITHDRAWALS API CALLED =====");
       console.log("💰 Frontend calling /api/withdrawals endpoint");
       console.log("💰 Query params:", req.query);
-      console.log("🔍 MONGODB_URI:", MONGODB_URI);
-      console.log("🔍 DB_NAME:", DB_NAME);
       
       try {
         const { 
