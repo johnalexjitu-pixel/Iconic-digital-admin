@@ -7,6 +7,10 @@ export default function WithdrawalManagement() {
   const [statusFilter, setStatusFilter] = useState("");
   const [methodFilter, setMethodFilter] = useState("");
   const [customerIdFilter, setCustomerIdFilter] = useState("");
+  
+  // Update states
+  const [updatingWithdrawal, setUpdatingWithdrawal] = useState<string | null>(null);
+  const [updateMessage, setUpdateMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   // Fetch withdrawals using same pattern as TaskManagement
   const { data: withdrawalsResponse, isLoading, error, refetch } = useQuery<{
     success: boolean;
@@ -53,6 +57,53 @@ export default function WithdrawalManagement() {
   // Extract data for compatibility
   const data = withdrawalsResponse || null;
   const loading = isLoading;
+
+  // Update withdrawal status function
+  const updateWithdrawalStatus = async (withdrawalId: string, newStatus: 'completed' | 'rejected') => {
+    setUpdatingWithdrawal(withdrawalId);
+    setUpdateMessage(null);
+    
+    try {
+      const response = await fetch(`/api/frontend/withdrawals/${withdrawalId}/update-status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          adminNotes: `Status updated to ${newStatus} by admin`,
+          processedBy: 'Admin',
+          processedAt: new Date().toISOString()
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setUpdateMessage({
+          type: 'success',
+          text: `Withdrawal ${newStatus} successfully!`
+        });
+        // Refresh data after successful update
+        refetch();
+        // Clear message after 3 seconds
+        setTimeout(() => setUpdateMessage(null), 3000);
+      } else {
+        setUpdateMessage({
+          type: 'error',
+          text: result.error || 'Failed to update withdrawal status'
+        });
+      }
+    } catch (error) {
+      console.error('Error updating withdrawal status:', error);
+      setUpdateMessage({
+        type: 'error',
+        text: 'Network error. Please try again.'
+      });
+    } finally {
+      setUpdatingWithdrawal(null);
+    }
+  };
 
   return (
     <div style={{ 
@@ -218,6 +269,30 @@ export default function WithdrawalManagement() {
         </div>
       )}
 
+      {/* UPDATE MESSAGE */}
+      {updateMessage && (
+        <div style={{ 
+          backgroundColor: updateMessage.type === 'success' ? '#d4edda' : '#f8d7da', 
+          padding: '15px', 
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: `1px solid ${updateMessage.type === 'success' ? '#28a745' : '#dc3545'}`
+        }}>
+          <h3 style={{ 
+            margin: '0 0 10px 0', 
+            color: updateMessage.type === 'success' ? '#155724' : '#721c24'
+          }}>
+            {updateMessage.type === 'success' ? '✅ Success' : '❌ Error'}
+          </h3>
+          <p style={{ 
+            margin: '0', 
+            color: updateMessage.type === 'success' ? '#155724' : '#721c24',
+            fontSize: '14px'
+          }}>
+            {updateMessage.text}
+          </p>
+        </div>
+      )}
 
       {/* MODERN TABLE - Same as TaskManagement */}
       {processedWithdrawals && processedWithdrawals.length > 0 && (
@@ -302,12 +377,46 @@ export default function WithdrawalManagement() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <button className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs hover:bg-blue-200">
+                      <button 
+                        className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs hover:bg-blue-200"
+                        onClick={() => {
+                          // View withdrawal details - could open a modal
+                          console.log('View withdrawal:', withdrawal.id);
+                        }}
+                      >
                         View
                       </button>
-                      <button className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs hover:bg-green-200">
-                        Approve
-                      </button>
+                      
+                      {withdrawal.status === 'pending' && (
+                        <>
+                          <button 
+                            className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs hover:bg-green-200 disabled:opacity-50"
+                            onClick={() => updateWithdrawalStatus(withdrawal.id, 'completed')}
+                            disabled={updatingWithdrawal === withdrawal.id}
+                          >
+                            {updatingWithdrawal === withdrawal.id ? '⏳' : '✅'} Approve
+                          </button>
+                          <button 
+                            className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs hover:bg-red-200 disabled:opacity-50"
+                            onClick={() => updateWithdrawalStatus(withdrawal.id, 'rejected')}
+                            disabled={updatingWithdrawal === withdrawal.id}
+                          >
+                            {updatingWithdrawal === withdrawal.id ? '⏳' : '❌'} Reject
+                          </button>
+                        </>
+                      )}
+                      
+                      {withdrawal.status === 'completed' && (
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-bold">
+                          ✅ Completed
+                        </span>
+                      )}
+                      
+                      {withdrawal.status === 'rejected' && (
+                        <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-bold">
+                          ❌ Rejected
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
