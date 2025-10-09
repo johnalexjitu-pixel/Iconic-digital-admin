@@ -2920,7 +2920,7 @@ export default async function handler(req, res) {
     }
     
     // Update combo task prices by range
-    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/')) {
+    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && !path.includes('/save-task-price') && !path.includes('/save-complete-task') && !path.includes('/toggle-golden-egg') && !path.includes('/golden-egg-price-update')) {
       const customerId = path.split('/')[3];
       const { taskRange, newPrice } = req.body;
       
