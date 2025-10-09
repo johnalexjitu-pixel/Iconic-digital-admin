@@ -29,10 +29,16 @@ async function connectToDatabase() {
 }
 
 export default async function handler(req, res) {
-  // Enable CORS
+  // Enable CORS and prevent caching
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Prevent caching to ensure fresh data
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('ETag', `"${Date.now()}"`);
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -2160,6 +2166,13 @@ export default async function handler(req, res) {
         });
 
         console.log("💰 ===== SENDING RESPONSE TO FRONTEND =====");
+        
+        // Add specific headers for withdrawal endpoint
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('ETag', `"withdrawals-${Date.now()}"`);
+        
         res.json(response);
         
       } catch (error) {

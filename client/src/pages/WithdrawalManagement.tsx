@@ -45,10 +45,11 @@ export default function WithdrawalManagement() {
       pages: number;
     };
   }>({
-    queryKey: [`/api/withdrawals?${queryParams.toString()}`],
+    queryKey: [`/api/withdrawals?${queryParams.toString()}&_t=${Date.now()}`],
     staleTime: 0, // Always fetch fresh data
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    cacheTime: 0, // Don't cache at all
   });
 
   const { data: customers } = useQuery<Customer[]>({
@@ -149,9 +150,10 @@ export default function WithdrawalManagement() {
             <div>MONGODB_URI: mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/</div>
             <div>Total Withdrawals: {totalWithdrawals}</div>
             <div>Last Updated: {new Date().toLocaleString()}</div>
-            <div>Production Fix Applied - v6.0 (ALL FILTERING REMOVED)</div>
+            <div>Production Fix Applied - v7.0 (CACHE HEADERS FIXED)</div>
             <div>Debug: {JSON.stringify({queryParams: queryParams.toString()})}</div>
             <div>🚫 ALL FILTERING REMOVED - Showing all withdrawal data always</div>
+            <div>🔄 CACHE PREVENTION ENABLED - Fresh data every time</div>
           </div>
         </div>
 
