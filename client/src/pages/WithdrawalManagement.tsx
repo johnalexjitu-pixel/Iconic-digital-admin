@@ -12,8 +12,27 @@ export default function WithdrawalManagement() {
       pages: number;
     };
   }>({
-    queryKey: ["/api/frontend/withdrawals"],
+    queryKey: ["/api/withdrawals"], // Using legacy endpoint that works
+    queryFn: async () => {
+      console.log("🔍 Fetching withdrawals...");
+      const response = await fetch("/api/withdrawals?_t=" + Date.now(), {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log("🔍 API Response:", result);
+      return result;
+    },
     refetchInterval: 5000, // Auto-refresh every 5 seconds for real-time updates
+    retry: 3, // Retry failed requests 3 times
+    retryDelay: 1000, // Wait 1 second between retries
   });
 
   // Extract data for easier access
@@ -60,6 +79,8 @@ export default function WithdrawalManagement() {
           {data && <div><strong>Success:</strong> {data.success ? 'Yes' : 'No'}</div>}
           {data && <div><strong>Data Count:</strong> {data.data?.length || 0}</div>}
           {data && <div><strong>Total:</strong> {data.pagination?.total || 0}</div>}
+          <div><strong>Query Key:</strong> /api/withdrawals</div>
+          <div><strong>Raw Response:</strong> {JSON.stringify(withdrawalsResponse, null, 2).substring(0, 200)}...</div>
         </div>
       </div>
 
@@ -90,7 +111,7 @@ export default function WithdrawalManagement() {
       )}
 
       {/* SIMPLE TABLE */}
-      {data && data.success && data.data && data.data.length > 0 && (
+      {data && data.data && data.data.length > 0 && (
         <div style={{ 
           backgroundColor: '#ffffff', 
           padding: '20px', 
@@ -167,7 +188,7 @@ export default function WithdrawalManagement() {
       )}
 
       {/* NO DATA MESSAGE */}
-      {data && (!data.success || !data.data || data.data.length === 0) && (
+      {(data && (!data.data || data.data.length === 0)) || (!data && !loading && !error) && (
         <div style={{ 
           backgroundColor: '#fff3cd', 
           padding: '20px', 
@@ -180,6 +201,9 @@ export default function WithdrawalManagement() {
           </h3>
           <p style={{ color: '#856404', margin: '0' }}>
             API Response: {data ? "Success but no data" : "No response"}
+          </p>
+          <p style={{ color: '#856404', margin: '5px 0 0 0', fontSize: '12px' }}>
+            Debug: loading={loading ? 'true' : 'false'}, error={error ? 'true' : 'false'}, data={data ? 'true' : 'false'}
           </p>
         </div>
       )}
