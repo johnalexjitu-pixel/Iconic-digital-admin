@@ -384,6 +384,7 @@ export default function WithdrawalManagement() {
                       <button 
                         className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs hover:bg-blue-200"
                         onClick={() => {
+                          console.log('View button clicked, withdrawal data:', withdrawal);
                           setSelectedWithdrawal(withdrawal);
                           setShowModal(true);
                         }}
@@ -540,7 +541,11 @@ export default function WithdrawalManagement() {
                 💰 Withdrawal Details
               </h2>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  console.log('Closing modal');
+                  setShowModal(false);
+                  setSelectedWithdrawal(null);
+                }}
                 style={{
                   backgroundColor: '#dc3545',
                   color: 'white',
@@ -559,7 +564,7 @@ export default function WithdrawalManagement() {
               </button>
             </div>
 
-            {/* Modal Content */}
+            {/* Modal Content - Simplified */}
             <div style={{ display: 'grid', gap: '20px' }}>
               {/* Basic Information */}
               <div style={{
@@ -571,23 +576,23 @@ export default function WithdrawalManagement() {
                 <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
                   📋 Basic Information
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div style={{ display: 'grid', gap: '15px' }}>
                   <div>
                     <strong style={{ color: '#6c757d', fontSize: '14px' }}>Withdrawal ID:</strong>
                     <div style={{ color: '#495057', fontSize: '16px', fontFamily: 'monospace' }}>
-                      {selectedWithdrawal.id}
+                      {selectedWithdrawal?.id || 'N/A'}
                     </div>
                   </div>
                   <div>
                     <strong style={{ color: '#6c757d', fontSize: '14px' }}>Amount:</strong>
                     <div style={{ color: '#28a745', fontSize: '18px', fontWeight: 'bold' }}>
-                      ${selectedWithdrawal.amount}
+                      ${selectedWithdrawal?.amount || '0'}
                     </div>
                   </div>
                   <div>
                     <strong style={{ color: '#6c757d', fontSize: '14px' }}>Method:</strong>
                     <div style={{ color: '#495057', fontSize: '16px', textTransform: 'capitalize' }}>
-                      {selectedWithdrawal.method}
+                      {selectedWithdrawal?.method || 'N/A'}
                     </div>
                   </div>
                   <div>
@@ -598,12 +603,12 @@ export default function WithdrawalManagement() {
                         borderRadius: '20px',
                         fontSize: '14px',
                         fontWeight: 'bold',
-                        backgroundColor: selectedWithdrawal.status === 'completed' ? '#d4edda' : 
-                                       selectedWithdrawal.status === 'rejected' ? '#f8d7da' : '#fff3cd',
-                        color: selectedWithdrawal.status === 'completed' ? '#155724' : 
-                               selectedWithdrawal.status === 'rejected' ? '#721c24' : '#856404'
+                        backgroundColor: selectedWithdrawal?.status === 'completed' ? '#d4edda' : 
+                                       selectedWithdrawal?.status === 'rejected' ? '#f8d7da' : '#fff3cd',
+                        color: selectedWithdrawal?.status === 'completed' ? '#155724' : 
+                               selectedWithdrawal?.status === 'rejected' ? '#721c24' : '#856404'
                       }}>
-                        {selectedWithdrawal.status?.toUpperCase() || 'PENDING'}
+                        {selectedWithdrawal?.status?.toUpperCase() || 'PENDING'}
                       </span>
                     </div>
                   </div>
@@ -620,102 +625,49 @@ export default function WithdrawalManagement() {
                 <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
                   👤 Customer Information
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div style={{ display: 'grid', gap: '15px' }}>
                   <div>
                     <strong style={{ color: '#6c757d', fontSize: '14px' }}>Customer Name:</strong>
                     <div style={{ color: '#495057', fontSize: '16px', fontWeight: '500' }}>
-                      {selectedWithdrawal.customerName}
+                      {selectedWithdrawal?.customerName || 'N/A'}
                     </div>
                   </div>
                   <div>
                     <strong style={{ color: '#6c757d', fontSize: '14px' }}>Customer ID:</strong>
                     <div style={{ color: '#495057', fontSize: '16px', fontFamily: 'monospace' }}>
-                      {selectedWithdrawal.customerId}
+                      {selectedWithdrawal?.customerId || 'N/A'}
                     </div>
                   </div>
                   <div>
                     <strong style={{ color: '#6c757d', fontSize: '14px' }}>Account Balance:</strong>
                     <div style={{ color: '#28a745', fontSize: '16px', fontWeight: 'bold' }}>
-                      ${selectedWithdrawal.customerBalance}
+                      ${selectedWithdrawal?.customerBalance || '0'}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Account Details */}
-              {selectedWithdrawal.accountDetails && Object.keys(selectedWithdrawal.accountDetails).length > 0 && (
-                <div style={{
-                  backgroundColor: '#f8f9fa',
-                  padding: '20px',
-                  borderRadius: '8px',
-                  border: '1px solid #e9ecef'
-                }}>
-                  <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
-                    🏦 Account Details
-                  </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                    {Object.entries(selectedWithdrawal.accountDetails).map(([key, value]: [string, any]) => (
-                      <div key={key}>
-                        <strong style={{ color: '#6c757d', fontSize: '14px' }}>
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
-                        </strong>
-                        <div style={{ color: '#495057', fontSize: '16px', wordBreak: 'break-word' }}>
-                          {value || 'N/A'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Transaction Details */}
+              {/* Raw Data Debug */}
               <div style={{
-                backgroundColor: '#f8f9fa',
+                backgroundColor: '#fff3cd',
                 padding: '20px',
                 borderRadius: '8px',
-                border: '1px solid #e9ecef'
+                border: '1px solid #ffc107'
               }}>
-                <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
-                  📅 Transaction Details
+                <h3 style={{ margin: '0 0 15px 0', color: '#856404', fontSize: '18px' }}>
+                  🔍 Debug Information
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                  <div>
-                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Submitted Date:</strong>
-                    <div style={{ color: '#495057', fontSize: '16px' }}>
-                      {selectedWithdrawal.submittedAt ? selectedWithdrawal.submittedAt.toLocaleString() : 'N/A'}
-                    </div>
-                  </div>
-                  <div>
-                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Created Date:</strong>
-                    <div style={{ color: '#495057', fontSize: '16px' }}>
-                      {selectedWithdrawal.createdAt.toLocaleString()}
-                    </div>
-                  </div>
-                  {selectedWithdrawal.processedBy && (
-                    <div>
-                      <strong style={{ color: '#6c757d', fontSize: '14px' }}>Processed By:</strong>
-                      <div style={{ color: '#495057', fontSize: '16px' }}>
-                        {selectedWithdrawal.processedBy}
-                      </div>
-                    </div>
-                  )}
-                  {selectedWithdrawal.adminNotes && (
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <strong style={{ color: '#6c757d', fontSize: '14px' }}>Admin Notes:</strong>
-                      <div style={{ 
-                        color: '#495057', 
-                        fontSize: '16px',
-                        backgroundColor: '#ffffff',
-                        padding: '10px',
-                        borderRadius: '4px',
-                        border: '1px solid #dee2e6',
-                        marginTop: '5px'
-                      }}>
-                        {selectedWithdrawal.adminNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <pre style={{ 
+                  backgroundColor: '#ffffff', 
+                  padding: '15px', 
+                  borderRadius: '5px',
+                  overflow: 'auto',
+                  fontSize: '12px',
+                  border: '1px solid #dee2e6',
+                  maxHeight: '200px'
+                }}>
+                  {JSON.stringify(selectedWithdrawal, null, 2)}
+                </pre>
               </div>
             </div>
 
@@ -729,7 +681,11 @@ export default function WithdrawalManagement() {
               gap: '10px'
             }}>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  console.log('Closing modal from footer');
+                  setShowModal(false);
+                  setSelectedWithdrawal(null);
+                }}
                 style={{
                   backgroundColor: '#6c757d',
                   color: 'white',
