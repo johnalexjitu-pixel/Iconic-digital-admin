@@ -318,6 +318,79 @@ export default async function handler(req, res) {
       });
     }
     
+    // Test MongoDB connection specifically
+    else if (req.method === 'GET' && path === '/api/test-mongodb') {
+      try {
+        console.log("🔍 Testing MongoDB connection...");
+        
+        // Test basic connection
+        const pingResult = await database.admin().ping();
+        console.log("✅ MongoDB ping successful");
+        
+        // Test withdrawals collection
+        const withdrawalsCollection = database.collection('withdrawals');
+        const count = await withdrawalsCollection.countDocuments();
+        console.log(`✅ Withdrawals collection has ${count} documents`);
+        
+        // Get sample data
+        const sampleWithdrawals = await withdrawalsCollection.find({}).limit(3).toArray();
+        console.log(`✅ Sample withdrawals:`, sampleWithdrawals.length);
+        
+        res.json({
+          success: true,
+          message: "MongoDB connection working",
+          timestamp: new Date().toISOString(),
+          mongodb: {
+            connected: true,
+            pingResult: pingResult,
+            withdrawalsCount: count,
+            sampleCount: sampleWithdrawals.length,
+            sampleData: sampleWithdrawals
+          }
+        });
+      } catch (error) {
+        console.error("❌ MongoDB test failed:", error);
+        res.status(500).json({
+          success: false,
+          message: "MongoDB connection failed",
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
+    // Simple withdrawal debug endpoint
+    else if (req.method === 'GET' && path === '/api/debug-withdrawals') {
+      try {
+        console.log("🔍 Debug withdrawals endpoint called");
+        
+        const withdrawalsCollection = database.collection('withdrawals');
+        const count = await withdrawalsCollection.countDocuments();
+        console.log(`📊 Total withdrawals in database: ${count}`);
+        
+        const withdrawals = await withdrawalsCollection.find({}).limit(5).toArray();
+        console.log(`📊 Sample withdrawals:`, withdrawals.length);
+        
+        res.json({
+          success: true,
+          message: "Debug withdrawals successful",
+          timestamp: new Date().toISOString(),
+          data: {
+            totalCount: count,
+            sampleCount: withdrawals.length,
+            withdrawals: withdrawals
+          }
+        });
+      } catch (error) {
+        console.error("❌ Debug withdrawals error:", error);
+        res.status(500).json({
+          success: false,
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
     // Health check endpoint with MongoDB status
     else if (req.method === 'GET' && path === '/api/health') {
       try {
@@ -2074,6 +2147,8 @@ export default async function handler(req, res) {
       console.log("💰 ===== LEGACY WITHDRAWALS API CALLED =====");
       console.log("💰 Frontend calling /api/withdrawals endpoint");
       console.log("💰 Query params:", req.query);
+      console.log("💰 Database connected:", !!database);
+      console.log("💰 Database name:", database?.databaseName);
       
       try {
         const { 
