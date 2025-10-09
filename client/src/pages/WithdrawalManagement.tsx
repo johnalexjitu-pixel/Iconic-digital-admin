@@ -11,6 +11,10 @@ export default function WithdrawalManagement() {
   // Update states
   const [updatingWithdrawal, setUpdatingWithdrawal] = useState<string | null>(null);
   const [updateMessage, setUpdateMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  
+  // Modal states
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<any | null>(null);
+  const [showModal, setShowModal] = useState(false);
   // Fetch withdrawals using same pattern as TaskManagement
   const { data: withdrawalsResponse, isLoading, error, refetch } = useQuery<{
     success: boolean;
@@ -380,8 +384,8 @@ export default function WithdrawalManagement() {
                       <button 
                         className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs hover:bg-blue-200"
                         onClick={() => {
-                          // View withdrawal details - could open a modal
-                          console.log('View withdrawal:', withdrawal.id);
+                          setSelectedWithdrawal(withdrawal);
+                          setShowModal(true);
                         }}
                       >
                         View
@@ -492,6 +496,257 @@ export default function WithdrawalManagement() {
           Auto-refreshes every 5 seconds
         </span>
       </div>
+
+      {/* WITHDRAWAL DETAILS MODAL */}
+      {showModal && selectedWithdrawal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            padding: '30px',
+            maxWidth: '800px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '25px',
+              borderBottom: '2px solid #e9ecef',
+              paddingBottom: '15px'
+            }}>
+              <h2 style={{
+                margin: 0,
+                color: '#495057',
+                fontSize: '24px',
+                fontWeight: '600'
+              }}>
+                💰 Withdrawal Details
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '35px',
+                  height: '35px',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div style={{ display: 'grid', gap: '20px' }}>
+              {/* Basic Information */}
+              <div style={{
+                backgroundColor: '#f8f9fa',
+                padding: '20px',
+                borderRadius: '8px',
+                border: '1px solid #e9ecef'
+              }}>
+                <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
+                  📋 Basic Information
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Withdrawal ID:</strong>
+                    <div style={{ color: '#495057', fontSize: '16px', fontFamily: 'monospace' }}>
+                      {selectedWithdrawal.id}
+                    </div>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Amount:</strong>
+                    <div style={{ color: '#28a745', fontSize: '18px', fontWeight: 'bold' }}>
+                      ${selectedWithdrawal.amount}
+                    </div>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Method:</strong>
+                    <div style={{ color: '#495057', fontSize: '16px', textTransform: 'capitalize' }}>
+                      {selectedWithdrawal.method}
+                    </div>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Status:</strong>
+                    <div>
+                      <span style={{
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        backgroundColor: selectedWithdrawal.status === 'completed' ? '#d4edda' : 
+                                       selectedWithdrawal.status === 'rejected' ? '#f8d7da' : '#fff3cd',
+                        color: selectedWithdrawal.status === 'completed' ? '#155724' : 
+                               selectedWithdrawal.status === 'rejected' ? '#721c24' : '#856404'
+                      }}>
+                        {selectedWithdrawal.status?.toUpperCase() || 'PENDING'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Information */}
+              <div style={{
+                backgroundColor: '#f8f9fa',
+                padding: '20px',
+                borderRadius: '8px',
+                border: '1px solid #e9ecef'
+              }}>
+                <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
+                  👤 Customer Information
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Customer Name:</strong>
+                    <div style={{ color: '#495057', fontSize: '16px', fontWeight: '500' }}>
+                      {selectedWithdrawal.customerName}
+                    </div>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Customer ID:</strong>
+                    <div style={{ color: '#495057', fontSize: '16px', fontFamily: 'monospace' }}>
+                      {selectedWithdrawal.customerId}
+                    </div>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Account Balance:</strong>
+                    <div style={{ color: '#28a745', fontSize: '16px', fontWeight: 'bold' }}>
+                      ${selectedWithdrawal.customerBalance}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Details */}
+              {selectedWithdrawal.accountDetails && Object.keys(selectedWithdrawal.accountDetails).length > 0 && (
+                <div style={{
+                  backgroundColor: '#f8f9fa',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  border: '1px solid #e9ecef'
+                }}>
+                  <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
+                    🏦 Account Details
+                  </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    {Object.entries(selectedWithdrawal.accountDetails).map(([key, value]: [string, any]) => (
+                      <div key={key}>
+                        <strong style={{ color: '#6c757d', fontSize: '14px' }}>
+                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
+                        </strong>
+                        <div style={{ color: '#495057', fontSize: '16px', wordBreak: 'break-word' }}>
+                          {value || 'N/A'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Transaction Details */}
+              <div style={{
+                backgroundColor: '#f8f9fa',
+                padding: '20px',
+                borderRadius: '8px',
+                border: '1px solid #e9ecef'
+              }}>
+                <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
+                  📅 Transaction Details
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Submitted Date:</strong>
+                    <div style={{ color: '#495057', fontSize: '16px' }}>
+                      {selectedWithdrawal.submittedAt ? selectedWithdrawal.submittedAt.toLocaleString() : 'N/A'}
+                    </div>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Created Date:</strong>
+                    <div style={{ color: '#495057', fontSize: '16px' }}>
+                      {selectedWithdrawal.createdAt.toLocaleString()}
+                    </div>
+                  </div>
+                  {selectedWithdrawal.processedBy && (
+                    <div>
+                      <strong style={{ color: '#6c757d', fontSize: '14px' }}>Processed By:</strong>
+                      <div style={{ color: '#495057', fontSize: '16px' }}>
+                        {selectedWithdrawal.processedBy}
+                      </div>
+                    </div>
+                  )}
+                  {selectedWithdrawal.adminNotes && (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <strong style={{ color: '#6c757d', fontSize: '14px' }}>Admin Notes:</strong>
+                      <div style={{ 
+                        color: '#495057', 
+                        fontSize: '16px',
+                        backgroundColor: '#ffffff',
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: '1px solid #dee2e6',
+                        marginTop: '5px'
+                      }}>
+                        {selectedWithdrawal.adminNotes}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              marginTop: '25px',
+              paddingTop: '15px',
+              borderTop: '2px solid #e9ecef',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '10px'
+            }}>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
