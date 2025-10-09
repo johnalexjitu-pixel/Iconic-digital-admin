@@ -125,7 +125,7 @@ export default function WithdrawalManagement() {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
         <h1 style={{ color: '#495057', margin: '0 0 10px 0', fontSize: '24px', fontWeight: '600' }}>
-          💰 Withdrawal Management
+          Withdrawal Management
         </h1>
         <p style={{ color: '#6c757d', margin: '0', fontSize: '14px' }}>
           Manage withdrawal requests and transactions - Auto-refresh every 5s
@@ -142,7 +142,7 @@ export default function WithdrawalManagement() {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
         <h3 style={{ margin: '0 0 15px 0', color: '#495057' }}>
-          🔍 Filter Withdrawals
+          Filter Withdrawals
         </h3>
         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
           <div>
@@ -223,7 +223,7 @@ export default function WithdrawalManagement() {
                 fontWeight: '500'
               }}
             >
-              🗑️ Clear
+              Clear
             </button>
             <button style={{ 
               backgroundColor: '#6f42c1',
@@ -235,7 +235,7 @@ export default function WithdrawalManagement() {
               fontSize: '14px',
               fontWeight: '500'
             }}>
-              🔍 Filter
+              Filter
             </button>
           </div>
         </div>
@@ -265,7 +265,7 @@ export default function WithdrawalManagement() {
           border: '1px solid #dc3545'
         }}>
           <h3 style={{ margin: '0 0 10px 0', color: '#721c24' }}>
-            ❌ Error loading data
+             Error loading data
           </h3>
           <p style={{ margin: '0', color: '#721c24', fontSize: '14px' }}>
             {error.message}
@@ -286,7 +286,7 @@ export default function WithdrawalManagement() {
             margin: '0 0 10px 0', 
             color: updateMessage.type === 'success' ? '#155724' : '#721c24'
           }}>
-            {updateMessage.type === 'success' ? '✅ Success' : '❌ Error'}
+            {updateMessage.type === 'success' ? ' Success' : ' Error'}
           </h3>
           <p style={{ 
             margin: '0', 
@@ -315,7 +315,7 @@ export default function WithdrawalManagement() {
               fontSize: '18px',
               fontWeight: '600'
             }}>
-              📋 Withdrawal Requests ({processedWithdrawals.length} of {allProcessedWithdrawals.length} records)
+              Withdrawal Requests ({processedWithdrawals.length} of {allProcessedWithdrawals.length} records)
             </h3>
             <p style={{ 
               margin: '0', 
@@ -399,27 +399,27 @@ export default function WithdrawalManagement() {
                             onClick={() => updateWithdrawalStatus(withdrawal.id, 'completed')}
                             disabled={updatingWithdrawal === withdrawal.id}
                           >
-                            {updatingWithdrawal === withdrawal.id ? '⏳' : '✅'} Approve
+                            {updatingWithdrawal === withdrawal.id ? 'Updating...' : 'Approve'}
                           </button>
                           <button 
                             className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs hover:bg-red-200 disabled:opacity-50"
                             onClick={() => updateWithdrawalStatus(withdrawal.id, 'rejected')}
                             disabled={updatingWithdrawal === withdrawal.id}
                           >
-                            {updatingWithdrawal === withdrawal.id ? '⏳' : '❌'} Reject
+                            {updatingWithdrawal === withdrawal.id ? 'Updating...' : 'Reject'}
                           </button>
                         </>
                       )}
                       
                       {withdrawal.status === 'completed' && (
                         <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-bold">
-                          ✅ Completed
+                          Completed
                         </span>
                       )}
                       
                       {withdrawal.status === 'rejected' && (
                         <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-bold">
-                          ❌ Rejected
+                          Rejected
                         </span>
                       )}
                     </div>
@@ -488,7 +488,7 @@ export default function WithdrawalManagement() {
             marginRight: '10px'
           }}
         >
-          🔄 Refresh Data
+          Refresh Data
         </button>
         <span style={{ 
           color: '#6c757d',
@@ -538,7 +538,7 @@ export default function WithdrawalManagement() {
                 fontSize: '24px',
                 fontWeight: '600'
               }}>
-                💰 Withdrawal Details
+                Withdrawal Details
               </h2>
               <button
                 onClick={() => {
@@ -574,7 +574,7 @@ export default function WithdrawalManagement() {
                 border: '1px solid #e9ecef'
               }}>
                 <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
-                  📋 Basic Information
+                  Basic Information
                 </h3>
                 <div style={{ display: 'grid', gap: '15px' }}>
                   <div>
@@ -623,7 +623,7 @@ export default function WithdrawalManagement() {
                 border: '1px solid #e9ecef'
               }}>
                 <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
-                  👤 Customer Information
+                  Customer Information
                 </h3>
                 <div style={{ display: 'grid', gap: '15px' }}>
                   <div>
@@ -656,7 +656,7 @@ export default function WithdrawalManagement() {
                   border: '1px solid #e9ecef'
                 }}>
                   <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
-                    🏦 Account Details
+                    Account Details
                   </h3>
                   <div style={{ display: 'grid', gap: '15px' }}>
                     <div>
@@ -728,7 +728,7 @@ export default function WithdrawalManagement() {
                   border: '1px solid #e9ecef'
                 }}>
                   <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
-                    📎 Uploaded Documents
+                    Uploaded Documents
                   </h3>
                   <div style={{ display: 'grid', gap: '15px' }}>
                     {selectedWithdrawal.accountDetails.uploadedDocuments.map((doc: any, index: number) => (
@@ -740,7 +740,7 @@ export default function WithdrawalManagement() {
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                           <strong style={{ color: '#495057', fontSize: '16px' }}>
-                            📄 {doc.fileName || 'Document'}
+                            {doc.fileName || 'Document'}
                           </strong>
                           <span style={{
                             backgroundColor: '#e9ecef',
@@ -786,7 +786,7 @@ export default function WithdrawalManagement() {
                 border: '1px solid #e9ecef'
               }}>
                 <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
-                  📅 Transaction Details
+                  Transaction Details
                 </h3>
                 <div style={{ display: 'grid', gap: '15px' }}>
                   <div>
