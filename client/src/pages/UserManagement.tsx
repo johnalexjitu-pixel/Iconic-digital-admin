@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { type Admin } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPen, Key } from "lucide-react";
+import { UserPen, Key, Settings } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
 
 interface FrontendUser {
@@ -22,10 +24,12 @@ interface FrontendUser {
   campaignsCompleted: number;
   lastLogin: string;
   createdAt: string;
+  isActive: boolean;
 }
 
 export default function UserManagement() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [startDate, setStartDate] = useState("2025-10-01");
   const [endDate, setEndDate] = useState("2025-10-02");
   const [isFiltered, setIsFiltered] = useState(false);
@@ -33,6 +37,40 @@ export default function UserManagement() {
   const { data: admins, isLoading } = useQuery<Admin[]>({
     queryKey: ["/api/admins"],
   });
+
+  // Mutation for toggling user status
+  const toggleUserStatusMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/frontend/users/${userId}/toggle-status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error("Failed to toggle user status");
+      return response.json();
+    },
+    onSuccess: () => {
+      // Refresh user list to show updated status
+      queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+    },
+  });
+
+  // Handle user status toggle
+  const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
+    try {
+      await toggleUserStatusMutation.mutateAsync(userId);
+      toast({
+        title: "Success",
+        description: `User ${currentStatus ? 'suspended' : 'activated'} successfully`,
+      });
+    } catch (error: any) {
+      console.error("❌ Error toggling user status:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to toggle user status",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Filter functions
   const handleFilter = () => {
@@ -168,14 +206,28 @@ export default function UserManagement() {
                     <button
                       data-testid={`button-edit-admin-${user._id}`}
                       className="text-primary hover:text-primary/80"
+                      title="Edit User"
                     >
                       <UserPen className="w-5 h-5" />
                     </button>
                     <button
                       data-testid={`button-reset-password-${user._id}`}
                       className="text-primary hover:text-primary/80"
+                      title="Reset Password"
                     >
                       <Key className="w-5 h-5" />
+                    </button>
+                    <button
+                      data-testid={`button-toggle-status-${user._id}`}
+                      className={`${
+                        user.isActive 
+                          ? 'text-green-600 hover:text-green-700' 
+                          : 'text-red-600 hover:text-red-700'
+                      } transition-colors`}
+                      onClick={() => handleToggleStatus(user._id, user.isActive)}
+                      title={user.isActive ? 'Click to suspend user' : 'Click to activate user'}
+                    >
+                      <Settings className="w-5 h-5" />
                     </button>
                   </div>
                 </TableCell>
