@@ -1,5 +1,5 @@
 node_modules/
-dist/
+# dist/ # Commented out to allow Vercel deployment
 .DS_Store
 server/public/
 vite.config.ts.*
