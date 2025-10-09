@@ -14,16 +14,40 @@ async function connectToDatabase() {
 
   try {
     client = new MongoClient(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 30000,
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      retryWrites: true,
+      retryReads: true,
+      w: 'majority',
+      ssl: true,
+      tlsAllowInvalidCertificates: false,
+      tlsAllowInvalidHostnames: false,
     });
     
     await client.connect();
     db = client.db(DB_NAME);
-    console.log('✅ Connected to MongoDB');
+    console.log('✅ Connected to MongoDB Atlas');
+    
+    // Ping to verify connection
+    await db.admin().ping();
+    console.log('✅ MongoDB ping successful');
+    
     return db;
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      name: error.name
+    });
+    
+    // Reset client and db for retry
+    client = null;
+    db = null;
+    
     throw error;
   }
 }
@@ -52,7 +76,40 @@ export default async function handler(req, res) {
     console.log("🚀 API Request:", req.method, req.url);
     console.log("🚀 Request path:", req.url);
     
-    const database = await connectToDatabase();
+    // Try to connect with retry mechanism for SSL errors
+    let database;
+    let retries = 3;
+    let lastError;
+    
+    for (let i = 0; i < retries; i++) {
+      try {
+        database = await connectToDatabase();
+        break; // Success, exit retry loop
+      } catch (error) {
+        lastError = error;
+        console.log(`⚠️ Connection attempt ${i + 1}/${retries} failed`);
+        
+        // Reset connection state for retry
+        client = null;
+        db = null;
+        
+        if (i < retries - 1) {
+          // Wait before retry (exponential backoff)
+          const waitTime = Math.min(1000 * Math.pow(2, i), 5000);
+          console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
+    }
+    
+    if (!database) {
+      console.error('❌ All connection attempts failed');
+      return res.status(503).json({
+        success: false,
+        error: 'Database connection failed after multiple retries',
+        details: lastError?.message || 'Unknown error'
+      });
+    }
     const url = new URL(req.url, `http://${req.headers.host}`);
     const path = url.pathname;
     
@@ -259,6 +316,35 @@ export default async function handler(req, res) {
         message: "API is working",
         timestamp: new Date().toISOString()
       });
+    }
+    
+    // Health check endpoint with MongoDB status
+    else if (req.method === 'GET' && path === '/api/health') {
+      try {
+        // Check MongoDB connection
+        const pingResult = await database.admin().ping();
+        const dbStats = await database.stats();
+        
+        res.json({
+          success: true,
+          status: "healthy",
+          timestamp: new Date().toISOString(),
+          database: {
+            connected: true,
+            name: database.databaseName,
+            collections: dbStats.collections,
+            dataSize: dbStats.dataSize,
+            indexSize: dbStats.indexSize
+          }
+        });
+      } catch (error) {
+        res.status(503).json({
+          success: false,
+          status: "unhealthy",
+          timestamp: new Date().toISOString(),
+          error: error.message
+        });
+      }
     }
     
     // Debug campaigns endpoint
