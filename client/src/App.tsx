@@ -41,9 +41,14 @@ function Router() {
   const [location] = useLocation();
   const isLoggedIn = localStorage.getItem("isAdminLoggedIn") === "true";
 
+  // Debug routing
+  console.log("🔍 Current location:", location);
+  console.log("🔍 Is logged in:", isLoggedIn);
+
   // If not logged in and not on login page, redirect to login
   useEffect(() => {
     if (!isLoggedIn && location !== "/login") {
+      console.log("🔍 Redirecting to login...");
       window.location.href = "/login";
     }
   }, [isLoggedIn, location]);

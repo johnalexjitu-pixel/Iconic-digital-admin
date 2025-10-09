@@ -47,6 +47,39 @@ export default async function handler(req, res) {
   
   // Log all requests for debugging
   console.log(`📥 API Request: ${req.method} ${req.url}`);
+  
+  // Database connection test endpoint
+  if (req.method === 'GET' && path === '/api/db-test') {
+    console.log("🔍 ===== DATABASE CONNECTION TEST =====");
+    try {
+      const database = await connectToDatabase();
+      console.log("✅ Database connected successfully");
+      
+      const withdrawalsCollection = database.collection('withdrawals');
+      const totalDocs = await withdrawalsCollection.countDocuments({});
+      console.log(`📊 Total documents in withdrawals collection: ${totalDocs}`);
+      
+      const sampleDoc = await withdrawalsCollection.findOne({});
+      console.log("📄 Sample document:", sampleDoc ? "Found" : "Not found");
+      
+      res.json({
+        success: true,
+        message: "Database connection successful",
+        totalDocuments: totalDocs,
+        hasSampleData: !!sampleDoc,
+        databaseName: database.databaseName,
+        sampleData: sampleDoc
+      });
+    } catch (error) {
+      console.error("❌ Database connection failed:", error);
+      res.status(500).json({
+        success: false,
+        message: "Database connection failed",
+        error: error.message
+      });
+    }
+    return;
+  }
 
   try {
     console.log("🚀 API Request:", req.method, req.url);
@@ -1983,11 +2016,13 @@ export default async function handler(req, res) {
       });
     }
     
-    // Withdrawals (legacy) - Frontend calls this endpoint - v10.0 FORCE DEPLOY
+    // Withdrawals (legacy) - Frontend calls this endpoint - v11.0 DB CHECK
     else if (req.method === 'GET' && path === '/api/withdrawals') {
       console.log("💰 ===== LEGACY WITHDRAWALS API CALLED =====");
       console.log("💰 Frontend calling /api/withdrawals endpoint");
       console.log("💰 Query params:", req.query);
+      console.log("🔍 MONGODB_URI:", MONGODB_URI);
+      console.log("🔍 DB_NAME:", DB_NAME);
       
       try {
         const { 
