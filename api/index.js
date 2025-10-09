@@ -3024,6 +3024,87 @@ export default async function handler(req, res) {
       });
     }
     
+    // Golden Egg Price Update - When egg is clicked, allow price update
+    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/golden-egg-price-update')) {
+      const customerId = path.split('/')[3];
+      const { taskNumber, taskPrice, hasGoldenEgg } = req.body;
+      
+      console.log("🥚 Golden egg price update:", { customerId, taskNumber, taskPrice, hasGoldenEgg });
+
+      try {
+        const customerTasksCollection = database.collection('customerTasks');
+        
+        // Get existing task
+        const existingTask = await customerTasksCollection.findOne({
+          customerId: customerId,
+          taskNumber: Number(taskNumber)
+        });
+        
+        // Get customer info
+        const usersCollection = database.collection('users');
+        let customer;
+        try {
+          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        } catch (objectIdError) {
+          customer = await usersCollection.findOne({ _id: customerId });
+        }
+        
+        // Update task with new price and golden egg status
+        const taskData = {
+          customerId: customerId,
+          customerCode: existingTask?.customerCode || customer?.membershipId || customer?.code || "",
+          taskNumber: Number(taskNumber),
+          campaignId: existingTask?.campaignId || `manual_combo_task_${taskNumber}`,
+          taskCommission: existingTask?.taskCommission || 0,
+          taskPrice: Number(taskPrice),
+          estimatedNegativeAmount: existingTask?.estimatedNegativeAmount || 0,
+          priceFrom: existingTask?.priceFrom || 0,
+          priceTo: existingTask?.priceTo || 0,
+          hasGoldenEgg: hasGoldenEgg !== undefined ? Boolean(hasGoldenEgg) : true, // Default to true when updating price
+          expiredDate: existingTask?.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: existingTask?.status || 'pending',
+          createdAt: existingTask?.createdAt || new Date(),
+          updatedAt: new Date()
+        };
+        
+        const result = await customerTasksCollection.updateOne(
+          { 
+            customerId: customerId,
+            taskNumber: Number(taskNumber)
+          },
+          { 
+            $set: taskData
+          },
+          { upsert: true }
+        );
+        
+        console.log("🥚 Golden egg price updated successfully:", result);
+
+        // Get the updated task to return complete data
+        const updatedTask = await customerTasksCollection.findOne({
+          customerId: customerId,
+          taskNumber: Number(taskNumber)
+        });
+
+        res.json({
+          success: true,
+          message: `Golden egg price updated successfully`,
+          data: updatedTask,
+          taskNumber: taskNumber,
+          hasGoldenEgg: updatedTask?.hasGoldenEgg,
+          taskPrice: updatedTask?.taskPrice,
+          customerId: customerId
+        });
+      } catch (error) {
+        console.error("❌ Error updating golden egg price:", error);
+        res.status(500).json({
+          success: false,
+          error: "Failed to update golden egg price",
+          details: error.message
+        });
+      }
+    }
+    
     // Toggle Golden Egg for combo task with price update
     else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/toggle-golden-egg')) {
       const customerId = path.split('/')[3];
@@ -3192,7 +3273,8 @@ export default async function handler(req, res) {
           estimatedNegativeAmount: estimatedNegativeAmount !== undefined ? Number(estimatedNegativeAmount) : (existingTask?.estimatedNegativeAmount || 0),
           priceFrom: priceFrom !== undefined ? Number(priceFrom) : (existingTask?.priceFrom || 0),
           priceTo: priceTo !== undefined ? Number(priceTo) : (existingTask?.priceTo || 0),
-          hasGoldenEgg: hasGoldenEgg !== undefined ? Boolean(hasGoldenEgg) : (existingTask?.hasGoldenEgg || false),
+          // Auto-set golden egg to true when price is updated from modal
+          hasGoldenEgg: hasGoldenEgg !== undefined ? Boolean(hasGoldenEgg) : (taskPrice !== undefined ? true : (existingTask?.hasGoldenEgg || false)),
           expiredDate: expiredDate ? new Date(expiredDate) : (existingTask?.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
           status: status || existingTask?.status || 'pending',
           createdAt: existingTask?.createdAt || new Date(),
@@ -3279,7 +3361,8 @@ export default async function handler(req, res) {
           estimatedNegativeAmount: existingTask?.estimatedNegativeAmount || 0,
           priceFrom: existingTask?.priceFrom || 0,
           priceTo: existingTask?.priceTo || 0,
-          hasGoldenEgg: existingTask?.hasGoldenEgg || false,
+          // Auto-set golden egg to true when price is updated
+          hasGoldenEgg: true,
           expiredDate: existingTask?.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           status: existingTask?.status || 'pending',
           createdAt: existingTask?.createdAt || new Date(),
