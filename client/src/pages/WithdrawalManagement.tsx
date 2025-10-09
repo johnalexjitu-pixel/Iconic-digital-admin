@@ -647,28 +647,187 @@ export default function WithdrawalManagement() {
                 </div>
               </div>
 
-              {/* Raw Data Debug */}
+              {/* Account Details */}
+              {selectedWithdrawal?.accountDetails && (
+                <div style={{
+                  backgroundColor: '#f8f9fa',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  border: '1px solid #e9ecef'
+                }}>
+                  <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
+                    🏦 Account Details
+                  </h3>
+                  <div style={{ display: 'grid', gap: '15px' }}>
+                    <div>
+                      <strong style={{ color: '#6c757d', fontSize: '14px' }}>Account Holder Name:</strong>
+                      <div style={{ color: '#495057', fontSize: '16px', fontWeight: '500' }}>
+                        {selectedWithdrawal.accountDetails.accountHolderName || 'N/A'}
+                      </div>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#6c757d', fontSize: '14px' }}>Account Number:</strong>
+                      <div style={{ color: '#495057', fontSize: '16px', fontFamily: 'monospace' }}>
+                        {selectedWithdrawal.accountDetails.accountNumber || 'N/A'}
+                      </div>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#6c757d', fontSize: '14px' }}>Mobile Number:</strong>
+                      <div style={{ color: '#495057', fontSize: '16px', fontFamily: 'monospace' }}>
+                        {selectedWithdrawal.accountDetails.mobileNumber || 'N/A'}
+                      </div>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#6c757d', fontSize: '14px' }}>Provider:</strong>
+                      <div style={{ color: '#495057', fontSize: '16px', textTransform: 'capitalize' }}>
+                        {selectedWithdrawal.accountDetails.provider || 'N/A'}
+                      </div>
+                    </div>
+                    {selectedWithdrawal.accountDetails.bankName && (
+                      <div>
+                        <strong style={{ color: '#6c757d', fontSize: '14px' }}>Bank Name:</strong>
+                        <div style={{ color: '#495057', fontSize: '16px' }}>
+                          {selectedWithdrawal.accountDetails.bankName}
+                        </div>
+                      </div>
+                    )}
+                    {selectedWithdrawal.accountDetails.branch && (
+                      <div>
+                        <strong style={{ color: '#6c757d', fontSize: '14px' }}>Branch:</strong>
+                        <div style={{ color: '#495057', fontSize: '16px' }}>
+                          {selectedWithdrawal.accountDetails.branch}
+                        </div>
+                      </div>
+                    )}
+                    {selectedWithdrawal.accountDetails.usdtAddress && (
+                      <div>
+                        <strong style={{ color: '#6c757d', fontSize: '14px' }}>USDT Address:</strong>
+                        <div style={{ color: '#495057', fontSize: '16px', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                          {selectedWithdrawal.accountDetails.usdtAddress}
+                        </div>
+                      </div>
+                    )}
+                    {selectedWithdrawal.accountDetails.usdtNetwork && (
+                      <div>
+                        <strong style={{ color: '#6c757d', fontSize: '14px' }}>USDT Network:</strong>
+                        <div style={{ color: '#495057', fontSize: '16px' }}>
+                          {selectedWithdrawal.accountDetails.usdtNetwork}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Uploaded Documents */}
+              {selectedWithdrawal?.accountDetails?.uploadedDocuments && selectedWithdrawal.accountDetails.uploadedDocuments.length > 0 && (
+                <div style={{
+                  backgroundColor: '#f8f9fa',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  border: '1px solid #e9ecef'
+                }}>
+                  <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
+                    📎 Uploaded Documents
+                  </h3>
+                  <div style={{ display: 'grid', gap: '15px' }}>
+                    {selectedWithdrawal.accountDetails.uploadedDocuments.map((doc: any, index: number) => (
+                      <div key={doc.documentId || index} style={{
+                        backgroundColor: '#ffffff',
+                        padding: '15px',
+                        borderRadius: '6px',
+                        border: '1px solid #dee2e6'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                          <strong style={{ color: '#495057', fontSize: '16px' }}>
+                            📄 {doc.fileName || 'Document'}
+                          </strong>
+                          <span style={{
+                            backgroundColor: '#e9ecef',
+                            color: '#495057',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '12px'
+                          }}>
+                            {doc.fileType || 'Unknown Type'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '14px' }}>
+                          <div>
+                            <strong style={{ color: '#6c757d' }}>Document ID:</strong>
+                            <div style={{ color: '#495057', fontFamily: 'monospace' }}>
+                              {doc.documentId || 'N/A'}
+                            </div>
+                          </div>
+                          <div>
+                            <strong style={{ color: '#6c757d' }}>File Size:</strong>
+                            <div style={{ color: '#495057' }}>
+                              {doc.fileSize ? `${(doc.fileSize / 1024).toFixed(1)} KB` : 'N/A'}
+                            </div>
+                          </div>
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <strong style={{ color: '#6c757d' }}>Uploaded At:</strong>
+                            <div style={{ color: '#495057' }}>
+                              {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleString() : 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Transaction Details */}
               <div style={{
-                backgroundColor: '#fff3cd',
+                backgroundColor: '#f8f9fa',
                 padding: '20px',
                 borderRadius: '8px',
-                border: '1px solid #ffc107'
+                border: '1px solid #e9ecef'
               }}>
-                <h3 style={{ margin: '0 0 15px 0', color: '#856404', fontSize: '18px' }}>
-                  🔍 Debug Information
+                <h3 style={{ margin: '0 0 15px 0', color: '#495057', fontSize: '18px' }}>
+                  📅 Transaction Details
                 </h3>
-                <pre style={{ 
-                  backgroundColor: '#ffffff', 
-                  padding: '15px', 
-                  borderRadius: '5px',
-                  overflow: 'auto',
-                  fontSize: '12px',
-                  border: '1px solid #dee2e6',
-                  maxHeight: '200px'
-                }}>
-                  {JSON.stringify(selectedWithdrawal, null, 2)}
-                </pre>
+                <div style={{ display: 'grid', gap: '15px' }}>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Submitted Date:</strong>
+                    <div style={{ color: '#495057', fontSize: '16px' }}>
+                      {selectedWithdrawal?.submittedAt ? new Date(selectedWithdrawal.submittedAt).toLocaleString() : 'N/A'}
+                    </div>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Created Date:</strong>
+                    <div style={{ color: '#495057', fontSize: '16px' }}>
+                      {selectedWithdrawal?.createdAt ? new Date(selectedWithdrawal.createdAt).toLocaleString() : 'N/A'}
+                    </div>
+                  </div>
+                  {selectedWithdrawal?.processedBy && (
+                    <div>
+                      <strong style={{ color: '#6c757d', fontSize: '14px' }}>Processed By:</strong>
+                      <div style={{ color: '#495057', fontSize: '16px' }}>
+                        {selectedWithdrawal.processedBy}
+                      </div>
+                    </div>
+                  )}
+                  {selectedWithdrawal?.adminNotes && (
+                    <div>
+                      <strong style={{ color: '#6c757d', fontSize: '14px' }}>Admin Notes:</strong>
+                      <div style={{ 
+                        color: '#495057', 
+                        fontSize: '16px',
+                        backgroundColor: '#ffffff',
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: '1px solid #dee2e6',
+                        marginTop: '5px'
+                      }}>
+                        {selectedWithdrawal.adminNotes}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+
             </div>
 
             {/* Modal Footer */}
