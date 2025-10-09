@@ -351,11 +351,13 @@ export default function WithdrawalManagement() {
       }}>
         <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>🔍 Debug Information</h4>
         <div style={{ fontSize: '12px', color: '#6c757d' }}>
+          <div><strong>Version:</strong> v13.0 - IMPROVED WITHDRAWAL MANAGEMENT</div>
           <div><strong>API Endpoint:</strong> /api/withdrawals</div>
           <div><strong>Database:</strong> MongoDB (iconicdigital)</div>
           <div><strong>Collection:</strong> withdrawals</div>
           <div><strong>Data Source:</strong> Real Database (Not Mock)</div>
           <div><strong>Last Fetch:</strong> {lastUpdate || 'Never'}</div>
+          <div><strong>Deployment:</strong> {new Date().toLocaleString()}</div>
         </div>
       </div>
     </div>

@@ -2016,7 +2016,7 @@ export default async function handler(req, res) {
       });
     }
     
-    // Withdrawals (legacy) - Frontend calls this endpoint - v11.0 DB CHECK
+    // Withdrawals (legacy) - Frontend calls this endpoint - v13.0 IMPROVED
     else if (req.method === 'GET' && path === '/api/withdrawals') {
       console.log("💰 ===== LEGACY WITHDRAWALS API CALLED =====");
       console.log("💰 Frontend calling /api/withdrawals endpoint");

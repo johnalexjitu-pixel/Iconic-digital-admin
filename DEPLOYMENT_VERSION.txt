@@ -1,4 +1,4 @@
-DEPLOYMENT VERSION: v12.0
-TIMESTAMP: 2025-01-09 07:35:00
-CHANGES: NEW WITHDRAWAL PAGE - REAL DATABASE DATA ONLY
-STATUS: Complete rewrite with proper TypeScript interfaces and real DB connection
+DEPLOYMENT VERSION: v13.0
+TIMESTAMP: 2025-01-09 08:00:00
+CHANGES: Improved withdrawal management with better debug info
+STATUS: Enhanced version tracking and deployment timestamp
