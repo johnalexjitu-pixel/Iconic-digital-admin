@@ -80,7 +80,7 @@ export default function WithdrawalManagement() {
           processedAt: new Date().toISOString()
         })
       });
-
+      
       const result = await response.json();
       
       if (result.success) {
@@ -277,7 +277,7 @@ export default function WithdrawalManagement() {
       {updateMessage && (
         <div style={{ 
           backgroundColor: updateMessage.type === 'success' ? '#d4edda' : '#f8d7da', 
-          padding: '15px', 
+            padding: '15px', 
           borderRadius: '8px',
           marginBottom: '20px',
           border: `1px solid ${updateMessage.type === 'success' ? '#28a745' : '#dc3545'}`
@@ -316,7 +316,7 @@ export default function WithdrawalManagement() {
               fontWeight: '600'
             }}>
               Withdrawal Requests ({processedWithdrawals.length} of {allProcessedWithdrawals.length} records)
-            </h3>
+          </h3>
             <p style={{ 
               margin: '0', 
               color: '#6c757d',

@@ -2883,134 +2883,59 @@ export default async function handler(req, res) {
     
     // Get combo tasks for a specific user - Fetch from campaigns collection
     else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks/')) {
-      console.log("🎯 MATCHED: Combo tasks endpoint");
+      console.log("🎯 MATCHED: Combo tasks endpoint - Simple approach like all tasks");
       const customerId = path.split('/')[3];
       console.log("🎯 Fetching combo tasks for customer:", customerId);
 
-      // Get customer info first with projection to reduce data transfer
-      const usersCollection = database.collection('users');
-      let customer;
       try {
-        customer = await usersCollection.findOne(
-          { _id: new ObjectId(customerId) },
-          { projection: { currentTask: 1, completedTasks: 1, membershipId: 1 } }
-        );
-      } catch (objectIdError) {
-        customer = await usersCollection.findOne(
-          { _id: customerId },
-          { projection: { currentTask: 1, completedTasks: 1, membershipId: 1 } }
-        );
-      }
-      
-      if (!customer) {
-        console.log("Customer not found:", customerId);
-        return res.json({ success: true, data: [], total: 0 });
-      }
-
-      // Get user's existing tasks from customerTasks collection with projection
-      const customerTasksCollection = database.collection('customerTasks');
-      console.log("🎯 Fetching user's existing tasks from customerTasks collection");
-      
-      // Get user's current task number from customer info
-      const currentTaskNumber = customer.currentTask || customer.completedTasks || 0;
-      console.log("🎯 User's current task number:", currentTaskNumber);
-      
-      // Create future tasks starting from current task number + 1
-      const startTaskNumber = currentTaskNumber + 1;
-      const endTaskNumber = startTaskNumber + 29; // Next 30 tasks
-      console.log("🎯 Creating tasks from", startTaskNumber, "to", endTaskNumber);
-      
-      // Get existing customer tasks with projection and limit
-      const existingTasks = await customerTasksCollection
-        .find({ 
-          customerId: customerId,
-          taskNumber: { $gte: startTaskNumber, $lte: endTaskNumber }
-        })
-        .projection({ taskNumber: 1, taskPrice: 1, hasGoldenEgg: 1, status: 1 })
-        .sort({ taskNumber: 1 })
-        .toArray();
-      
-      console.log("🎯 Found existing customer tasks:", existingTasks.length);
-      console.log("🎯 Expected: 30 tasks for combo tasks");
-      
-      console.log("🎯 Found existing future tasks:", existingFutureTasks.length);
-      
-      // Create missing future tasks
-      const tasksToCreate = [];
-      for (let i = startTaskNumber; i <= endTaskNumber; i++) {
-        const existingTask = existingTasks.find(task => task.taskNumber === i);
-        if (!existingTask) {
-          tasksToCreate.push({
-            _id: `future_${customerId}_${i}_${Date.now()}`,
-            customerId: customerId,
-            customerCode: customer?.membershipId || customer?.code || "",
-            taskNumber: i,
-            campaignId: `future_campaign_${i}`,
-            taskCommission: 0,
-            taskPrice: 100 + (i * 10), // Default prices
-            estimatedNegativeAmount: 0,
-            priceFrom: 0,
-            priceTo: 0,
-            hasGoldenEgg: false,
-            expiredDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            status: 'pending',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            campaignName: `Future Task ${i}`,
-            campaignLogo: "",
-            campaignType: "Free",
-            campaignCode: `FUTURE_${i}`,
-            name: `Future Task ${i}`,
-            price: 100 + (i * 10),
-            code: `FUTURE_${i}`,
-            logo: ""
-          });
+        // Get customer info with minimal projection
+        const usersCollection = database.collection('users');
+        let customer;
+        try {
+          customer = await usersCollection.findOne(
+            { _id: new ObjectId(customerId) },
+            { projection: { currentTask: 1, completedTasks: 1, membershipId: 1 } }
+          );
+        } catch (objectIdError) {
+          customer = await usersCollection.findOne(
+            { _id: customerId },
+            { projection: { currentTask: 1, completedTasks: 1, membershipId: 1 } }
+          );
         }
-      }
-      
-      if (tasksToCreate.length > 0) {
-        // Insert missing future tasks into database
-        await customerTasksCollection.insertMany(tasksToCreate);
-        console.log("💡 Created", tasksToCreate.length, "future tasks for user");
         
-        // Update existingTasks to include the newly created tasks
-        existingTasks.push(...tasksToCreate);
-      }
-      
-      // Filter tasks to show only the next 30 future tasks
-      const futureTasks = existingTasks
-        .filter(task => task.taskNumber >= startTaskNumber && task.taskNumber <= endTaskNumber)
-        .sort((a, b) => a.taskNumber - b.taskNumber);
-      
-      console.log("🎯 Future tasks to display:", futureTasks.length);
-      
-      console.log("🎯 First future task sample:", futureTasks[0] ? {
-        _id: futureTasks[0]._id,
-        taskNumber: futureTasks[0].taskNumber,
-        taskPrice: futureTasks[0].taskPrice,
-        hasGoldenEgg: futureTasks[0].hasGoldenEgg
-      } : "No future tasks found");
-      
-      // Log golden egg status for all tasks
-      console.log("🎯 Golden egg status for all tasks:", futureTasks.map(t => ({
-        taskNumber: t.taskNumber,
-        hasGoldenEgg: t.hasGoldenEgg
-      })));
+        if (!customer) {
+          console.log("Customer not found:", customerId);
+          return res.json({ success: true, data: [], total: 0 });
+        }
 
-      if (futureTasks.length === 0) {
-        console.log("No future tasks found for customer");
-        return res.json({ success: true, data: [], total: 0 });
-      }
-
-      // Convert future tasks to combo tasks format - USER'S FUTURE TASKS
-      const comboTasks = futureTasks.map((task) => {
-        const hasGoldenEgg = task.hasGoldenEgg || false;
-        console.log(`🎯 Mapping task ${task.taskNumber}: hasGoldenEgg = ${hasGoldenEgg} (original: ${task.hasGoldenEgg})`);
+        // Get user's current task number
+        const currentTaskNumber = customer.currentTask || customer.completedTasks || 0;
+        const startTaskNumber = currentTaskNumber + 1;
+        const endTaskNumber = startTaskNumber + 29; // Next 30 tasks
         
-        return {
+        // Get existing customer tasks with simple query (like all tasks)
+        const customerTasksCollection = database.collection('customerTasks');
+        const existingTasks = await customerTasksCollection
+          .find({ 
+            customerId: customerId,
+            taskNumber: { $gte: startTaskNumber, $lte: endTaskNumber }
+          })
+          .sort({ taskNumber: 1 })
+          .toArray();
+        
+        console.log("🎯 Found existing customer tasks:", existingTasks.length);
+        
+        // Simple response like all tasks - just return existing tasks
+        if (existingTasks.length === 0) {
+          console.log("No combo tasks found for customer");
+          return res.json({ success: true, data: [], total: 0 });
+        }
+
+        // Convert existing tasks to combo tasks format (simple like all tasks)
+        const comboTasks = existingTasks.map((task) => ({
           _id: task._id.toString(),
           customerId: task.customerId,
-          customerCode: task.customerCode || customer?.membershipId || customer?.code || "",
+          customerCode: task.customerCode || customer?.membershipId || "",
           taskNumber: task.taskNumber,
           campaignId: task.campaignId || `task_${task.taskNumber}`,
           taskCommission: task.taskCommission || 0,
@@ -3018,47 +2943,30 @@ export default async function handler(req, res) {
           estimatedNegativeAmount: task.estimatedNegativeAmount || 0,
           priceFrom: task.priceFrom || 0,
           priceTo: task.priceTo || 0,
-          hasGoldenEgg: hasGoldenEgg,
+          hasGoldenEgg: task.hasGoldenEgg || false,
           expiredDate: task.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           status: task.status || 'pending',
           createdAt: task.createdAt || new Date(),
           updatedAt: task.updatedAt || new Date(),
-          // Task fields
           campaignName: task.campaignName || `Task ${task.taskNumber}`,
           campaignLogo: task.campaignLogo || "",
           campaignType: task.campaignType || "Free",
           campaignCode: task.campaignCode || `TASK${task.taskNumber}`,
-          // Additional fields for compatibility
           name: task.campaignName || `Task ${task.taskNumber}`,
           price: task.taskPrice || 0,
           code: task.campaignCode || `TASK${task.taskNumber}`,
           logo: task.campaignLogo || ""
-        };
-      });
+        }));
 
-
-      console.log("🎯 Converted to combo tasks:", comboTasks.length);
-      console.log("🎯 Expected: 30 combo tasks");
-      console.log("🎯 Sample combo task:", comboTasks[0]);
-      
-      console.log("🎯 Combo tasks created from existing customer tasks:", comboTasks.length);
-      
-      // Log golden egg status in final response
-      console.log("🎯 Final golden egg status in response:", comboTasks.map(t => ({
-        taskNumber: t.taskNumber,
-        hasGoldenEgg: t.hasGoldenEgg
-      })));
-      
-      console.log("🎯 Sending response with", comboTasks.length, "combo tasks");
-      
-      const response = { success: true, data: comboTasks, total: comboTasks.length };
-      console.log("🎯 Response structure:", {
-        success: response.success,
-        dataLength: response.data.length,
-        total: response.total
-      });
-      
-      res.json(response);
+        console.log("🎯 Converted to combo tasks:", comboTasks.length);
+        
+        // Simple response like all tasks
+        res.json({ success: true, data: comboTasks, total: comboTasks.length });
+        
+      } catch (error) {
+        console.error("❌ Error fetching combo tasks:", error);
+        res.status(500).json({ success: false, error: "Failed to fetch combo tasks" });
+      }
     }
     
     // Update combo task prices by range
