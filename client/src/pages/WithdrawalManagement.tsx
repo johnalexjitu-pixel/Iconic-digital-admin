@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
 
 interface WithdrawalData {
   _id: string;
@@ -23,15 +22,10 @@ interface WithdrawalData {
 }
 
 export default function WithdrawalManagement() {
-  const [location] = useLocation();
   const [withdrawals, setWithdrawals] = useState<WithdrawalData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>("");
-
-  // Debug routing
-  console.log("🔍 WithdrawalManagement component loaded");
-  console.log("🔍 Current route:", location);
 
   const fetchWithdrawals = async () => {
     try {

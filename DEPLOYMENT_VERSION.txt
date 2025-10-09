@@ -1,4 +1,4 @@
-DEPLOYMENT VERSION: v13.0
-TIMESTAMP: 2025-01-09 07:45:00
-CHANGES: ROUTING DEBUG ADDED - CHECK NAVIGATION ISSUES
-STATUS: Added debug logs to App.tsx and WithdrawalManagement for routing troubleshooting
+DEPLOYMENT VERSION: v12.0
+TIMESTAMP: 2025-01-09 07:35:00
+CHANGES: NEW WITHDRAWAL PAGE - REAL DATABASE DATA ONLY
+STATUS: Complete rewrite with proper TypeScript interfaces and real DB connection
