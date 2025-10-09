@@ -2573,35 +2573,29 @@ export default async function handler(req, res) {
       });
     }
     
-    // Update Combo Task
-    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/')) {
-      const comboTaskId = path.split('/').pop();
-      const { status, completedTasks, comboCommission } = req.body;
-      console.log("✏️ Updating combo task:", comboTaskId);
+    // Update Combo Task (for customerTasks collection)
+    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && !path.includes('/save-task-price') && !path.includes('/toggle-golden-egg')) {
+      const customerId = path.split('/')[3];
+      const { taskNumber, status, hasGoldenEgg, taskPrice } = req.body;
+      console.log("✏️ Updating combo task in customerTasks:", { customerId, taskNumber, status, hasGoldenEgg, taskPrice });
 
-      const comboTasksCollection = database.collection('comboTasks');
+      const customerTasksCollection = database.collection('customerTasks');
       const updateData = {
         updatedAt: new Date()
       };
 
       if (status) updateData.status = status;
-      if (completedTasks) updateData.completedTasks = completedTasks;
-      if (comboCommission !== undefined) updateData.comboCommission = comboCommission;
+      if (hasGoldenEgg !== undefined) updateData.hasGoldenEgg = hasGoldenEgg;
+      if (taskPrice !== undefined) updateData.taskPrice = taskPrice;
 
-      let result;
-      try {
-        result = await comboTasksCollection.findOneAndUpdate(
-          { _id: new ObjectId(comboTaskId) },
-          { $set: updateData },
-          { returnDocument: 'after' }
-        );
-      } catch (objectIdError) {
-        result = await comboTasksCollection.findOneAndUpdate(
-          { _id: comboTaskId },
-          { $set: updateData },
-          { returnDocument: 'after' }
-        );
-      }
+      const result = await customerTasksCollection.findOneAndUpdate(
+        { 
+          customerId: customerId,
+          taskNumber: Number(taskNumber)
+        },
+        { $set: updateData },
+        { returnDocument: 'after', upsert: true }
+      );
 
       if (!result) {
         return res.status(404).json({
@@ -2610,7 +2604,7 @@ export default async function handler(req, res) {
         });
       }
 
-      console.log("✅ Combo task updated successfully:", comboTaskId);
+      console.log("✅ Combo task updated successfully in customerTasks:", result);
 
       res.json({
         success: true,
@@ -3169,9 +3163,16 @@ export default async function handler(req, res) {
 
         console.log("✅ Task price saved successfully:", result);
 
+        // Get the updated task to return complete data
+        const updatedTask = await customerTasksCollection.findOne({
+          customerId: customerId,
+          taskNumber: Number(taskNumber)
+        });
+
         res.json({
           success: true,
           message: `Task ${taskNumber} price saved successfully`,
+          data: updatedTask,
           taskNumber: taskNumber,
           taskPrice: taskPrice,
           customerId: customerId
