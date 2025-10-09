@@ -2886,16 +2886,20 @@ export default async function handler(req, res) {
       console.log("🎯 MATCHED: Combo tasks endpoint");
       const customerId = path.split('/')[3];
       console.log("🎯 Fetching combo tasks for customer:", customerId);
-      console.log("🎯 Full path:", path);
-      console.log("🎯 Customer ID extracted:", customerId);
 
-      // Get customer info first
+      // Get customer info first with projection to reduce data transfer
       const usersCollection = database.collection('users');
       let customer;
       try {
-        customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        customer = await usersCollection.findOne(
+          { _id: new ObjectId(customerId) },
+          { projection: { currentTask: 1, completedTasks: 1, membershipId: 1 } }
+        );
       } catch (objectIdError) {
-        customer = await usersCollection.findOne({ _id: customerId });
+        customer = await usersCollection.findOne(
+          { _id: customerId },
+          { projection: { currentTask: 1, completedTasks: 1, membershipId: 1 } }
+        );
       }
       
       if (!customer) {
@@ -2903,22 +2907,9 @@ export default async function handler(req, res) {
         return res.json({ success: true, data: [], total: 0 });
       }
 
-      // Get user's existing tasks from customerTasks collection
+      // Get user's existing tasks from customerTasks collection with projection
       const customerTasksCollection = database.collection('customerTasks');
       console.log("🎯 Fetching user's existing tasks from customerTasks collection");
-      
-      // Check what collections exist
-      const collections = await database.listCollections().toArray();
-      console.log("🎯 Available collections:", collections.map(c => c.name));
-      
-      // Get existing customer tasks
-      const existingTasks = await customerTasksCollection
-        .find({ customerId: customerId })
-        .sort({ taskNumber: 1 })
-        .toArray();
-      
-      console.log("🎯 Found existing customer tasks:", existingTasks.length);
-      console.log("🎯 Expected: 30 tasks for combo tasks");
       
       // Get user's current task number from customer info
       const currentTaskNumber = customer.currentTask || customer.completedTasks || 0;
@@ -2929,10 +2920,18 @@ export default async function handler(req, res) {
       const endTaskNumber = startTaskNumber + 29; // Next 30 tasks
       console.log("🎯 Creating tasks from", startTaskNumber, "to", endTaskNumber);
       
-      // Check which future tasks already exist
-      const existingFutureTasks = existingTasks.filter(task => 
-        task.taskNumber >= startTaskNumber && task.taskNumber <= endTaskNumber
-      );
+      // Get existing customer tasks with projection and limit
+      const existingTasks = await customerTasksCollection
+        .find({ 
+          customerId: customerId,
+          taskNumber: { $gte: startTaskNumber, $lte: endTaskNumber }
+        })
+        .projection({ taskNumber: 1, taskPrice: 1, hasGoldenEgg: 1, status: 1 })
+        .sort({ taskNumber: 1 })
+        .toArray();
+      
+      console.log("🎯 Found existing customer tasks:", existingTasks.length);
+      console.log("🎯 Expected: 30 tasks for combo tasks");
       
       console.log("🎯 Found existing future tasks:", existingFutureTasks.length);
       
