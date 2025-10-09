@@ -1,7 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useState, useMemo } from "react";
 
 export default function WithdrawalManagement() {
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState("");
+  const [methodFilter, setMethodFilter] = useState("");
+  const [customerIdFilter, setCustomerIdFilter] = useState("");
   // Fetch withdrawals using same pattern as TaskManagement
   const { data: withdrawalsResponse, isLoading, error, refetch } = useQuery<{
     success: boolean;
@@ -18,7 +23,7 @@ export default function WithdrawalManagement() {
   });
 
   // Process withdrawals data - same pattern as TaskManagement
-  const processedWithdrawals = withdrawalsResponse?.data?.map((withdrawal: any, index: number) => ({
+  const allProcessedWithdrawals = withdrawalsResponse?.data?.map((withdrawal: any, index: number) => ({
     id: withdrawal._id,
     customerName: withdrawal.customer?.name || 'N/A',
     customerId: withdrawal.customer?.membershipId || 'N/A',
@@ -32,6 +37,18 @@ export default function WithdrawalManagement() {
     processedBy: withdrawal.processedBy || '',
     accountDetails: withdrawal.accountDetails || {}
   })) || [];
+
+  // Filter withdrawals based on filters
+  const processedWithdrawals = useMemo(() => {
+    return allProcessedWithdrawals.filter(withdrawal => {
+      const matchesStatus = !statusFilter || withdrawal.status === statusFilter;
+      const matchesMethod = !methodFilter || withdrawal.method === methodFilter;
+      const matchesCustomerId = !customerIdFilter || 
+        withdrawal.customerId.toString().toLowerCase().includes(customerIdFilter.toLowerCase());
+      
+      return matchesStatus && matchesMethod && matchesCustomerId;
+    });
+  }, [allProcessedWithdrawals, statusFilter, methodFilter, customerIdFilter]);
 
   // Extract data for compatibility
   const data = withdrawalsResponse || null;
@@ -77,12 +94,16 @@ export default function WithdrawalManagement() {
             <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', color: '#6c757d' }}>
               Status:
             </label>
-            <select style={{ 
-              padding: '8px 12px', 
-              border: '1px solid #ced4da', 
-              borderRadius: '4px',
-              fontSize: '14px'
-            }}>
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ 
+                padding: '8px 12px', 
+                border: '1px solid #ced4da', 
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
+            >
               <option value="">All Status</option>
               <option value="pending">Pending</option>
               <option value="completed">Completed</option>
@@ -93,14 +114,20 @@ export default function WithdrawalManagement() {
             <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', color: '#6c757d' }}>
               Method:
             </label>
-            <select style={{ 
-              padding: '8px 12px', 
-              border: '1px solid #ced4da', 
-              borderRadius: '4px',
-              fontSize: '14px'
-            }}>
+            <select 
+              value={methodFilter}
+              onChange={(e) => setMethodFilter(e.target.value)}
+              style={{ 
+                padding: '8px 12px', 
+                border: '1px solid #ced4da', 
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
+            >
               <option value="">All Methods</option>
               <option value="bkash">bKash</option>
+              <option value="nagad">Nagad</option>
+              <option value="rocket">Rocket</option>
               <option value="bank">Bank Transfer</option>
               <option value="crypto">Crypto</option>
             </select>
@@ -112,6 +139,8 @@ export default function WithdrawalManagement() {
             <input 
               type="text" 
               placeholder="Enter customer ID"
+              value={customerIdFilter}
+              onChange={(e) => setCustomerIdFilter(e.target.value)}
               style={{ 
                 padding: '8px 12px', 
                 border: '1px solid #ced4da', 
@@ -121,7 +150,26 @@ export default function WithdrawalManagement() {
               }}
             />
           </div>
-          <div style={{ alignSelf: 'flex-end' }}>
+          <div style={{ alignSelf: 'flex-end', display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => {
+                setStatusFilter("");
+                setMethodFilter("");
+                setCustomerIdFilter("");
+              }}
+              style={{ 
+                backgroundColor: '#6c757d',
+                color: 'white',
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              🗑️ Clear
+            </button>
             <button style={{ 
               backgroundColor: '#6f42c1',
               color: 'white',
@@ -188,14 +236,17 @@ export default function WithdrawalManagement() {
               fontSize: '18px',
               fontWeight: '600'
             }}>
-              📋 Withdrawal Requests ({processedWithdrawals.length} records)
+              📋 Withdrawal Requests ({processedWithdrawals.length} of {allProcessedWithdrawals.length} records)
             </h3>
             <p style={{ 
               margin: '0', 
               color: '#6c757d',
               fontSize: '14px'
             }}>
-              Showing all withdrawal requests with real-time updates
+              {statusFilter || methodFilter || customerIdFilter ? 
+                `Filtered by: ${[statusFilter && `Status: ${statusFilter}`, methodFilter && `Method: ${methodFilter}`, customerIdFilter && `Customer ID: ${customerIdFilter}`].filter(Boolean).join(', ')}` :
+                'Showing all withdrawal requests with real-time updates'
+              }
             </p>
           </div>
           
