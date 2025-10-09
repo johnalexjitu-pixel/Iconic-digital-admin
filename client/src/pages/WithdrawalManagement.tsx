@@ -1,44 +1,24 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function WithdrawalManagement() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Fetch withdrawals from MongoDB using React Query - same pattern as TaskManagement
+  const { data: withdrawalsResponse, isLoading, error, refetch } = useQuery<{
+    success: boolean;
+    data: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>({
+    queryKey: ["/api/frontend/withdrawals"],
+    refetchInterval: 5000, // Auto-refresh every 5 seconds for real-time updates
+  });
 
-  useEffect(() => {
-    fetchWithdrawals();
-  }, []);
-
-  const fetchWithdrawals = async () => {
-    try {
-      console.log("🔍 Fetching withdrawals...");
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch("/api/withdrawals?_t=" + Date.now(), {
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      
-      console.log("🔍 Response status:", response.status);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log("🔍 API Response:", result);
-      
-      setData(result);
-    } catch (err) {
-      console.error("❌ Error:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Extract data for easier access
+  const data = withdrawalsResponse || null;
+  const loading = isLoading;
 
   return (
     <div style={{ 
@@ -55,10 +35,10 @@ export default function WithdrawalManagement() {
         border: '2px solid #4CAF50'
       }}>
         <h1 style={{ color: '#2196F3', margin: '0 0 10px 0' }}>
-          🚀 WITHDRAWAL MANAGEMENT - DIRECT DATA SHOW
+          🚀 WITHDRAWAL MANAGEMENT - REACT QUERY
         </h1>
         <p style={{ color: '#666', margin: '0' }}>
-          Version: v11.0 - ALL FUNCTIONALITIES REMOVED - DIRECT DATA DISPLAY
+          Version: v12.0 - Using React Query (Same as TaskManagement) - Auto-refresh every 5s
         </p>
       </div>
 
@@ -75,7 +55,7 @@ export default function WithdrawalManagement() {
         </h3>
         <div style={{ fontSize: '14px' }}>
           <div><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</div>
-          <div><strong>Error:</strong> {error || 'None'}</div>
+          <div><strong>Error:</strong> {error?.message || 'None'}</div>
           <div><strong>Data Available:</strong> {data ? 'Yes' : 'No'}</div>
           {data && <div><strong>Success:</strong> {data.success ? 'Yes' : 'No'}</div>}
           {data && <div><strong>Data Count:</strong> {data.data?.length || 0}</div>}
@@ -207,7 +187,7 @@ export default function WithdrawalManagement() {
       {/* REFRESH BUTTON */}
       <div style={{ textAlign: 'center', marginTop: '20px' }}>
         <button 
-          onClick={fetchWithdrawals}
+          onClick={() => refetch()}
           style={{
             backgroundColor: '#007bff',
             color: 'white',
@@ -219,7 +199,7 @@ export default function WithdrawalManagement() {
             fontWeight: 'bold'
           }}
         >
-          🔄 REFRESH DATA
+          🔄 REFRESH DATA (Auto-refreshes every 5s)
         </button>
       </div>
     </div>
