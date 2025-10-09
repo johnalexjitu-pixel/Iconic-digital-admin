@@ -2908,28 +2908,76 @@ export default async function handler(req, res) {
           return res.json({ success: true, data: [], total: 0 });
         }
 
-        // Get ALL customer tasks (same as customer-tasks endpoint)
+        // Get user's current task number for combo tasks
+        const currentTaskNumber = customer.currentTask || customer.completedTasks || 0;
+        console.log("🎯 User's current task number:", currentTaskNumber);
+        
+        // Get ALL customer tasks (current + future tasks for combo)
         const customerTasksCollection = database.collection('customerTasks');
         const existingTasks = await customerTasksCollection
           .find({ customerId: customerId })
           .sort({ taskNumber: 1 })
           .toArray();
         
-        console.log("🎯 Found existing customer tasks:", existingTasks.length);
+        console.log("🎯 Found all customer tasks:", existingTasks.length);
         
-        // Simple response like all tasks - just return existing tasks
-        if (existingTasks.length === 0) {
-          console.log("No combo tasks found for customer");
-          return res.json({ success: true, data: [], total: 0 });
+        // Create future tasks if they don't exist (for combo tasks)
+        const startTaskNumber = currentTaskNumber + 1;
+        const endTaskNumber = startTaskNumber + 29; // Next 30 tasks for combo
+        
+        const tasksToCreate = [];
+        for (let i = startTaskNumber; i <= endTaskNumber; i++) {
+          const existingTask = existingTasks.find(task => task.taskNumber === i);
+          if (!existingTask) {
+            tasksToCreate.push({
+              _id: `combo_${customerId}_${i}_${Date.now()}`,
+              customerId: customerId,
+              customerCode: customer?.membershipId || "",
+              taskNumber: i,
+              campaignId: `combo_task_${i}`,
+              taskCommission: 0,
+              taskPrice: 100 + (i * 10), // Default prices
+              estimatedNegativeAmount: 0,
+              priceFrom: 0,
+              priceTo: 0,
+              hasGoldenEgg: false,
+              expiredDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              status: 'pending',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              campaignName: `Combo Task ${i}`,
+              campaignLogo: "",
+              campaignType: "Combo",
+              campaignCode: `COMBO_${i}`,
+              name: `Combo Task ${i}`,
+              price: 100 + (i * 10),
+              code: `COMBO_${i}`,
+              logo: ""
+            });
+          }
         }
-
-        // Convert existing tasks to combo tasks format (simple like all tasks)
-        const comboTasks = existingTasks.map((task) => ({
+        
+        if (tasksToCreate.length > 0) {
+          await customerTasksCollection.insertMany(tasksToCreate);
+          console.log("💡 Created", tasksToCreate.length, "combo tasks for user");
+          existingTasks.push(...tasksToCreate);
+        }
+        
+        // Filter to show current task and next 30 future tasks for combo
+        const comboTasks = existingTasks
+          .filter(task => task.taskNumber >= currentTaskNumber && task.taskNumber <= endTaskNumber)
+          .sort((a, b) => a.taskNumber - b.taskNumber);
+        
+        console.log("🎯 Combo tasks to show:", comboTasks.length);
+        console.log("🎯 Current task:", currentTaskNumber, "to", endTaskNumber);
+        
+        // Convert combo tasks to response format
+        const comboTaskResponse = comboTasks.map((task) => ({
           _id: task._id.toString(),
           customerId: task.customerId,
           customerCode: task.customerCode || customer?.membershipId || "",
           taskNumber: task.taskNumber,
-          campaignId: task.campaignId || `task_${task.taskNumber}`,
+          campaignId: task.campaignId || `combo_task_${task.taskNumber}`,
           taskCommission: task.taskCommission || 0,
           taskPrice: task.taskPrice || 0,
           estimatedNegativeAmount: task.estimatedNegativeAmount || 0,
@@ -2940,20 +2988,20 @@ export default async function handler(req, res) {
           status: task.status || 'pending',
           createdAt: task.createdAt || new Date(),
           updatedAt: task.updatedAt || new Date(),
-          campaignName: task.campaignName || `Task ${task.taskNumber}`,
+          campaignName: task.campaignName || `Combo Task ${task.taskNumber}`,
           campaignLogo: task.campaignLogo || "",
-          campaignType: task.campaignType || "Free",
-          campaignCode: task.campaignCode || `TASK${task.taskNumber}`,
-          name: task.campaignName || `Task ${task.taskNumber}`,
+          campaignType: task.campaignType || "Combo",
+          campaignCode: task.campaignCode || `COMBO_${task.taskNumber}`,
+          name: task.campaignName || `Combo Task ${task.taskNumber}`,
           price: task.taskPrice || 0,
-          code: task.campaignCode || `TASK${task.taskNumber}`,
+          code: task.campaignCode || `COMBO_${task.taskNumber}`,
           logo: task.campaignLogo || ""
         }));
 
-        console.log("🎯 Converted to combo tasks:", comboTasks.length);
+        console.log("🎯 Final combo tasks response:", comboTaskResponse.length);
         
-        // Simple response like all tasks
-        res.json({ success: true, data: comboTasks, total: comboTasks.length });
+        // Response with combo tasks (current + future)
+        res.json({ success: true, data: comboTaskResponse, total: comboTaskResponse.length });
         
       } catch (error) {
         console.error("❌ Error fetching combo tasks:", error);
