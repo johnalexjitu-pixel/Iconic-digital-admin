@@ -3170,6 +3170,9 @@ export default async function handler(req, res) {
           updateData.taskPrice = Number(taskPrice);
         }
         
+        console.log("🟡 Update data being sent to database:", updateData);
+        console.log("🟡 Query filter:", { customerId: customerId, taskNumber: Number(taskNumber) });
+        
         const result = await customerTasksCollection.updateOne(
           { 
             customerId: customerId,
@@ -3177,10 +3180,13 @@ export default async function handler(req, res) {
           },
           { 
             $set: updateData
-          }
+          },
+          { upsert: true }
         );
         
-        console.log("🟡 Update result:", { matchedCount: result.matchedCount, modifiedCount: result.modifiedCount });
+        console.log("🟡 Database update result:", result);
+        console.log("🟡 Modified count:", result.modifiedCount);
+        console.log("🟡 Upserted id:", result.upsertedId);
 
         if (result.matchedCount === 0) {
           console.log("⚠️ No task found for customer:", customerId, "task:", taskNumber);

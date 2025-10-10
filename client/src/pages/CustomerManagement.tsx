@@ -232,7 +232,7 @@ export default function CustomerManagement() {
           estimatedNegativeAmount: Number(taskEditModal.negativeAmount),
           priceFrom: Number(taskEditModal.priceFrom),
           priceTo: Number(taskEditModal.priceTo),
-          hasGoldenEgg: taskEditModal.hasGoldenEgg,
+          hasGoldenEgg: true, // Always set to true when saving from modal
         },
       });
 
@@ -250,7 +250,8 @@ export default function CustomerManagement() {
         negativeAmount: "",
         priceFrom: "",
         priceTo: "",
-        selectedOption: ""
+        selectedOption: "",
+        hasGoldenEgg: false
       });
     } catch (error) {
       toast({
@@ -346,12 +347,12 @@ export default function CustomerManagement() {
       }
 
       const newPrice = taskPrices[task._id];
-      if (newPrice === undefined || newPrice === null || newPrice === '') {
+      if (newPrice === undefined || newPrice === null) {
         throw new Error("Please enter a valid price");
       }
       
       // Allow negative prices for special cases
-      const numericPrice = parseFloat(newPrice);
+      const numericPrice = parseFloat(newPrice.toString());
       if (isNaN(numericPrice)) {
         throw new Error("Please enter a valid numeric price");
       }
@@ -1707,7 +1708,7 @@ export default function CustomerManagement() {
                                   variant="outline"
                                   onClick={() => handleSaveTaskPrice(task)}
                                   className="h-8 px-2 text-xs"
-                                  disabled={taskPrices[task._id] === undefined || taskPrices[task._id] === null || taskPrices[task._id] === ''}
+                                  disabled={taskPrices[task._id] === undefined || taskPrices[task._id] === null}
                                 >
                                   {t('save')}
                                 </Button>
