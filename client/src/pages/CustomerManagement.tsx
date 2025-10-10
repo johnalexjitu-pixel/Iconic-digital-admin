@@ -1928,12 +1928,27 @@ export default function CustomerManagement() {
               </div>
             </div>
 
-            <div className="flex justify-center pt-4">
+            <div className="flex justify-center gap-4 pt-4">
               <Button
                 onClick={handleTaskEditSave}
-                className="px-12"
+                className="px-12 bg-yellow-500 hover:bg-yellow-600"
               >
                 {t('save')}
+              </Button>
+              <Button
+                onClick={() => {
+                  // Deactivate golden egg for this task
+                  const task = {
+                    taskNumber: taskEditModal.taskNumber,
+                    hasGoldenEgg: false
+                  };
+                  handleGoldenEggToggle(task, false);
+                  setTaskEditModal({ ...taskEditModal, open: false });
+                }}
+                variant="outline"
+                className="px-12 bg-red-500 hover:bg-red-600 text-white border-red-500"
+              >
+                Deactivate
               </Button>
             </div>
           </div>
