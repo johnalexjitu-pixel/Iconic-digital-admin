@@ -411,7 +411,7 @@ export default function CustomerManagement() {
   };
 
   // Toggle campaign status (EXACT same as withdrawStatus approach)
-  const handleAllowTask = async (customer: any) => {
+  const handleToggleCampaignStatus = async (customer: any) => {
     try {
       const newStatus = customer.allowTask ? 'inactive' : 'active';
       const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
@@ -938,7 +938,7 @@ export default function CustomerManagement() {
                     </div>
                     <div 
                       className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-                      onClick={() => handleAllowTask(customer)}
+                      onClick={() => handleToggleCampaignStatus(customer)}
                     >
                       {customer.allowTask ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
                       <span className={customer.allowTask ? "text-blue-600" : "text-red-600"}>
