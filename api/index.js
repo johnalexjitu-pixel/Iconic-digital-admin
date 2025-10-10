@@ -3509,13 +3509,9 @@ export default async function handler(req, res) {
         data: taskStats
       });
     }
-    
-    else {
-      res.status(404).json({ error: 'Endpoint not found' });
-    }
 
-  // Create deposit endpoint
-  else if (req.method === 'POST' && path === '/api/frontend/deposits') {
+    // Create deposit endpoint
+    else if (req.method === 'POST' && path === '/api/frontend/deposits') {
     console.log("💰 Creating deposit:", req.body);
 
     try {
@@ -3633,7 +3629,10 @@ export default async function handler(req, res) {
         details: error.message
       });
     }
-  }
+
+    else {
+      res.status(404).json({ error: 'Endpoint not found' });
+    }
     
   } catch (error) {
     console.error('API Error:', error);
