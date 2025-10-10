@@ -938,7 +938,29 @@ export default function CustomerManagement() {
                     </div>
                     <div 
                       className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-                      onClick={() => handleToggleCampaignStatus(customer)}
+                      onClick={async () => {
+                        try {
+                          const newStatus = customer.allowTask ? 'inactive' : 'active';
+                          const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
+                            campaignStatus: newStatus
+                          });
+                          const result = await response.json();
+                          
+                          if (result.success) {
+                            toast({
+                              title: "Success",
+                              description: "Campaign status updated successfully",
+                            });
+                            queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+                          }
+                        } catch (error: any) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to update campaign status",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
                     >
                       {customer.allowTask ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
                       <span className={customer.allowTask ? "text-blue-600" : "text-red-600"}>
