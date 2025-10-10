@@ -208,11 +208,11 @@ export default function UserManagement() {
           <TableHeader>
             <TableRow className="bg-muted">
               <TableHead className="text-muted-foreground">{t('createdDate')}</TableHead>
-              <TableHead className="text-muted-foreground">{t('adminName')}</TableHead>
-              <TableHead className="text-muted-foreground">{t('whatsappUrl')}</TableHead>
-              <TableHead className="text-muted-foreground">{t('telegramUrl')}</TableHead>
-              <TableHead className="text-muted-foreground">{t('telegramUrl')} 2</TableHead>
-              <TableHead className="text-muted-foreground">{t('telegramUrl')} 3</TableHead>
+              <TableHead className="text-muted-foreground">{t('userName')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('Phone Number')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('level')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('membershipId')} 2</TableHead>
+              <TableHead className="text-muted-foreground">{t('accountBalance')} 3</TableHead>
               <TableHead className="text-muted-foreground">{t('actions')}</TableHead>
             </TableRow>
           </TableHeader>
