@@ -961,8 +961,8 @@ export default async function handler(req, res) {
       const users = await usersCollection
         .find(query, { 
           projection: { 
-            password: 0, 
             withdrawalPassword: 0,
+            // Include password field for admin view
             // Include all fields including username and number
           } 
         })
