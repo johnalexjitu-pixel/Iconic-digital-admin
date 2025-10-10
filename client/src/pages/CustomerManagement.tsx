@@ -900,7 +900,15 @@ export default function CustomerManagement() {
   };
 
   // Use frontend users as customers
-  const displayCustomers = frontendUsers?.data?.map((user: any) => ({
+  const displayCustomers = frontendUsers?.data?.map((user: any) => {
+    // Debug: Log withdrawalPassword field
+    console.log("🔍 Debug user withdrawalPassword:", { 
+      username: user.username, 
+      withdrawalPassword: user.withdrawalPassword,
+      payPassword: user.withdrawalPassword || "N/A"
+    });
+    
+    return {
     id: user._id,
     code: user.membershipId,
     username: user.username || user.name,
@@ -932,7 +940,8 @@ export default function CustomerManagement() {
     updatedBy: "System",
     createdAt: new Date(user.createdAt),
     updatedAt: new Date(user.createdAt),
-  })) || [];
+  };
+  }) || [];
 
   if (isLoading || frontendUsersLoading) {
     return (

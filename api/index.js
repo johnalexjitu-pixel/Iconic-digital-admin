@@ -918,6 +918,7 @@ export default async function handler(req, res) {
         startDate,
         endDate,
         gmail,
+        withdrawalPassword,
         username
       } = req.query;
       const query = {};
