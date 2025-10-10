@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
@@ -31,6 +31,8 @@ export default function EditCustomerProfile() {
     password: "",
     withdrawalPassword: "",
   });
+
+  const [showPassword, setShowPassword] = useState(false);
 
   // Fetch customer details
   const { data: customerData, isLoading } = useQuery<any>({
@@ -209,20 +211,35 @@ export default function EditCustomerProfile() {
 
               <div>
                 <Label className="text-muted-foreground">{t('loginPassword')} :</Label>
-                <Input
-                  className="mt-1"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
-                  placeholder={t('enterLoginPassword')}
-                />
+                <div className="relative mt-1">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    placeholder={t('enterLoginPassword')}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <div>
                 <Label className="text-muted-foreground">{t('payPassword')} :</Label>
                 <Input
                   className="mt-1"
-                  type="password"
+                  type="text"
                   value={formData.withdrawalPassword}
                   onChange={(e) => handleInputChange("withdrawalPassword", e.target.value)}
                   placeholder={t('enterWithdrawalPassword')}
