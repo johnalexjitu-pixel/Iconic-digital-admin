@@ -28,6 +28,8 @@ export default function EditCustomerProfile() {
     campaignsCompleted: 0,
     membershipId: "",
     referralCode: "",
+    password: "",
+    withdrawalPassword: "",
   });
 
   // Fetch customer details
@@ -59,6 +61,8 @@ export default function EditCustomerProfile() {
         campaignsCompleted: user.campaignsCompleted || 0,
         membershipId: user.membershipId || "",
         referralCode: user.referralCode || "",
+        password: user.password || "",
+        withdrawalPassword: user.withdrawalPassword || "",
       });
     }
   }, [customerData]);
@@ -200,6 +204,28 @@ export default function EditCustomerProfile() {
                   value={formData.referralCode}
                   disabled
                   readOnly
+                />
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground">{t('loginPassword')} :</Label>
+                <Input
+                  className="mt-1"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  placeholder={t('enterLoginPassword')}
+                />
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground">{t('payPassword')} :</Label>
+                <Input
+                  className="mt-1"
+                  type="password"
+                  value={formData.withdrawalPassword}
+                  onChange={(e) => handleInputChange("withdrawalPassword", e.target.value)}
+                  placeholder={t('enterWithdrawalPassword')}
                 />
               </div>
             </div>
