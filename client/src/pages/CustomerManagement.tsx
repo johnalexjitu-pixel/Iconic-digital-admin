@@ -414,34 +414,25 @@ export default function CustomerManagement() {
     console.log("🎯 Allow task clicked for customer:", customer);
     
     try {
-      // Call API to allow customer and initialize 30 tasks
-      const response = await fetch(`/api/frontend/customer-tasks/allow/${customer.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
+      // Toggle campaignStatus instead of allowTask
+      const newStatus = customer.allowTask ? 'inactive' : 'active';
+      const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
+        campaignStatus: newStatus
       });
+      const result = await response.json();
       
-      if (!response.ok) {
-        throw new Error("Failed to allow tasks");
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Campaign status updated to ${newStatus}`,
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
       }
-      
-      const data = await response.json();
-      console.log("✅ Customer tasks initialized:", data);
-      
-      // Show success message
-      toast({
-        title: t("success") || "Success",
-        description: `${data.tasksInitialized} tasks have been initialized and ${customer.username} is now allowed to start tasks!`,
-      });
-      
-      // Refresh customer list to show updated allowTask status
-      queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/frontend/customer-tasks"] });
-      
     } catch (error: any) {
-      console.error("❌ Error allowing tasks:", error);
+      console.error("❌ Error updating campaign status:", error);
       toast({
         title: t("error") || "Error",
-        description: error.message || "Failed to allow tasks",
+        description: error.message || "Failed to update campaign status",
         variant: "destructive",
       });
     }
@@ -771,7 +762,7 @@ export default function CustomerManagement() {
     totalCommission: user.totalEarnings.toString(),
     creditScore: user.creditScore,
     isActive: user.accountStatus === 'active',
-    allowTask: user.allowTask,
+    allowTask: user.campaignStatus === 'active',
     allowCompleteTask: user.allowTask,
     allowWithdraw: user.withdrawStatus === 'active',
     allowReferral: user.referStatus === 'active',
