@@ -54,9 +54,9 @@ export default function EditCustomerProfile() {
       const user = customerData.data;
       console.log("📝 Populating form with user data:", user);
       setFormData({
-        name: user.name || "",
-        email: user.email || "",
-        phoneNumber: user.phoneNumber || "",
+        name: user.username || user.name || "",
+        email: user.number || user.email || "",
+        phoneNumber: user.number || "",
         level: user.level || "Bronze",
         creditScore: user.creditScore || 100,
         accountBalance: user.accountBalance || 0,
