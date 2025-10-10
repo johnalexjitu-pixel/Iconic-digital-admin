@@ -16,6 +16,7 @@ interface FrontendUser {
   _id: string;
   name: string;
   email: string;
+  number: string;
   level: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
   membershipId: string;
   referralCode: string;
@@ -208,11 +209,11 @@ export default function UserManagement() {
           <TableHeader>
             <TableRow className="bg-muted">
               <TableHead className="text-muted-foreground">{t('createdDate')}</TableHead>
-              <TableHead className="text-muted-foreground">{t('userName')}</TableHead>
-              <TableHead className="text-muted-foreground">{t('Phone Number')}</TableHead>
+              <TableHead className="text-muted-foreground">Username</TableHead>
+              <TableHead className="text-muted-foreground">Phone Number</TableHead>
               <TableHead className="text-muted-foreground">{t('level')}</TableHead>
-              <TableHead className="text-muted-foreground">{t('membershipId')} </TableHead>
-              <TableHead className="text-muted-foreground">{t('accountBalance')} </TableHead>
+              <TableHead className="text-muted-foreground">{t('membershipId')}</TableHead>
+              <TableHead className="text-muted-foreground">{t('accountBalance')}</TableHead>
               <TableHead className="text-muted-foreground">{t('actions')}</TableHead>
             </TableRow>
           </TableHeader>
@@ -222,7 +223,7 @@ export default function UserManagement() {
               <TableRow key={user._id} data-testid={`row-admin-${user._id}`} className="hover:bg-muted/50">
                 <TableCell className="text-sm">{index + 1}</TableCell>
                 <TableCell className="text-sm">{user.name}</TableCell>
-                <TableCell className="text-sm">{user.email}</TableCell>
+                <TableCell className="text-sm">{user.number || 'N/A'}</TableCell>
                 <TableCell className="text-sm">{user.level}</TableCell>
                 <TableCell className="text-sm">{user.membershipId}</TableCell>
                 <TableCell className="text-sm">{user.accountBalance}</TableCell>
