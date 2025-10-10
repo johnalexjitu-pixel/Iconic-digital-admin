@@ -232,7 +232,7 @@ export default function CustomerManagement() {
           estimatedNegativeAmount: Number(taskEditModal.negativeAmount),
           priceFrom: Number(taskEditModal.priceFrom),
           priceTo: Number(taskEditModal.priceTo),
-          hasGoldenEgg: true, // Always set to true when saving from modal
+          hasGoldenEgg: false, // Set to false when saving from task edit modal
         },
       });
 

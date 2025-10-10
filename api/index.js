@@ -3076,6 +3076,17 @@ export default async function handler(req, res) {
       console.log("🥚 Golden egg price update:", { customerId, taskNumber, taskPrice, hasGoldenEgg });
 
       try {
+        // Get customer info first
+        const usersCollection = database.collection('users');
+        let customer;
+        try {
+          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        } catch (objectIdError) {
+          customer = await usersCollection.findOne({ _id: customerId });
+        }
+        
+        console.log("🥚 Found customer:", customer);
+        
         const customerTasksCollection = database.collection('customerTasks');
         
         // Get existing task - use customerCode instead of customerId
@@ -3085,15 +3096,6 @@ export default async function handler(req, res) {
         });
         
         console.log("🥚 Found existing task:", existingTask);
-        
-        // Get customer info
-        const usersCollection = database.collection('users');
-        let customer;
-        try {
-          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
-        } catch (objectIdError) {
-          customer = await usersCollection.findOne({ _id: customerId });
-        }
         
         // Update task with new price and golden egg status
         const taskData = {
