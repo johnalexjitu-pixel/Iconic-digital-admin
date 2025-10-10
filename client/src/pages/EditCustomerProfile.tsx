@@ -33,6 +33,7 @@ export default function EditCustomerProfile() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [showWithdrawalPassword, setShowWithdrawalPassword] = useState(false);
 
   // Fetch customer details
   const { data: customerData, isLoading } = useQuery<any>({
@@ -237,13 +238,28 @@ export default function EditCustomerProfile() {
 
               <div>
                 <Label className="text-muted-foreground">{t('payPassword')} :</Label>
-                <Input
-                  className="mt-1"
-                  type="text"
-                  value={formData.withdrawalPassword}
-                  onChange={(e) => handleInputChange("withdrawalPassword", e.target.value)}
-                  placeholder={t('enterWithdrawalPassword')}
-                />
+                <div className="relative mt-1">
+                  <Input
+                    type={showWithdrawalPassword ? "text" : "password"}
+                    value={formData.withdrawalPassword}
+                    onChange={(e) => handleInputChange("withdrawalPassword", e.target.value)}
+                    placeholder={t('enterWithdrawalPassword')}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowWithdrawalPassword(!showWithdrawalPassword)}
+                  >
+                    {showWithdrawalPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
 
