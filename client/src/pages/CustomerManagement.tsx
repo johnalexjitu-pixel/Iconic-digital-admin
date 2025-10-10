@@ -429,24 +429,39 @@ export default function CustomerManagement() {
       console.log("🎯 API Result:", result);
       
       if (result.success) {
-        console.log("✅ API Success - Invalidating queries...");
+        console.log("✅ API Success - Updating UI immediately...");
         toast({
           title: "Success",
           description: `Campaign status updated to ${newStatus}`,
         });
         
-        // Force refetch of users data - use partial match to catch all query variations
+        // Update the cache immediately with new data
+        queryClient.setQueryData(
+          ["/api/frontend/users", queryParams.toString()],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            
+            const updatedData = {
+              ...oldData,
+              data: oldData.data.map((user: any) => 
+                user._id === customer.id 
+                  ? { ...user, campaignStatus: newStatus }
+                  : user
+              )
+            };
+            
+            console.log("🔄 Updated cache data for user:", customer.id, "new status:", newStatus);
+            return updatedData;
+          }
+        );
+        
+        // Also invalidate to ensure consistency
         await queryClient.invalidateQueries({ 
           queryKey: ["/api/frontend/users"],
           exact: false 
         });
         
-        // Manual refetch to ensure data updates
-        await queryClient.refetchQueries({ 
-          queryKey: ["/api/frontend/users"],
-          exact: false 
-        });
-        console.log("✅ Queries invalidated and refetched, data should refresh now");
+        console.log("✅ UI updated immediately with new campaignStatus");
       }
     } catch (error: any) {
       console.error("❌ Error updating campaign status:", error);
@@ -964,7 +979,7 @@ export default function CustomerManagement() {
                       onClick={() => handleAllowTask(customer)}
                     >
                       {customer.allowTask ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
-                      <span className={customer.allowTask ? "text-blue-600" : ""}>
+                      <span className={customer.allowTask ? "text-blue-600" : "text-red-600"}>
                         {customer.allowTask ? t('allowToStartTask') : t('notAllowedToStartTask')}
                       </span>
                     </div>
