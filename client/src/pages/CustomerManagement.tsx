@@ -41,7 +41,31 @@ export default function CustomerManagement() {
     customer: null,
   });
   const [balanceAmount, setBalanceAmount] = useState("");
-  const [balanceOperation, setBalanceOperation] = useState<"add" | "subtract">("add");
+  const [balanceOperation, setBalanceOperation] = useState<"add" | "subtract" | "deposit" | "bonus">("add");
+  
+  // Deposit Modal State
+  const [depositModal, setDepositModal] = useState<{
+    open: boolean;
+    customer: any;
+  }>({
+    open: false,
+    customer: null,
+  });
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositMethod, setDepositMethod] = useState("");
+  const [depositReference, setDepositReference] = useState("");
+  
+  // Bonus Modal State
+  const [bonusModal, setBonusModal] = useState<{
+    open: boolean;
+    customer: any;
+  }>({
+    open: false,
+    customer: null,
+  });
+  const [bonusAmount, setBonusAmount] = useState("");
+  const [bonusType, setBonusType] = useState("");
+  const [bonusReason, setBonusReason] = useState("");
 
   // Task Details Modal State
   const [taskDetailsModal, setTaskDetailsModal] = useState<{
@@ -552,6 +576,88 @@ export default function CustomerManagement() {
     }
   };
 
+  // Handle deposit
+  const handleDeposit = async () => {
+    if (!depositAmount || !depositMethod) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await apiRequest("POST", "/api/frontend/deposits", {
+        userId: depositModal.customer.id,
+        amount: Number(depositAmount),
+        method: depositMethod,
+        reference: depositReference,
+        status: "completed"
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Deposit recorded successfully",
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+        setDepositModal({ open: false, customer: null });
+        setDepositAmount("");
+        setDepositMethod("");
+        setDepositReference("");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to record deposit",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle bonus
+  const handleBonus = async () => {
+    if (!bonusAmount || !bonusType) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await apiRequest("POST", "/api/frontend/bonuses", {
+        userId: bonusModal.customer.id,
+        amount: Number(bonusAmount),
+        type: bonusType,
+        reason: bonusReason,
+        status: "active"
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Bonus added successfully",
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+        setBonusModal({ open: false, customer: null });
+        setBonusAmount("");
+        setBonusType("");
+        setBonusReason("");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to add bonus",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Fetch customers from local storage (empty now)
   const { data: customers, isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -687,6 +793,20 @@ export default function CustomerManagement() {
         description: "Please enter a valid amount greater than 0",
         variant: "destructive",
       });
+      return;
+    }
+
+    if (balanceOperation === "deposit") {
+      setDepositModal({ open: true, customer: editBalanceModal.customer });
+      setDepositAmount(balanceAmount);
+      setEditBalanceModal({ open: false, customer: null });
+      return;
+    }
+
+    if (balanceOperation === "bonus") {
+      setBonusModal({ open: true, customer: editBalanceModal.customer });
+      setBonusAmount(balanceAmount);
+      setEditBalanceModal({ open: false, customer: null });
       return;
     }
 
@@ -1145,13 +1265,15 @@ export default function CustomerManagement() {
 
               <div className="space-y-2">
                 <Label htmlFor="operation">{t('operation')}</Label>
-                <Select value={balanceOperation} onValueChange={(value: "add" | "subtract") => setBalanceOperation(value)}>
+                <Select value={balanceOperation} onValueChange={(value: "add" | "subtract" | "deposit" | "bonus") => setBalanceOperation(value)}>
                   <SelectTrigger id="operation">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="add">{t('add')} (+)</SelectItem>
                     <SelectItem value="subtract">{t('subtract')} (-)</SelectItem>
+                    <SelectItem value="deposit">Deposit</SelectItem>
+                    <SelectItem value="bonus">Bonus</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1198,6 +1320,177 @@ export default function CustomerManagement() {
               disabled={updateBalanceMutation.isPending}
             >
               {updateBalanceMutation.isPending ? t('updating') : t('updateBalance')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deposit Modal */}
+      <Dialog open={depositModal.open} onOpenChange={(open) => setDepositModal({ open, customer: null })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Record Deposit</DialogTitle>
+          </DialogHeader>
+          
+          {depositModal.customer && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Customer Information</Label>
+                <div className="text-sm space-y-1 p-3 bg-muted rounded-md">
+                  <div><span className="text-muted-foreground">Name:</span> {depositModal.customer.username}</div>
+                  <div><span className="text-muted-foreground">Code:</span> {depositModal.customer.code}</div>
+                  <div><span className="text-muted-foreground">Current Balance:</span> ${depositModal.customer.walletBalance}</div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="depositAmount">Deposit Amount *</Label>
+                <Input
+                  id="depositAmount"
+                  type="number"
+                  placeholder="Enter deposit amount"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="depositMethod">Payment Method *</Label>
+                <Select value={depositMethod} onValueChange={setDepositMethod}>
+                  <SelectTrigger id="depositMethod">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bkash">Bkash</SelectItem>
+                    <SelectItem value="nagad">Nagad</SelectItem>
+                    <SelectItem value="rocket">Rocket</SelectItem>
+                    <SelectItem value="bank">Bank Transfer</SelectItem>
+                    <SelectItem value="cash">Cash</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="depositReference">Reference/Transaction ID</Label>
+                <Input
+                  id="depositReference"
+                  placeholder="Enter transaction reference (optional)"
+                  value={depositReference}
+                  onChange={(e) => setDepositReference(e.target.value)}
+                />
+              </div>
+
+              {depositAmount && (
+                <div className="p-3 bg-muted rounded-md">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">New Balance Will Be:</span>{" "}
+                    <span className="font-semibold text-primary">
+                      ${(Number(depositModal.customer.walletBalance) + Number(depositAmount)).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDepositModal({ open: false, customer: null })}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeposit}
+              disabled={!depositAmount || !depositMethod}
+            >
+              Record Deposit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bonus Modal */}
+      <Dialog open={bonusModal.open} onOpenChange={(open) => setBonusModal({ open, customer: null })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Bonus</DialogTitle>
+          </DialogHeader>
+          
+          {bonusModal.customer && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Customer Information</Label>
+                <div className="text-sm space-y-1 p-3 bg-muted rounded-md">
+                  <div><span className="text-muted-foreground">Name:</span> {bonusModal.customer.username}</div>
+                  <div><span className="text-muted-foreground">Code:</span> {bonusModal.customer.code}</div>
+                  <div><span className="text-muted-foreground">Current Balance:</span> ${bonusModal.customer.walletBalance}</div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bonusAmount">Bonus Amount *</Label>
+                <Input
+                  id="bonusAmount"
+                  type="number"
+                  placeholder="Enter bonus amount"
+                  value={bonusAmount}
+                  onChange={(e) => setBonusAmount(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bonusType">Bonus Type *</Label>
+                <Select value={bonusType} onValueChange={setBonusType}>
+                  <SelectTrigger id="bonusType">
+                    <SelectValue placeholder="Select bonus type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="welcome">Welcome Bonus</SelectItem>
+                    <SelectItem value="referral">Referral Bonus</SelectItem>
+                    <SelectItem value="task">Task Completion Bonus</SelectItem>
+                    <SelectItem value="loyalty">Loyalty Bonus</SelectItem>
+                    <SelectItem value="special">Special Promotion</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bonusReason">Reason/Description</Label>
+                <Input
+                  id="bonusReason"
+                  placeholder="Enter bonus reason (optional)"
+                  value={bonusReason}
+                  onChange={(e) => setBonusReason(e.target.value)}
+                />
+              </div>
+
+              {bonusAmount && (
+                <div className="p-3 bg-muted rounded-md">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">New Balance Will Be:</span>{" "}
+                    <span className="font-semibold text-primary">
+                      ${(Number(bonusModal.customer.walletBalance) + Number(bonusAmount)).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBonusModal({ open: false, customer: null })}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBonus}
+              disabled={!bonusAmount || !bonusType}
+            >
+              Add Bonus
             </Button>
           </DialogFooter>
         </DialogContent>
