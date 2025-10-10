@@ -410,32 +410,20 @@ export default function CustomerManagement() {
     }
   };
 
+  // Toggle campaign status (same as withdrawStatus approach)
   const handleAllowTask = async (customer: any) => {
     console.log("🚨 HANDLE ALLOW TASK FUNCTION CALLED!");
     console.log("🎯 Allow task clicked for customer:", customer);
-    console.log("🎯 Current allowTask status:", customer.allowTask);
-    console.log("🎯 Customer ID:", customer.id);
     
     try {
-      // Toggle campaignStatus instead of allowTask
       const newStatus = customer.allowTask ? 'inactive' : 'active';
-      console.log("🎯 New campaignStatus will be:", newStatus);
-      console.log("🎯 Making API request to:", `/api/frontend/users/${customer.id}`);
+      console.log("🎯 Toggling campaignStatus from", customer.allowTask, "to", newStatus);
       
-      // Use direct fetch instead of apiRequest for debugging
-      const requestBody = { campaignStatus: newStatus };
-      console.log("🎯 Request body:", requestBody);
-      
-      const response = await fetch(`/api/frontend/users/${customer.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody)
+      const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
+        campaignStatus: newStatus
       });
-      console.log("🎯 API Response:", response);
-      console.log("🎯 Response status:", response.status);
-      console.log("🎯 Response headers:", response.headers);
-      
       const result = await response.json();
+      
       console.log("🎯 API Result:", result);
       
       if (result.success) {
@@ -444,19 +432,12 @@ export default function CustomerManagement() {
           description: `Campaign status updated to ${newStatus}`,
         });
         queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
-      } else {
-        console.error("❌ API returned success: false", result);
-        toast({
-          title: "Error",
-          description: result.error || "Failed to update campaign status",
-          variant: "destructive",
-        });
       }
     } catch (error: any) {
       console.error("❌ Error updating campaign status:", error);
       toast({
-        title: t("error") || "Error",
-        description: error.message || "Failed to update campaign status",
+        title: "Error",
+        description: "Failed to update campaign status",
         variant: "destructive",
       });
     }
