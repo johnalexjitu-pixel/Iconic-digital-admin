@@ -3070,9 +3070,6 @@ export default async function handler(req, res) {
       const customerId = path.split('/')[3];
       const { taskNumber, taskPrice, hasGoldenEgg } = req.body;
       
-      console.log("🥚 Request path:", path);
-      console.log("🥚 Path split result:", path.split('/'));
-      console.log("🥚 Extracted customerId:", customerId);
       console.log("🥚 Golden egg price update:", { customerId, taskNumber, taskPrice, hasGoldenEgg });
 
       try {
@@ -3089,72 +3086,72 @@ export default async function handler(req, res) {
         
         const customerTasksCollection = database.collection('customerTasks');
         
-        // Get existing task - use customerCode instead of customerId
+        // Get existing task
         const existingTask = await customerTasksCollection.findOne({
-          customerCode: customer?.membershipId || customer?.code,
+          customerId: customerId,
           taskNumber: Number(taskNumber)
         });
         
         console.log("🥚 Found existing task:", existingTask);
         
-        // Update task with new price and golden egg status
-        const taskData = {
-          customerCode: customer?.membershipId || customer?.code || "",
-          taskNumber: Number(taskNumber),
-          campaignId: existingTask?.campaignId || `manual_combo_task_${taskNumber}`,
+        // Prepare update data
+        const updateData = {
           taskCommission: existingTask?.taskCommission || 0,
           taskPrice: Number(taskPrice),
           estimatedNegativeAmount: existingTask?.estimatedNegativeAmount || 0,
           priceFrom: existingTask?.priceFrom || 0,
           priceTo: existingTask?.priceTo || 0,
-          hasGoldenEgg: hasGoldenEgg !== undefined ? Boolean(hasGoldenEgg) : true, // Default to true when updating price
+          hasGoldenEgg: hasGoldenEgg !== undefined ? Boolean(hasGoldenEgg) : true,
           expiredDate: existingTask?.expiredDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          status: existingTask?.status || 'pending',
-          createdAt: existingTask?.createdAt || new Date(),
           updatedAt: new Date()
         };
         
-        console.log("🥚 About to update task in database with data:", taskData);
-        console.log("🥚 hasGoldenEgg value being set:", taskData.hasGoldenEgg);
+        console.log("🥚 Update data:", updateData);
         
-        const result = await customerTasksCollection.updateOne(
+        // Use findOneAndUpdate to get the updated document back
+        let result = await customerTasksCollection.findOneAndUpdate(
           { 
-            customerCode: customer?.membershipId || customer?.code,
+            customerId: customerId,
             taskNumber: Number(taskNumber)
           },
           { 
-            $set: taskData
+            $set: updateData
           },
-          { upsert: true }
+          { returnDocument: 'after' }
         );
-        
-        console.log("🥚 Database update result:", result);
-        console.log("🥚 Modified count:", result.modifiedCount);
-        console.log("🥚 Upserted id:", result.upsertedId);
 
-        // Get the updated task to return complete data
-        console.log("🥚 Searching for updated task with:", { customerCode: customer?.membershipId || customer?.code, taskNumber: Number(taskNumber) });
-        
-        const updatedTask = await customerTasksCollection.findOne({
-          customerCode: customer?.membershipId || customer?.code,
-          taskNumber: Number(taskNumber)
-        });
-        
-        console.log("🥚 Found updated task:", updatedTask);
-        console.log("🥚 Updated task hasGoldenEgg:", updatedTask?.hasGoldenEgg);
+        // If task not found, create a new one (same as POST endpoint)
+        if (!result) {
+          console.log("💡 Task not found, creating new task");
+          
+          const newTask = {
+            _id: new ObjectId(),
+            customerId: customerId,
+            customerCode: customer?.membershipId || customer?.code || "",
+            taskNumber: Number(taskNumber),
+            campaignId: `task_${taskNumber}_${Date.now()}`,
+            taskCommission: 0,
+            taskPrice: Number(taskPrice),
+            estimatedNegativeAmount: 0,
+            priceFrom: 0,
+            priceTo: 0,
+            hasGoldenEgg: hasGoldenEgg !== undefined ? Boolean(hasGoldenEgg) : true,
+            expiredDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            status: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+
+          result = await customerTasksCollection.insertOne(newTask);
+          console.log("✅ New task created with golden egg");
+        } else {
+          console.log("✅ Task updated with golden egg");
+        }
 
         res.json({
           success: true,
-          message: `Golden egg price updated successfully`,
-          data: updatedTask || {
-            _id: "new_task",
-            customerId: customerId,
-            customerCode: customer?.membershipId || customer?.code,
-            taskNumber: Number(taskNumber),
-            taskPrice: Number(taskPrice),
-            hasGoldenEgg: true,
-            updatedAt: new Date()
-          }
+          data: result,
+          message: "Task saved successfully"
         });
       } catch (error) {
         console.error("❌ Error updating golden egg price:", error);
