@@ -3061,16 +3061,21 @@ export default async function handler(req, res) {
       const customerId = path.split('/')[3];
       const { taskNumber, taskPrice, hasGoldenEgg } = req.body;
       
+      console.log("🥚 Request path:", path);
+      console.log("🥚 Path split result:", path.split('/'));
+      console.log("🥚 Extracted customerId:", customerId);
       console.log("🥚 Golden egg price update:", { customerId, taskNumber, taskPrice, hasGoldenEgg });
 
       try {
         const customerTasksCollection = database.collection('customerTasks');
         
-        // Get existing task
+        // Get existing task - use customerCode instead of customerId
         const existingTask = await customerTasksCollection.findOne({
-          customerId: customerId,
+          customerCode: customer?.membershipId || customer?.code,
           taskNumber: Number(taskNumber)
         });
+        
+        console.log("🥚 Found existing task:", existingTask);
         
         // Get customer info
         const usersCollection = database.collection('users');
@@ -3083,8 +3088,7 @@ export default async function handler(req, res) {
         
         // Update task with new price and golden egg status
         const taskData = {
-          customerId: customerId,
-          customerCode: existingTask?.customerCode || customer?.membershipId || customer?.code || "",
+          customerCode: customer?.membershipId || customer?.code || "",
           taskNumber: Number(taskNumber),
           campaignId: existingTask?.campaignId || `manual_combo_task_${taskNumber}`,
           taskCommission: existingTask?.taskCommission || 0,
@@ -3104,7 +3108,7 @@ export default async function handler(req, res) {
         
         const result = await customerTasksCollection.updateOne(
           { 
-            customerId: customerId,
+            customerCode: customer?.membershipId || customer?.code,
             taskNumber: Number(taskNumber)
           },
           { 
@@ -3118,10 +3122,10 @@ export default async function handler(req, res) {
         console.log("🥚 Upserted id:", result.upsertedId);
 
         // Get the updated task to return complete data
-        console.log("🥚 Searching for updated task with:", { customerId, taskNumber: Number(taskNumber) });
+        console.log("🥚 Searching for updated task with:", { customerCode: customer?.membershipId || customer?.code, taskNumber: Number(taskNumber) });
         
         const updatedTask = await customerTasksCollection.findOne({
-          customerId: customerId,
+          customerCode: customer?.membershipId || customer?.code,
           taskNumber: Number(taskNumber)
         });
         
