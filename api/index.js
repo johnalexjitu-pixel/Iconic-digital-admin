@@ -1392,66 +1392,40 @@ export default async function handler(req, res) {
       });
     }
     
-    // Allow customer to start tasks
+    // Toggle campaign status (UPDATED - no task initialization)
     else if (req.method === 'POST' && path.startsWith('/api/frontend/customer-tasks/allow/')) {
       const customerId = path.split('/').pop();
-      console.log("✅ Allowing tasks for customer:", customerId);
-
-      const customerTasksCollection = database.collection('customerTasks');
-      const existingTasks = await customerTasksCollection
-        .find({ customerId })
-        .toArray();
-
-      if (existingTasks.length === 0) {
-        console.log("No tasks found, initializing 30 tasks for customer:", customerId);
-        const campaignsCollection = database.collection('campaigns');
-        const campaigns = await campaignsCollection.find().limit(30).toArray();
-        
-        const usersCollection = database.collection('users');
-        const customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
-        
-        if (!customer) {
-          return res.status(404).json({
-            success: false,
-            error: "Customer not found"
-          });
-        }
-
-        const newTasks = campaigns.map((campaign, index) => ({
-          customerId,
-          customerCode: customer.membershipId || "",
-          taskNumber: index + 1,
-          campaignId: campaign._id.toString(),
-          taskCommission: campaign.commissionAmount || 0,
-          taskPrice: campaign.baseAmount || 0,
-          estimatedNegativeAmount: campaign.commissionAmount ? -campaign.commissionAmount : 0,
-          priceFrom: 0,
-          priceTo: 0,
-          hasGoldenEgg: campaign.type === "Paid" || campaign.baseAmount > 10000,
-          expiredDate: campaign.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          status: 'pending',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }));
-
-        if (newTasks.length > 0) {
-          await customerTasksCollection.insertMany(newTasks);
-        }
-
-        console.log(`✅ ${newTasks.length} tasks initialized for customer:`, customerId);
-      }
+      console.log("🔄 Toggling campaign status for customer:", customerId);
 
       const usersCollection = database.collection('users');
+      const user = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+      
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: "User not found"
+        });
+      }
+
+      // Toggle campaignStatus
+      const currentStatus = user.campaignStatus || 'inactive';
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      
+      console.log(`🔄 Toggling campaignStatus from ${currentStatus} to ${newStatus}`);
+      
       await usersCollection.updateOne(
         { _id: new ObjectId(customerId) },
-        { $set: { allowTask: true, updatedAt: new Date() } }
+        { $set: { campaignStatus: newStatus, updatedAt: new Date() } }
       );
 
-      console.log("✅ Customer allowed to start tasks:", customerId);
+      console.log("✅ Campaign status updated:", customerId, newStatus);
       res.json({
         success: true,
-        message: "Customer allowed to start tasks",
-        tasksInitialized: existingTasks.length === 0 ? 30 : existingTasks.length
+        message: `Campaign status updated to ${newStatus}`,
+        data: {
+          userId: customerId,
+          campaignStatus: newStatus
+        }
       });
     }
     
