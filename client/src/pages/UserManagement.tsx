@@ -32,8 +32,9 @@ interface FrontendUser {
 export default function UserManagement() {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [startDate, setStartDate] = useState("2025-10-01");
-  const [endDate, setEndDate] = useState("2025-10-02");
+  const [membershipIdFilter, setMembershipIdFilter] = useState("");
+  const [gmailFilter, setGmailFilter] = useState("");
+  const [usernameFilter, setUsernameFilter] = useState("");
   const [isFiltered, setIsFiltered] = useState(false);
 
   const { data: admins, isLoading } = useQuery<Admin[]>({
@@ -82,17 +83,19 @@ export default function UserManagement() {
     setIsFiltered(true);
   };
 
-  // Filter functions - TaskManagement style
+  // Filter functions for membershipId, gmail, username
   const handleFilterChange = (field: string, value: string) => {
-    if (field === 'startDate') {
-      setStartDate(value);
-    } else if (field === 'endDate') {
-      setEndDate(value);
+    if (field === 'membershipId') {
+      setMembershipIdFilter(value);
+    } else if (field === 'gmail') {
+      setGmailFilter(value);
+    } else if (field === 'username') {
+      setUsernameFilter(value);
     }
   };
 
   const handleApplyFilter = async () => {
-    console.log("🔍 Applying filters with date range:", { startDate, endDate });
+    console.log("🔍 Applying filters:", { membershipIdFilter, gmailFilter, usernameFilter });
     setIsFiltered(true);
     toast({
       title: "Success",
@@ -104,8 +107,9 @@ export default function UserManagement() {
 
   const handleClearFilters = async () => {
     console.log("🔄 Clearing filters");
-    setStartDate("2025-10-01");
-    setEndDate("2025-10-02");
+    setMembershipIdFilter("");
+    setGmailFilter("");
+    setUsernameFilter("");
     setIsFiltered(false);
     toast({
       title: "Success",
@@ -119,9 +123,10 @@ export default function UserManagement() {
   const queryParams = new URLSearchParams();
   queryParams.append("limit", "100");
   
-  if (isFiltered && (startDate || endDate)) {
-    if (startDate) queryParams.append("startDate", startDate);
-    if (endDate) queryParams.append("endDate", endDate);
+  if (isFiltered && (membershipIdFilter || gmailFilter || usernameFilter)) {
+    if (membershipIdFilter) queryParams.append("membershipId", membershipIdFilter);
+    if (gmailFilter) queryParams.append("gmail", gmailFilter);
+    if (usernameFilter) queryParams.append("username", usernameFilter);
   }
 
   // Frontend users API call
@@ -154,24 +159,39 @@ export default function UserManagement() {
       <div className="bg-card rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold mb-6">{t('userManagement')}</h2>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-4 mb-6">
           <div>
-            <Label className="text-muted-foreground">*{t('createdDate')}:</Label>
-            <div className="flex gap-2 mt-1">
-              <Input
-                data-testid="input-start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => handleFilterChange('startDate', e.target.value)}
-              />
-              <span className="flex items-center">-</span>
-              <Input
-                data-testid="input-end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => handleFilterChange('endDate', e.target.value)}
-              />
-            </div>
+            <Label className="text-muted-foreground">*Membership ID:</Label>
+            <Input
+              data-testid="input-membership-id"
+              type="text"
+              placeholder="Enter Membership ID"
+              value={membershipIdFilter}
+              onChange={(e) => handleFilterChange('membershipId', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-muted-foreground">*Gmail:</Label>
+            <Input
+              data-testid="input-gmail"
+              type="email"
+              placeholder="Enter Gmail"
+              value={gmailFilter}
+              onChange={(e) => handleFilterChange('gmail', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-muted-foreground">*Username:</Label>
+            <Input
+              data-testid="input-username"
+              type="text"
+              placeholder="Enter Username"
+              value={usernameFilter}
+              onChange={(e) => handleFilterChange('username', e.target.value)}
+              className="mt-1"
+            />
           </div>
         </div>
 

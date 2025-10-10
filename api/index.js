@@ -903,7 +903,9 @@ export default async function handler(req, res) {
         phoneNumber, 
         isActive,
         startDate,
-        endDate
+        endDate,
+        gmail,
+        username
       } = req.query;
       const query = {};
       
@@ -927,6 +929,15 @@ export default async function handler(req, res) {
       
       if (isActive !== undefined) {
         query.isActive = isActive === 'true';
+      }
+      
+      // New filter parameters
+      if (gmail) {
+        query.email = { $regex: gmail, $options: 'i' };
+      }
+      
+      if (username) {
+        query.name = { $regex: username, $options: 'i' };
       }
       
       if (startDate || endDate) {
