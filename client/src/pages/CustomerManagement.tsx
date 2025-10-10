@@ -420,10 +420,15 @@ export default function CustomerManagement() {
       console.log("🎯 New campaignStatus will be:", newStatus);
       console.log("🎯 Making API request to:", `/api/frontend/users/${customer.id}`);
       
-      const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
-        campaignStatus: newStatus
+      // Use direct fetch instead of apiRequest for debugging
+      const response = await fetch(`/api/frontend/users/${customer.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaignStatus: newStatus })
       });
       console.log("🎯 API Response:", response);
+      console.log("🎯 Response status:", response.status);
+      console.log("🎯 Response headers:", response.headers);
       
       const result = await response.json();
       console.log("🎯 API Result:", result);
