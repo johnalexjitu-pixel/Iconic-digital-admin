@@ -974,10 +974,9 @@ export default async function handler(req, res) {
       const users = await usersCollection
         .find(query, { 
           projection: { 
-            withdrawalPassword: 0,
-            // Include password field for admin view
+            // Include password and withdrawalPassword fields for admin view
             // Include all fields including username and number
-          } 
+          }
         })
         .sort({ createdAt: -1 })
         .limit(Number(limit))
