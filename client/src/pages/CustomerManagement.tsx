@@ -1730,29 +1730,40 @@ export default function CustomerManagement() {
                                       : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                   }`}
                                   onClick={() => handleGoldenEggClick(task, task.taskNumber)}
-                                  title={hasGoldenEgg ? 'Golden Egg Active - Click to edit price' : 'Golden Egg Inactive - Click to activate'}
+                                  onDoubleClick={() => handleGoldenEggToggle(task, !hasGoldenEgg)}
+                                  title={hasGoldenEgg ? 'Golden Egg Active - Click to edit price, Double-click to deactivate' : 'Golden Egg Inactive - Click to activate'}
                                 >
                                   🥚
                                 </div>
                                 
                                 {/* Price Input Field (shown when egg is clicked) */}
                                 {goldenEggModal.open && goldenEggModal.taskNumber === task.taskNumber && (
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      type="number"
-                                      value={goldenEggModal.taskPrice}
-                                      onChange={(e) => setGoldenEggModal({ ...goldenEggModal, taskPrice: e.target.value })}
-                                      className="w-20 h-8 text-sm"
-                                      placeholder="0"
-                                      step="0.01"
-                                    />
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <Input
+                                        type="number"
+                                        value={goldenEggModal.taskPrice}
+                                        onChange={(e) => setGoldenEggModal({ ...goldenEggModal, taskPrice: e.target.value })}
+                                        className="w-20 h-8 text-sm"
+                                        placeholder="Price"
+                                        step="0.01"
+                                      />
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleGoldenEggSave}
+                                        className="h-8 px-2 text-xs bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500"
+                                      >
+                                        {t('save')}
+                                      </Button>
+                                    </div>
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={handleGoldenEggSave}
-                                      className="h-8 px-2 text-xs bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500"
+                                      onClick={() => handleGoldenEggToggle(task, false)}
+                                      className="h-8 px-2 text-xs bg-red-500 hover:bg-red-600 text-white border-red-500"
                                     >
-                                      {t('save')}
+                                      Deactivate
                                     </Button>
                                   </div>
                                 )}
