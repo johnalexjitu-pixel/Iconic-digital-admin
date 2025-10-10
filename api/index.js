@@ -3512,122 +3512,123 @@ export default async function handler(req, res) {
 
     // Create deposit endpoint
     else if (req.method === 'POST' && path === '/api/frontend/deposits') {
-    console.log("💰 Creating deposit:", req.body);
+      console.log("💰 Creating deposit:", req.body);
 
-    try {
-      const { userId, amount, method, reference, status } = req.body;
-      
-      if (!userId || !amount || !method) {
-        return res.status(400).json({
+      try {
+        const { userId, amount, method, reference, status } = req.body;
+        
+        if (!userId || !amount || !method) {
+          return res.status(400).json({
+            success: false,
+            error: "userId, amount, and method are required"
+          });
+        }
+
+        const depositsCollection = database.collection('deposits');
+        const usersCollection = database.collection('users');
+
+        // Create deposit record
+        const depositData = {
+          userId: new ObjectId(userId),
+          amount: Number(amount),
+          method,
+          reference: reference || '',
+          status: status || 'completed',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        const depositResult = await depositsCollection.insertOne(depositData);
+        console.log("✅ Deposit created:", depositResult.insertedId);
+
+        // Update user balance
+        await usersCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { 
+            $inc: { accountBalance: Number(amount) },
+            $set: { updatedAt: new Date() }
+          }
+        );
+
+        console.log("✅ User balance updated by:", amount);
+
+        res.json({
+          success: true,
+          message: "Deposit recorded successfully",
+          data: {
+            depositId: depositResult.insertedId,
+            amount: Number(amount)
+          }
+        });
+      } catch (error) {
+        console.error("❌ Error creating deposit:", error);
+        res.status(500).json({
           success: false,
-          error: "userId, amount, and method are required"
+          error: "Failed to record deposit",
+          details: error.message
         });
       }
-
-      const depositsCollection = database.collection('deposits');
-      const usersCollection = database.collection('users');
-
-      // Create deposit record
-      const depositData = {
-        userId: new ObjectId(userId),
-        amount: Number(amount),
-        method,
-        reference: reference || '',
-        status: status || 'completed',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-
-      const depositResult = await depositsCollection.insertOne(depositData);
-      console.log("✅ Deposit created:", depositResult.insertedId);
-
-      // Update user balance
-      await usersCollection.updateOne(
-        { _id: new ObjectId(userId) },
-        { 
-          $inc: { accountBalance: Number(amount) },
-          $set: { updatedAt: new Date() }
-        }
-      );
-
-      console.log("✅ User balance updated by:", amount);
-
-      res.json({
-        success: true,
-        message: "Deposit recorded successfully",
-        data: {
-          depositId: depositResult.insertedId,
-          amount: Number(amount)
-        }
-      });
-    } catch (error) {
-      console.error("❌ Error creating deposit:", error);
-      res.status(500).json({
-        success: false,
-        error: "Failed to record deposit",
-        details: error.message
-      });
-    }
   }
 
-  // Create bonus endpoint
-  else if (req.method === 'POST' && path === '/api/frontend/bonuses') {
-    console.log("🎁 Creating bonus:", req.body);
+    // Create bonus endpoint
+    else if (req.method === 'POST' && path === '/api/frontend/bonuses') {
+      console.log("🎁 Creating bonus:", req.body);
 
-    try {
-      const { userId, amount, type, reason, status } = req.body;
-      
-      if (!userId || !amount || !type) {
-        return res.status(400).json({
+      try {
+        const { userId, amount, type, reason, status } = req.body;
+        
+        if (!userId || !amount || !type) {
+          return res.status(400).json({
+            success: false,
+            error: "userId, amount, and type are required"
+          });
+        }
+
+        const bonusesCollection = database.collection('bonuses');
+        const usersCollection = database.collection('users');
+
+        // Create bonus record
+        const bonusData = {
+          userId: new ObjectId(userId),
+          amount: Number(amount),
+          type,
+          reason: reason || '',
+          status: status || 'active',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        const bonusResult = await bonusesCollection.insertOne(bonusData);
+        console.log("✅ Bonus created:", bonusResult.insertedId);
+
+        // Update user balance
+        await usersCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { 
+            $inc: { accountBalance: Number(amount) },
+            $set: { updatedAt: new Date() }
+          }
+        );
+
+        console.log("✅ User balance updated by bonus:", amount);
+
+        res.json({
+          success: true,
+          message: "Bonus added successfully",
+          data: {
+            bonusId: bonusResult.insertedId,
+            amount: Number(amount),
+            type
+          }
+        });
+      } catch (error) {
+        console.error("❌ Error creating bonus:", error);
+        res.status(500).json({
           success: false,
-          error: "userId, amount, and type are required"
+          error: "Failed to add bonus",
+          details: error.message
         });
       }
-
-      const bonusesCollection = database.collection('bonuses');
-      const usersCollection = database.collection('users');
-
-      // Create bonus record
-      const bonusData = {
-        userId: new ObjectId(userId),
-        amount: Number(amount),
-        type,
-        reason: reason || '',
-        status: status || 'active',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-
-      const bonusResult = await bonusesCollection.insertOne(bonusData);
-      console.log("✅ Bonus created:", bonusResult.insertedId);
-
-      // Update user balance
-      await usersCollection.updateOne(
-        { _id: new ObjectId(userId) },
-        { 
-          $inc: { accountBalance: Number(amount) },
-          $set: { updatedAt: new Date() }
-        }
-      );
-
-      console.log("✅ User balance updated by bonus:", amount);
-
-      res.json({
-        success: true,
-        message: "Bonus added successfully",
-        data: {
-          bonusId: bonusResult.insertedId,
-          amount: Number(amount),
-          type
-        }
-      });
-    } catch (error) {
-      console.error("❌ Error creating bonus:", error);
-      res.status(500).json({
-        success: false,
-        error: "Failed to add bonus",
-        details: error.message
-      });
     }
 
     else {
