@@ -959,7 +959,13 @@ export default async function handler(req, res) {
       console.log(`📊 Total users in collection: ${totalUsersInCollection}`);
       
       const users = await usersCollection
-        .find(query)
+        .find(query, { 
+          projection: { 
+            password: 0, 
+            withdrawalPassword: 0,
+            // Include all fields including username and number
+          } 
+        })
         .sort({ createdAt: -1 })
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit))
