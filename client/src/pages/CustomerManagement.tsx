@@ -429,11 +429,18 @@ export default function CustomerManagement() {
       console.log("🎯 API Result:", result);
       
       if (result.success) {
+        console.log("✅ API Success - Invalidating queries...");
         toast({
           title: "Success",
           description: `Campaign status updated to ${newStatus}`,
         });
-        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+        
+        // Force refetch of users data
+        await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+        
+        // Manual refetch to ensure data updates
+        await queryClient.refetchQueries({ queryKey: ["/api/frontend/users"] });
+        console.log("✅ Queries invalidated and refetched, data should refresh now");
       }
     } catch (error: any) {
       console.error("❌ Error updating campaign status:", error);
