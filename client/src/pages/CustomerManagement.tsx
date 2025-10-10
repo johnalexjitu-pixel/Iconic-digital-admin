@@ -412,6 +412,7 @@ export default function CustomerManagement() {
 
   // Toggle campaign status (same as withdrawStatus approach)
   const handleAllowTask = async (customer: any) => {
+    alert("🚨 HANDLE ALLOW TASK FUNCTION CALLED!");
     console.log("🚨 HANDLE ALLOW TASK FUNCTION CALLED!");
     console.log("🎯 Allow task clicked for customer:", customer);
     
