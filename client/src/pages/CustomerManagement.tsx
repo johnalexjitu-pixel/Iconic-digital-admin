@@ -435,11 +435,17 @@ export default function CustomerManagement() {
           description: `Campaign status updated to ${newStatus}`,
         });
         
-        // Force refetch of users data
-        await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+        // Force refetch of users data - use partial match to catch all query variations
+        await queryClient.invalidateQueries({ 
+          queryKey: ["/api/frontend/users"],
+          exact: false 
+        });
         
         // Manual refetch to ensure data updates
-        await queryClient.refetchQueries({ queryKey: ["/api/frontend/users"] });
+        await queryClient.refetchQueries({ 
+          queryKey: ["/api/frontend/users"],
+          exact: false 
+        });
         console.log("✅ Queries invalidated and refetched, data should refresh now");
       }
     } catch (error: any) {
