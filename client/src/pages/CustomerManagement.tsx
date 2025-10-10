@@ -528,6 +528,30 @@ export default function CustomerManagement() {
     }
   };
 
+  // Reset task completion count
+  const handleResetTask = async (customer: any) => {
+    try {
+      const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
+        campaignsCompleted: 0
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Task completion count reset successfully",
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to reset task completion count",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Fetch customers from local storage (empty now)
   const { data: customers, isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -1044,7 +1068,14 @@ export default function CustomerManagement() {
                     >
                       {t('editBalance')}
                     </Button>
-                    <Button data-testid={`button-reset-task-${customer.id}`} size="sm" className="text-xs">{t('resetTask')}</Button>
+                    <Button 
+                      data-testid={`button-reset-task-${customer.id}`} 
+                      size="sm" 
+                      className="text-xs"
+                      onClick={() => handleResetTask(customer)}
+                    >
+                      {t('resetTask')}
+                    </Button>
                     <Button 
                       data-testid={`button-edit-profile-${customer.id}`} 
                       size="sm" 
