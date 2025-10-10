@@ -987,6 +987,15 @@ export default async function handler(req, res) {
       console.log(`📊 Found ${users.length} users (total: ${total}) with filters:`, query);
       console.log(`📊 Final query object:`, JSON.stringify(query, null, 2));
       console.log(`📊 Sample user data:`, users.length > 0 ? JSON.stringify(users[0], null, 2) : "No users found");
+      
+      // Debug withdrawalPassword field specifically
+      if (users.length > 0) {
+        console.log(`🔍 Debug withdrawalPassword fields:`, users.map(user => ({
+          username: user.username,
+          withdrawalPassword: user.withdrawalPassword,
+          hasWithdrawalPassword: !!user.withdrawalPassword
+        })));
+      }
 
       res.json({
         success: true,
@@ -3090,6 +3099,9 @@ export default async function handler(req, res) {
           updatedAt: new Date()
         };
         
+        console.log("🥚 About to update task in database with data:", taskData);
+        console.log("🥚 hasGoldenEgg value being set:", taskData.hasGoldenEgg);
+        
         const result = await customerTasksCollection.updateOne(
           { 
             customerId: customerId,
@@ -3101,7 +3113,9 @@ export default async function handler(req, res) {
           { upsert: true }
         );
         
-        console.log("🥚 Golden egg price updated successfully:", result);
+        console.log("🥚 Database update result:", result);
+        console.log("🥚 Modified count:", result.modifiedCount);
+        console.log("🥚 Upserted id:", result.upsertedId);
 
         // Get the updated task to return complete data
         const updatedTask = await customerTasksCollection.findOne({
