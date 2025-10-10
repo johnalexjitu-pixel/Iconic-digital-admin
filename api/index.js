@@ -3146,11 +3146,15 @@ export default async function handler(req, res) {
         res.json({
           success: true,
           message: `Golden egg price updated successfully`,
-          data: updatedTask,
-          taskNumber: taskNumber,
-          hasGoldenEgg: updatedTask?.hasGoldenEgg,
-          taskPrice: updatedTask?.taskPrice,
-          customerId: customerId
+          data: updatedTask || {
+            _id: "new_task",
+            customerId: customerId,
+            customerCode: customer?.membershipId || customer?.code,
+            taskNumber: Number(taskNumber),
+            taskPrice: Number(taskPrice),
+            hasGoldenEgg: true,
+            updatedAt: new Date()
+          }
         });
       } catch (error) {
         console.error("❌ Error updating golden egg price:", error);
