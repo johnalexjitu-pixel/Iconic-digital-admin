@@ -412,14 +412,21 @@ export default function CustomerManagement() {
 
   const handleAllowTask = async (customer: any) => {
     console.log("🎯 Allow task clicked for customer:", customer);
+    console.log("🎯 Current allowTask status:", customer.allowTask);
     
     try {
       // Toggle campaignStatus instead of allowTask
       const newStatus = customer.allowTask ? 'inactive' : 'active';
+      console.log("🎯 New campaignStatus will be:", newStatus);
+      console.log("🎯 Making API request to:", `/api/frontend/users/${customer.id}`);
+      
       const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
         campaignStatus: newStatus
       });
+      console.log("🎯 API Response:", response);
+      
       const result = await response.json();
+      console.log("🎯 API Result:", result);
       
       if (result.success) {
         toast({
@@ -427,6 +434,13 @@ export default function CustomerManagement() {
           description: `Campaign status updated to ${newStatus}`,
         });
         queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+      } else {
+        console.error("❌ API returned success: false", result);
+        toast({
+          title: "Error",
+          description: result.error || "Failed to update campaign status",
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
       console.error("❌ Error updating campaign status:", error);

@@ -532,6 +532,8 @@ export default async function handler(req, res) {
       const updateData = req.body;
 
       console.log(`✏️ Updating user ${userId}:`, updateData);
+      console.log(`✏️ Update data keys:`, Object.keys(updateData));
+      console.log(`✏️ CampaignStatus update:`, updateData.campaignStatus);
 
       delete updateData.password;
       delete updateData.withdrawalPassword;
@@ -541,6 +543,8 @@ export default async function handler(req, res) {
       updateData.updatedAt = new Date();
 
       const usersCollection = database.collection('users');
+      console.log(`✏️ Database update query:`, { _id: new ObjectId(userId) }, { $set: updateData });
+      
       const result = await usersCollection.findOneAndUpdate(
         { _id: new ObjectId(userId) },
         { $set: updateData },
@@ -550,7 +554,10 @@ export default async function handler(req, res) {
         }
       );
 
+      console.log(`✏️ Database update result:`, result);
+
       if (!result) {
+        console.log(`❌ User not found with ID: ${userId}`);
         return res.status(404).json({ 
           success: false, 
           error: "User not found" 
@@ -558,6 +565,11 @@ export default async function handler(req, res) {
       }
 
       console.log(`✅ User updated successfully:`, result._id);
+      console.log(`✅ Updated user data:`, {
+        _id: result._id,
+        campaignStatus: result.campaignStatus,
+        accountStatus: result.accountStatus
+      });
 
       res.json({
         success: true,
