@@ -19,7 +19,6 @@ export default function EditCustomerProfile() {
 
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phoneNumber: "",
     level: "Bronze",
     creditScore: 100,
@@ -55,7 +54,6 @@ export default function EditCustomerProfile() {
       console.log("📝 Populating form with user data:", user);
       setFormData({
         name: user.username || user.name || "",
-        email: user.number || user.email || "",
         phoneNumber: user.number || "",
         level: user.level || "Bronze",
         creditScore: user.creditScore || 100,
@@ -116,10 +114,10 @@ export default function EditCustomerProfile() {
     console.log("📋 Form data:", formData);
     
     // Validate required fields
-    if (!formData.name || !formData.email) {
+    if (!formData.name) {
       toast({
         title: "⚠️ Validation Error",
-        description: "Name and Email are required fields",
+        description: "Name is a required field",
         variant: "destructive",
         duration: 5000,
       });
@@ -168,17 +166,6 @@ export default function EditCustomerProfile() {
                 />
               </div>
 
-              <div>
-                <Label className="text-muted-foreground">* {t('email')} :</Label>
-                <Input
-                  className="mt-1"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder={t('enterEmail')}
-                  required
-                />
-              </div>
 
               <div>
                 <Label className="text-muted-foreground">{t('phoneNumber')} :</Label>
