@@ -2898,10 +2898,19 @@ export default async function handler(req, res) {
       try {
         console.log("🎯 Creating manual combo tasks for customer:", customerId);
         
+        // Get customer info first
+        const usersCollection = database.collection('users');
+        let customer;
+        try {
+          customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        } catch (objectIdError) {
+          customer = await usersCollection.findOne({ _id: customerId });
+        }
+        
         // Get existing customer tasks to check if any are already saved
         const customerTasksCollection = database.collection('customerTasks');
         const existingTasks = await customerTasksCollection
-          .find({ customerId: customerId })
+          .find({ customerCode: customer?.membershipId || customer?.code })
           .sort({ taskNumber: 1 })
           .toArray();
         
@@ -2916,7 +2925,7 @@ export default async function handler(req, res) {
           manualComboTasks.push({
             _id: existingTask?._id?.toString() || `manual_combo_${customerId}_${i}`,
             customerId: customerId,
-            customerCode: "",
+            customerCode: customer?.membershipId || customer?.code || "",
             taskNumber: i,
             campaignId: existingTask?.campaignId || `manual_combo_task_${i}`,
             taskCommission: existingTask?.taskCommission || 0,
