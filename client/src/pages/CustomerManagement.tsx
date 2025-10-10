@@ -435,33 +435,22 @@ export default function CustomerManagement() {
           description: `Campaign status updated to ${newStatus}`,
         });
         
-        // Update the cache immediately with new data
-        queryClient.setQueryData(
-          ["/api/frontend/users", queryParams.toString()],
-          (oldData: any) => {
-            if (!oldData) return oldData;
-            
-            const updatedData = {
-              ...oldData,
-              data: oldData.data.map((user: any) => 
-                user._id === customer.id 
-                  ? { ...user, campaignStatus: newStatus }
-                  : user
-              )
-            };
-            
-            console.log("🔄 Updated cache data for user:", customer.id, "new status:", newStatus);
-            return updatedData;
-          }
-        );
+        // Force immediate refetch - more aggressive approach
+        console.log("🔄 Forcing immediate data refetch...");
         
-        // Also invalidate to ensure consistency
-        await queryClient.invalidateQueries({ 
+        // Remove the query from cache completely and refetch
+        queryClient.removeQueries({ 
           queryKey: ["/api/frontend/users"],
           exact: false 
         });
         
-        console.log("✅ UI updated immediately with new campaignStatus");
+        // Force refetch immediately
+        await queryClient.refetchQueries({ 
+          queryKey: ["/api/frontend/users"],
+          exact: false 
+        });
+        
+        console.log("✅ Forced refetch completed - UI should update now");
       }
     } catch (error: any) {
       console.error("❌ Error updating campaign status:", error);
