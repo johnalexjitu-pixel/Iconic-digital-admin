@@ -211,8 +211,8 @@ export default function UserManagement() {
               <TableHead className="text-muted-foreground">{t('userName')}</TableHead>
               <TableHead className="text-muted-foreground">{t('Phone Number')}</TableHead>
               <TableHead className="text-muted-foreground">{t('level')}</TableHead>
-              <TableHead className="text-muted-foreground">{t('membershipId')} 2</TableHead>
-              <TableHead className="text-muted-foreground">{t('accountBalance')} 3</TableHead>
+              <TableHead className="text-muted-foreground">{t('membershipId')} </TableHead>
+              <TableHead className="text-muted-foreground">{t('accountBalance')} </TableHead>
               <TableHead className="text-muted-foreground">{t('actions')}</TableHead>
             </TableRow>
           </TableHeader>
