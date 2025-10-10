@@ -411,8 +411,10 @@ export default function CustomerManagement() {
   };
 
   const handleAllowTask = async (customer: any) => {
+    console.log("🚨 HANDLE ALLOW TASK FUNCTION CALLED!");
     console.log("🎯 Allow task clicked for customer:", customer);
     console.log("🎯 Current allowTask status:", customer.allowTask);
+    console.log("🎯 Customer ID:", customer.id);
     
     try {
       // Toggle campaignStatus instead of allowTask
@@ -421,10 +423,13 @@ export default function CustomerManagement() {
       console.log("🎯 Making API request to:", `/api/frontend/users/${customer.id}`);
       
       // Use direct fetch instead of apiRequest for debugging
+      const requestBody = { campaignStatus: newStatus };
+      console.log("🎯 Request body:", requestBody);
+      
       const response = await fetch(`/api/frontend/users/${customer.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaignStatus: newStatus })
+        body: JSON.stringify(requestBody)
       });
       console.log("🎯 API Response:", response);
       console.log("🎯 Response status:", response.status);
