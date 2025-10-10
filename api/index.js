@@ -493,6 +493,7 @@ export default async function handler(req, res) {
             $set: { 
               status: newStatus,
               isActive: newStatus === 'active',
+              accountStatus: newStatus,
               updatedAt: new Date()
             } 
           }
