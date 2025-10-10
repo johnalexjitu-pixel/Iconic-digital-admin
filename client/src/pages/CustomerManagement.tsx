@@ -410,50 +410,23 @@ export default function CustomerManagement() {
     }
   };
 
-  // Toggle campaign status (same as withdrawStatus approach)
+  // Toggle campaign status (EXACT same as withdrawStatus approach)
   const handleAllowTask = async (customer: any) => {
-    console.log("🚨🚨🚨 HANDLE ALLOW TASK FUNCTION CALLED! 🚨🚨🚨");
-    console.log("🎯 Allow task clicked for customer:", customer);
-    console.log("🎯 Customer ID:", customer.id);
-    console.log("🎯 Current allowTask:", customer.allowTask);
-    
     try {
       const newStatus = customer.allowTask ? 'inactive' : 'active';
-      console.log("🎯 Toggling campaignStatus from", customer.allowTask, "to", newStatus);
-      
       const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
         campaignStatus: newStatus
       });
       const result = await response.json();
       
-      console.log("🎯 API Result:", result);
-      
       if (result.success) {
-        console.log("✅ API Success - Updating UI immediately...");
         toast({
           title: "Success",
-          description: `Campaign status updated to ${newStatus}`,
+          description: "Campaign status updated successfully",
         });
-        
-        // Force immediate refetch - more aggressive approach
-        console.log("🔄 Forcing immediate data refetch...");
-        
-        // Remove the query from cache completely and refetch
-        queryClient.removeQueries({ 
-          queryKey: ["/api/frontend/users"],
-          exact: false 
-        });
-        
-        // Force refetch immediately
-        await queryClient.refetchQueries({ 
-          queryKey: ["/api/frontend/users"],
-          exact: false 
-        });
-        
-        console.log("✅ Forced refetch completed - UI should update now");
+        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
       }
     } catch (error: any) {
-      console.error("❌ Error updating campaign status:", error);
       toast({
         title: "Error",
         description: "Failed to update campaign status",
