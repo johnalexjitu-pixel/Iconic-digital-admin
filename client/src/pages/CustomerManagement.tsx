@@ -447,6 +447,78 @@ export default function CustomerManagement() {
     }
   };
 
+  // Toggle account status
+  const handleToggleAccountStatus = async (customer: any) => {
+    try {
+      const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}/toggle-status`);
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Account status updated successfully",
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to update account status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Toggle withdraw status
+  const handleToggleWithdrawStatus = async (customer: any) => {
+    try {
+      const newStatus = customer.allowWithdraw ? 'inactive' : 'active';
+      const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
+        withdrawStatus: newStatus
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Withdraw status updated successfully",
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to update withdraw status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Toggle referral status
+  const handleToggleReferralStatus = async (customer: any) => {
+    try {
+      const newStatus = customer.allowReferral ? 'inactive' : 'active';
+      const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
+        referStatus: newStatus
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Referral status updated successfully",
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to update referral status",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Fetch customers from local storage (empty now)
   const { data: customers, isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -698,11 +770,11 @@ export default function CustomerManagement() {
     todayCommission: "0",
     totalCommission: user.totalEarnings.toString(),
     creditScore: user.creditScore,
-    isActive: true,
-    allowTask: true,
-    allowCompleteTask: true,
-    allowWithdraw: true,
-    allowReferral: true,
+    isActive: user.accountStatus === 'active',
+    allowTask: user.allowTask,
+    allowCompleteTask: user.allowTask,
+    allowWithdraw: user.withdrawStatus === 'active',
+    allowReferral: user.referStatus === 'active',
     createdBy: "System",
     updatedBy: "System",
     createdAt: new Date(user.createdAt),
@@ -867,9 +939,14 @@ export default function CustomerManagement() {
                 </TableCell>
                 <TableCell>
                   <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-500" />
-                      <span>{t('actualAccount')}</span>
+                    <div 
+                      className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+                      onClick={() => handleToggleAccountStatus(customer)}
+                    >
+                      {customer.isActive ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
+                      <span className={customer.isActive ? "text-green-600" : "text-red-600"}>
+                        {t('actualAccount')}
+                      </span>
                     </div>
                     <div 
                       className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
@@ -886,13 +963,21 @@ export default function CustomerManagement() {
                         {customer.allowCompleteTask ? t('allowToCompleteTask') : t('notAllowedToCompleteTask')}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div 
+                      className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+                      onClick={() => handleToggleWithdrawStatus(customer)}
+                    >
                       {customer.allowWithdraw ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
-                      <span>{customer.allowWithdraw ? t('allowedToWithdraw') : t('notAllowedToWithdraw')}</span>
+                      <span className={customer.allowWithdraw ? "text-green-600" : "text-red-600"}>
+                        {customer.allowWithdraw ? t('allowedToWithdraw') : t('notAllowedToWithdraw')}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div 
+                      className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+                      onClick={() => handleToggleReferralStatus(customer)}
+                    >
                       {customer.allowReferral ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
-                      <span className={customer.allowReferral ? "text-blue-600" : ""}>
+                      <span className={customer.allowReferral ? "text-green-600" : "text-red-600"}>
                         {customer.allowReferral ? t('allowToUseReferralCode') : t('notAllowedToUseReferralCode')}
                       </span>
                     </div>
