@@ -3648,6 +3648,52 @@ export default async function handler(req, res) {
       }
     }
 
+    // Debug endpoint to check database directly
+    else if (req.method === 'GET' && path.includes('/debug-combo-task/')) {
+      const customerId = path.split('/').pop();
+      const { taskNumber } = req.query;
+      
+      console.log("🔍 Debug: Checking database directly for customerId:", customerId, "taskNumber:", taskNumber);
+      
+      try {
+        const customerTasksCollection = database.collection('customerTasks');
+        
+        // Check all tasks for this customer
+        const allTasks = await customerTasksCollection.find({ customerId: customerId }).toArray();
+        console.log("🔍 All tasks for customer:", allTasks);
+        
+        // Check specific task if taskNumber provided
+        if (taskNumber) {
+          const specificTask = await customerTasksCollection.findOne({
+            customerId: customerId,
+            taskNumber: Number(taskNumber)
+          });
+          console.log("🔍 Specific task:", specificTask);
+          
+          res.json({
+            success: true,
+            customerId: customerId,
+            taskNumber: taskNumber,
+            specificTask: specificTask,
+            allTasks: allTasks,
+            message: "Database check completed"
+          });
+        } else {
+          res.json({
+            success: true,
+            customerId: customerId,
+            allTasks: allTasks,
+            message: "All tasks for customer retrieved"
+          });
+        }
+      } catch (error) {
+        console.error("❌ Debug error:", error);
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    }
     else {
       res.status(404).json({ error: 'Endpoint not found' });
     }
