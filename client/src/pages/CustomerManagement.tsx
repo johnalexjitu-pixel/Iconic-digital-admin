@@ -460,23 +460,44 @@ export default function CustomerManagement() {
   // Toggle withdraw status
   const handleToggleWithdrawStatus = async (customer: any) => {
     try {
-      const newStatus = customer.allowWithdraw ? 'inactive' : 'active';
-      const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
-        withdrawStatus: newStatus
-      });
-      const result = await response.json();
+      // Check if this is for campaignStatus (allowTask) or withdrawStatus
+      const isCampaignStatus = customer.allowWithdraw === customer.allowTask;
       
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Withdraw status updated successfully",
+      if (isCampaignStatus) {
+        // This is for campaign status
+        const newStatus = customer.allowTask ? 'inactive' : 'active';
+        const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
+          campaignStatus: newStatus
         });
-        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+        const result = await response.json();
+        
+        if (result.success) {
+          toast({
+            title: "Success",
+            description: "Campaign status updated successfully",
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+        }
+      } else {
+        // This is for withdraw status
+        const newStatus = customer.allowWithdraw ? 'inactive' : 'active';
+        const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
+          withdrawStatus: newStatus
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          toast({
+            title: "Success",
+            description: "Withdraw status updated successfully",
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+        }
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update withdraw status",
+        description: "Failed to update status",
         variant: "destructive",
       });
     }
@@ -938,29 +959,7 @@ export default function CustomerManagement() {
                     </div>
                     <div 
                       className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-                      onClick={async () => {
-                        try {
-                          const newStatus = customer.allowTask ? 'inactive' : 'active';
-                          const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
-                            campaignStatus: newStatus
-                          });
-                          const result = await response.json();
-                          
-                          if (result.success) {
-                            toast({
-                              title: "Success",
-                              description: "Campaign status updated successfully",
-                            });
-                            queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
-                          }
-                        } catch (error: any) {
-                          toast({
-                            title: "Error",
-                            description: "Failed to update campaign status",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
+                      onClick={() => handleToggleWithdrawStatus({...customer, allowWithdraw: customer.allowTask, id: customer.id})}
                     >
                       {customer.allowTask ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
                       <span className={customer.allowTask ? "text-blue-600" : "text-red-600"}>
