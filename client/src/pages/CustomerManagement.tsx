@@ -423,6 +423,7 @@ export default function CustomerManagement() {
 
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ["/api/frontend/combo-tasks", taskDetailsModal.customer?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/frontend/customer-tasks", taskDetailsModal.customer?.id] });
       await refetchComboTasks();
       
     } catch (error: any) {
