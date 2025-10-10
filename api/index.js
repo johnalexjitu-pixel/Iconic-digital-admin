@@ -535,8 +535,6 @@ export default async function handler(req, res) {
       console.log(`✏️ Update data keys:`, Object.keys(updateData));
       console.log(`✏️ CampaignStatus update:`, updateData.campaignStatus);
 
-      delete updateData.password;
-      delete updateData.withdrawalPassword;
       delete updateData._id;
       delete updateData.createdAt;
 
@@ -550,7 +548,7 @@ export default async function handler(req, res) {
         { $set: updateData },
         { 
           returnDocument: 'after',
-          projection: { password: 0, withdrawalPassword: 0 }
+          projection: {}
         }
       );
 

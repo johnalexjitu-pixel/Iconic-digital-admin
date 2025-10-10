@@ -70,8 +70,23 @@ export default function EditCustomerProfile() {
 
   const updateCustomerMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log("📤 Updating customer profile:", data);
-      const response = await apiRequest("PATCH", `/api/frontend/users/${customerId}`, data);
+      // Map frontend field names to database field names
+      const updateData = {
+        username: data.name,
+        number: data.phoneNumber,
+        level: data.level,
+        creditScore: data.creditScore,
+        accountBalance: data.accountBalance,
+        totalEarnings: data.totalEarnings,
+        campaignsCompleted: data.campaignsCompleted,
+        membershipId: data.membershipId,
+        referralCode: data.referralCode,
+        password: data.password,
+        withdrawalPassword: data.withdrawalPassword,
+      };
+      
+      console.log("📤 Updating customer profile:", updateData);
+      const response = await apiRequest("PATCH", `/api/frontend/users/${customerId}`, updateData);
       console.log("📥 Update response:", response);
       return response;
     },
