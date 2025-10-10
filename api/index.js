@@ -3118,10 +3118,15 @@ export default async function handler(req, res) {
         console.log("🥚 Upserted id:", result.upsertedId);
 
         // Get the updated task to return complete data
+        console.log("🥚 Searching for updated task with:", { customerId, taskNumber: Number(taskNumber) });
+        
         const updatedTask = await customerTasksCollection.findOne({
           customerId: customerId,
           taskNumber: Number(taskNumber)
         });
+        
+        console.log("🥚 Found updated task:", updatedTask);
+        console.log("🥚 Updated task hasGoldenEgg:", updatedTask?.hasGoldenEgg);
 
         res.json({
           success: true,
