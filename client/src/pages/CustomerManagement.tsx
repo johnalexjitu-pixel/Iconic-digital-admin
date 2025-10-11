@@ -262,6 +262,59 @@ export default function CustomerManagement() {
     }
   };
 
+  const handleCompleteTask = async () => {
+    if (!taskEditModal.campaign || !taskDetailsModal.customer?.id) return;
+
+    try {
+      // Call the save-complete-task endpoint with status: 'completed'
+      const result = await apiRequest("PATCH", `/api/frontend/combo-tasks/${taskDetailsModal.customer.id}/save-complete-task`, {
+        taskNumber: taskEditModal.taskNumber,
+        taskCommission: Number(taskEditModal.taskCommission),
+        taskPrice: Number(taskEditModal.campaign?.taskPrice || 0),
+        expiredDate: taskEditModal.expiredDate,
+        estimatedNegativeAmount: Number(taskEditModal.negativeAmount),
+        priceFrom: Number(taskEditModal.priceFrom),
+        priceTo: Number(taskEditModal.priceTo),
+        hasGoldenEgg: false,
+        status: 'completed' // This will trigger the deletion logic
+      });
+      
+      if (!result.success) {
+        throw new Error(result.error || "Failed to complete task");
+      }
+
+      toast({
+        title: t("success") || "Success",
+        description: `Task ${taskEditModal.taskNumber} completed and removed from database`,
+      });
+
+      // Close modal
+      setTaskEditModal({
+        open: false,
+        taskNumber: 0,
+        campaign: null,
+        taskCommission: "",
+        expiredDate: "",
+        negativeAmount: "",
+        priceFrom: "",
+        priceTo: "",
+        selectedOption: "",
+        hasGoldenEgg: false
+      });
+
+      // Refresh combo tasks data
+      await refetchComboTasks();
+      
+    } catch (error: any) {
+      console.error("❌ Error completing task:", error);
+      toast({
+        title: t("error") || "Error",
+        description: error.message || "Failed to complete task",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleGoldenEggClick = (task: any, taskNumber: number) => {
     setGoldenEggModal({
       open: true,
@@ -1933,9 +1986,15 @@ export default function CustomerManagement() {
             <div className="flex justify-center gap-4 pt-4">
               <Button
                 onClick={handleTaskEditSave}
-                className="px-12 bg-yellow-500 hover:bg-yellow-600"
+                className="px-8 bg-yellow-500 hover:bg-yellow-600"
               >
                 {t('save')}
+              </Button>
+              <Button
+                onClick={handleCompleteTask}
+                className="px-8 bg-green-500 hover:bg-green-600"
+              >
+                Complete Task
               </Button>
               <Button
                 onClick={() => {
@@ -1948,7 +2007,7 @@ export default function CustomerManagement() {
                   setTaskEditModal({ ...taskEditModal, open: false });
                 }}
                 variant="outline"
-                className="px-12 bg-red-500 hover:bg-red-600 text-white border-red-500"
+                className="px-8 bg-red-500 hover:bg-red-600 text-white border-red-500"
               >
                 Deactivate
               </Button>
