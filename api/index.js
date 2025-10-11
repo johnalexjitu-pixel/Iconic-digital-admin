@@ -2639,11 +2639,26 @@ export default async function handler(req, res) {
 
       console.log("✅ Combo task updated successfully in customerTasks:", result);
 
-      res.json({
-        success: true,
-        data: result,
-        message: "Combo task updated successfully"
-      });
+      // If task is completed, delete it from database (only keep pending tasks)
+      if (status === 'completed') {
+        console.log(`🗑️ Task ${taskNumber} completed, deleting from database`);
+        await customerTasksCollection.deleteOne({
+          customerId: customerId,
+          taskNumber: Number(taskNumber)
+        });
+        
+        res.json({
+          success: true,
+          message: `Task ${taskNumber} completed and removed from database`,
+          data: { taskNumber: taskNumber, customerId: customerId, status: 'completed' }
+        });
+      } else {
+        res.json({
+          success: true,
+          data: result,
+          message: "Combo task updated successfully"
+        });
+      }
     }
     
     // Complete Combo Task
@@ -3369,13 +3384,30 @@ export default async function handler(req, res) {
           taskNumber: Number(taskNumber)
         });
 
-        res.json({
-          success: true,
-          message: `Task ${taskNumber} saved successfully with all fields`,
-          data: updatedTask,
-          taskNumber: taskNumber,
-          customerId: customerId
-        });
+        // If task is completed, delete it from database (only keep pending tasks)
+        if (taskData.status === 'completed') {
+          console.log(`🗑️ Task ${taskNumber} completed, deleting from database`);
+          await customerTasksCollection.deleteOne({
+            customerId: customerId,
+            taskNumber: Number(taskNumber)
+          });
+          
+          res.json({
+            success: true,
+            message: `Task ${taskNumber} completed and removed from database`,
+            data: { taskNumber: taskNumber, customerId: customerId, status: 'completed' },
+            taskNumber: taskNumber,
+            customerId: customerId
+          });
+        } else {
+          res.json({
+            success: true,
+            message: `Task ${taskNumber} saved successfully with all fields`,
+            data: updatedTask,
+            taskNumber: taskNumber,
+            customerId: customerId
+          });
+        }
       } catch (error) {
         console.error("❌ Error saving complete combo task:", error);
         res.status(500).json({
