@@ -267,7 +267,7 @@ export default function CustomerManagement() {
 
     try {
       // Call the save-complete-task endpoint with status: 'completed'
-      const result = await apiRequest("PATCH", `/api/frontend/combo-tasks/${taskDetailsModal.customer.id}/save-complete-task`, {
+      const response = await apiRequest("PATCH", `/api/frontend/combo-tasks/${taskDetailsModal.customer.id}/save-complete-task`, {
         taskNumber: taskEditModal.taskNumber,
         taskCommission: Number(taskEditModal.taskCommission),
         taskPrice: Number(taskEditModal.campaign?.taskPrice || 0),
@@ -278,6 +278,8 @@ export default function CustomerManagement() {
         hasGoldenEgg: false,
         status: 'completed' // This will trigger the deletion logic
       });
+      
+      const result = await response.json();
       
       if (!result.success) {
         throw new Error(result.error || "Failed to complete task");
@@ -607,25 +609,32 @@ export default function CustomerManagement() {
     }
   };
 
-  // Reset task completion count
+  // Reset task completion count and delete all customer tasks history
   const handleResetTask = async (customer: any) => {
     try {
+      // Reset campaignsCompleted to 0 in users collection
       const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
         campaignsCompleted: 0
       });
       const result = await response.json();
       
       if (result.success) {
+        // Also delete all customer tasks history
+        await apiRequest("DELETE", `/api/frontend/customer-tasks/${customer.id}/reset-history`);
+        
         toast({
           title: "Success",
-          description: "Task completion count reset successfully",
+          description: "Task completion count and history reset successfully",
         });
+        
+        // Refresh both users and combo tasks data
         queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/frontend/combo-tasks", customer.id] });
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to reset task completion count",
+        description: "Failed to reset task completion count and history",
         variant: "destructive",
       });
     }

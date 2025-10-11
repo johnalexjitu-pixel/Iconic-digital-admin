@@ -1400,6 +1400,35 @@ export default async function handler(req, res) {
       });
     }
     
+    // Reset customer tasks history - Delete all tasks for a customer
+    else if (req.method === 'DELETE' && path.startsWith('/api/frontend/customer-tasks/') && path.includes('/reset-history')) {
+      const customerId = path.split('/')[3];
+      console.log("🗑️ Resetting customer tasks history for customer:", customerId);
+
+      try {
+        const customerTasksCollection = database.collection('customerTasks');
+        
+        // Delete all tasks for this customer
+        const result = await customerTasksCollection.deleteMany({ customerId: customerId });
+        
+        console.log(`🗑️ Deleted ${result.deletedCount} tasks for customer ${customerId}`);
+
+        res.json({
+          success: true,
+          message: `Successfully deleted ${result.deletedCount} tasks from customer history`,
+          deletedCount: result.deletedCount,
+          customerId: customerId
+        });
+      } catch (error) {
+        console.error("❌ Error resetting customer tasks history:", error);
+        res.status(500).json({
+          success: false,
+          error: "Failed to reset customer tasks history",
+          details: error.message
+        });
+      }
+    }
+    
     // Toggle campaign status (UPDATED - no task initialization)
     else if (req.method === 'POST' && path.startsWith('/api/frontend/customer-tasks/allow/')) {
       const customerId = path.split('/').pop();
