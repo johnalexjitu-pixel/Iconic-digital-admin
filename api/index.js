@@ -3716,9 +3716,24 @@ export default async function handler(req, res) {
         const depositsCollection = database.collection('deposits');
         const usersCollection = database.collection('users');
 
-        // Create deposit record
+        // Get user information first
+        const user = await usersCollection.findOne(
+          { _id: new ObjectId(userId) },
+          { projection: { username: 1, membershipId: 1, name: 1 } }
+        );
+
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            error: "User not found"
+          });
+        }
+
+        // Create deposit record with user information
         const depositData = {
           userId: new ObjectId(userId),
+          username: user.username || user.name || 'Unknown',
+          membershipId: user.membershipId || 'Unknown',
           amount: Number(amount),
           method,
           reference: reference || '',
@@ -3746,7 +3761,12 @@ export default async function handler(req, res) {
           message: "Deposit recorded successfully",
           data: {
             depositId: depositResult.insertedId,
-            amount: Number(amount)
+            amount: Number(amount),
+            username: user.username || user.name || 'Unknown',
+            membershipId: user.membershipId || 'Unknown',
+            method,
+            reference: reference || '',
+            status: status || 'completed'
           }
         });
       } catch (error) {
