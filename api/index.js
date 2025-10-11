@@ -3068,7 +3068,7 @@ export default async function handler(req, res) {
     
     // Golden Egg Price Update - When egg is clicked, allow price update
     else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/golden-egg-price-update')) {
-      const customerId = path.split('/')[3];
+      const customerId = path.split('/')[4]; // Get customer ID from correct position
       const { taskNumber, taskPrice, hasGoldenEgg } = req.body;
       
       console.log("🥚 Golden egg price update:", { customerId, taskNumber, taskPrice, hasGoldenEgg });
@@ -3167,7 +3167,7 @@ export default async function handler(req, res) {
     
     // Toggle Golden Egg for combo task with price update
     else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/toggle-golden-egg')) {
-      const customerId = path.split('/')[3];
+      const customerId = path.split('/')[4]; // Get customer ID from correct position
       const { taskNumber, hasGoldenEgg, taskPrice } = req.body;
       
       console.log("🟡 Toggling golden egg with price update:", { customerId, taskNumber, hasGoldenEgg, taskPrice });
@@ -3282,7 +3282,7 @@ export default async function handler(req, res) {
     
     // Save complete combo task data from modal to customerTasks collection
     else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/save-complete-task')) {
-      const customerId = path.split('/')[3];
+      const customerId = path.split('/')[4]; // Get customer ID from correct position
       const { 
         taskNumber, 
         taskPrice, 
@@ -3388,7 +3388,7 @@ export default async function handler(req, res) {
     
     // Save individual task price to customerTasks collection
     else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/save-task-price')) {
-      const customerId = path.split('/')[3];
+      const customerId = path.split('/')[4]; // Get customer ID from correct position
       const { taskNumber, taskPrice, customerId: bodyCustomerId } = req.body;
       
       console.log("💰 Saving task price:", { customerId, taskNumber, taskPrice, bodyCustomerId });
