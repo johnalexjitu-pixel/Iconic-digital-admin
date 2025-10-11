@@ -339,6 +339,24 @@ export default function EditCustomerProfile() {
               {t('cancel')}
             </Button>
             <Button 
+              type="button" 
+              variant="destructive"
+              onClick={() => {
+                setFormData(prev => ({
+                  ...prev,
+                  password: "12345678",
+                  withdrawalPassword: "123456"
+                }));
+                toast({
+                  title: "Success",
+                  description: "Passwords reset to default values",
+                });
+              }}
+              disabled={updateCustomerMutation.isPending}
+            >
+              Reset Passwords
+            </Button>
+            <Button 
               type="submit" 
               className="px-8"
               disabled={updateCustomerMutation.isPending}
