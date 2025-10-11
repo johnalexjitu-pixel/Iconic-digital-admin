@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { type Admin } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,8 @@ export default function UserManagement() {
   const [phoneNumberFilter, setPhoneNumberFilter] = useState("");
   const [usernameFilter, setUsernameFilter] = useState("");
   const [isFiltered, setIsFiltered] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const { data: admins, isLoading } = useQuery<Admin[]>({
     queryKey: ["/api/admins"],
@@ -98,6 +100,7 @@ export default function UserManagement() {
   const handleApplyFilter = async () => {
     console.log("🔍 Applying filters:", { membershipIdFilter, phoneNumberFilter, usernameFilter });
     setIsFiltered(true);
+    setCurrentPage(1); // Reset to first page when applying filters
     toast({
       title: "Success",
       description: "Filters applied successfully",
@@ -112,6 +115,7 @@ export default function UserManagement() {
     setPhoneNumberFilter("");
     setUsernameFilter("");
     setIsFiltered(false);
+    setCurrentPage(1); // Reset to first page when clearing filters
     toast({
       title: "Success",
       description: "Filters cleared successfully",
@@ -121,14 +125,20 @@ export default function UserManagement() {
   };
 
   // Build query parameters for API
-  const queryParams = new URLSearchParams();
-  queryParams.append("limit", "100");
-  
-  if (isFiltered && (membershipIdFilter || phoneNumberFilter || usernameFilter)) {
-    if (membershipIdFilter) queryParams.append("membershipId", membershipIdFilter);
-    if (phoneNumberFilter) queryParams.append("phoneNumber", phoneNumberFilter);
-    if (usernameFilter) queryParams.append("username", usernameFilter);
-  }
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    params.append("limit", itemsPerPage.toString());
+    params.append("page", currentPage.toString());
+    
+    if (isFiltered && (membershipIdFilter || phoneNumberFilter || usernameFilter)) {
+      if (membershipIdFilter) params.append("membershipId", membershipIdFilter);
+      if (phoneNumberFilter) params.append("phoneNumber", phoneNumberFilter);
+      if (usernameFilter) params.append("username", usernameFilter);
+    }
+    
+    console.log('🔍 UserManagement queryParams:', params.toString());
+    return params;
+  }, [currentPage, itemsPerPage, isFiltered, membershipIdFilter, phoneNumberFilter, usernameFilter]);
 
   // Frontend users API call
   const { data: frontendUsers, isLoading: frontendUsersLoading } = useQuery<{
@@ -146,6 +156,16 @@ export default function UserManagement() {
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
+
+  // Handle pagination
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   if (isLoading || frontendUsersLoading) {
     return (
@@ -304,17 +324,85 @@ export default function UserManagement() {
         <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>{t('rowsPerPage')}:</span>
-            <Select defaultValue="100">
+            <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
               <SelectTrigger data-testid="select-rows-per-page" className="w-20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
                 <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm text-muted-foreground">
-            1-{frontendUsers?.data?.length || 0} of {frontendUsers?.pagination?.total || 0}
+          
+          {/* Pagination Controls */}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              {frontendUsers?.pagination ? (
+                <>
+                  Page {currentPage} of {frontendUsers.pagination.pages} 
+                  ({frontendUsers.pagination.total} total users)
+                </>
+              ) : (
+                `Showing ${frontendUsers?.data?.length || 0} users (Page ${currentPage})`
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1}
+              >
+                Previous
+              </Button>
+              
+              {/* Page Numbers */}
+              {frontendUsers?.pagination && (
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, frontendUsers.pagination.pages) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                  
+                  {frontendUsers.pagination.pages > 5 && (
+                    <>
+                      <span className="text-muted-foreground">...</span>
+                      <Button
+                        variant={currentPage === frontendUsers.pagination.pages ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(frontendUsers.pagination.pages)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {frontendUsers.pagination.pages}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={frontendUsers?.pagination ? currentPage >= frontendUsers.pagination.pages : (frontendUsers?.data?.length || 0) < itemsPerPage}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </div>
       </div>

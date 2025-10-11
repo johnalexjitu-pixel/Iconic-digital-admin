@@ -7,6 +7,8 @@ export default function WithdrawalManagement() {
   const [statusFilter, setStatusFilter] = useState("");
   const [methodFilter, setMethodFilter] = useState("");
   const [customerIdFilter, setCustomerIdFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // Update states
   const [updatingWithdrawal, setUpdatingWithdrawal] = useState<string | null>(null);
@@ -47,7 +49,7 @@ export default function WithdrawalManagement() {
   })) || [];
 
   // Filter withdrawals based on filters
-  const processedWithdrawals = useMemo(() => {
+  const filteredWithdrawals = useMemo(() => {
     return allProcessedWithdrawals.filter(withdrawal => {
       const matchesStatus = !statusFilter || withdrawal.status === statusFilter;
       const matchesMethod = !methodFilter || withdrawal.method === methodFilter;
@@ -57,6 +59,22 @@ export default function WithdrawalManagement() {
       return matchesStatus && matchesMethod && matchesCustomerId;
     });
   }, [allProcessedWithdrawals, statusFilter, methodFilter, customerIdFilter]);
+
+  // Apply pagination
+  const totalPages = Math.ceil(filteredWithdrawals.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const processedWithdrawals = filteredWithdrawals.slice(startIndex, endIndex);
+
+  // Handle pagination
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   // Extract data for compatibility
   const data = withdrawalsResponse || null;
@@ -211,6 +229,7 @@ export default function WithdrawalManagement() {
                 setStatusFilter("");
                 setMethodFilter("");
                 setCustomerIdFilter("");
+                setCurrentPage(1); // Reset to first page when clearing filters
               }}
               style={{ 
                 backgroundColor: '#6c757d',
@@ -225,16 +244,18 @@ export default function WithdrawalManagement() {
             >
               Clear
             </button>
-            <button style={{ 
-              backgroundColor: '#6f42c1',
-              color: 'white',
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}>
+            <button 
+              onClick={() => setCurrentPage(1)} // Reset to first page when applying filters
+              style={{ 
+                backgroundColor: '#6f42c1',
+                color: 'white',
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
               Filter
             </button>
           </div>
@@ -315,7 +336,7 @@ export default function WithdrawalManagement() {
               fontSize: '18px',
               fontWeight: '600'
             }}>
-              Withdrawal Requests ({processedWithdrawals.length} of {allProcessedWithdrawals.length} records)
+              Withdrawal Requests ({processedWithdrawals.length} of {filteredWithdrawals.length} records)
           </h3>
             <p style={{ 
               margin: '0', 
@@ -432,12 +453,78 @@ export default function WithdrawalManagement() {
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Rows per page:</span>
-              <select className="w-20 text-sm border rounded px-1">
+              <select 
+                className="w-20 text-sm border rounded px-1"
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(e.target.value)}
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
                 <option value="100">100</option>
               </select>
             </div>
-            <div className="text-sm text-muted-foreground">
-              {processedWithdrawals.length > 0 ? `1-${processedWithdrawals.length}` : '0'} of {processedWithdrawals.length}
+            
+            {/* Pagination Controls */}
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages} 
+                ({filteredWithdrawals.length} total withdrawals)
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs hover:bg-gray-200 disabled:opacity-50"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                >
+                  Previous
+                </button>
+                
+                {/* Page Numbers */}
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        className={`w-8 h-8 p-0 text-xs rounded ${
+                          currentPage === pageNum 
+                            ? 'bg-blue-500 text-white' 
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                        onClick={() => handlePageChange(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
+                  {totalPages > 5 && (
+                    <>
+                      <span className="text-muted-foreground">...</span>
+                      <button
+                        className={`w-8 h-8 p-0 text-xs rounded ${
+                          currentPage === totalPages 
+                            ? 'bg-blue-500 text-white' 
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                        onClick={() => handlePageChange(totalPages)}
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                <button
+                  className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs hover:bg-gray-200 disabled:opacity-50"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </div>

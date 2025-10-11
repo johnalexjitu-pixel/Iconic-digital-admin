@@ -38,6 +38,8 @@ export default function TaskManagement() {
     minPrice: "",
     maxPrice: ""
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -178,7 +180,7 @@ export default function TaskManagement() {
   const allProducts = [...campaignProducts];
 
   // Apply filters
-  const displayProducts = allProducts.filter((product) => {
+  const filteredProducts = allProducts.filter((product) => {
     // Filter by name
     if (filters.name && !product.name.toLowerCase().includes(filters.name.toLowerCase())) {
       return false;
@@ -195,6 +197,22 @@ export default function TaskManagement() {
 
     return true;
   });
+
+  // Apply pagination
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const displayProducts = filteredProducts.slice(startIndex, endIndex);
+
+  // Handle pagination
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -304,6 +322,7 @@ export default function TaskManagement() {
   };
 
   const handleApplyFilter = () => {
+    setCurrentPage(1); // Reset to first page when applying filters
     // Filters are applied automatically through the displayProducts calculation
     toast({
       title: t("success") || "Success",
@@ -317,6 +336,7 @@ export default function TaskManagement() {
       minPrice: "",
       maxPrice: ""
     });
+    setCurrentPage(1); // Reset to first page when clearing filters
   };
 
   if (isLoading || campaignsLoading) {
@@ -577,22 +597,82 @@ export default function TaskManagement() {
         <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>{t('rowsPerPage')}:</span>
-            <Select defaultValue="100">
+            <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
               <SelectTrigger data-testid="select-rows-per-page" className="w-20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
                 <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {displayProducts?.length > 0 ? `1-${displayProducts.length}` : '0'} of {displayProducts?.length}
-            {(filters.name || filters.minPrice || filters.maxPrice) && allProducts.length !== displayProducts.length && (
-              <span className="ml-2 text-primary">
-                (filtered from {allProducts.length})
-              </span>
-            )}
+          
+          {/* Pagination Controls */}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages} 
+              ({filteredProducts.length} total products)
+              {(filters.name || filters.minPrice || filters.maxPrice) && allProducts.length !== filteredProducts.length && (
+                <span className="ml-2 text-primary">
+                  (filtered from {allProducts.length})
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1}
+              >
+                Previous
+              </Button>
+              
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNum = i + 1;
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageChange(pageNum)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+                
+                {totalPages > 5 && (
+                  <>
+                    <span className="text-muted-foreground">...</span>
+                    <Button
+                      variant={currentPage === totalPages ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageChange(totalPages)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {totalPages}
+                    </Button>
+                  </>
+                )}
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </div>
       </div>

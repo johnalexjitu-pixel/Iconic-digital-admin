@@ -24,6 +24,8 @@ export default function MasterData() {
   });
 
   const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const updateCheckInMutation = useMutation({
     mutationFn: async ({ id, amount }: { id: string; amount: number }) => {
@@ -51,7 +53,23 @@ export default function MasterData() {
     },
   });
 
-  const checkIns = checkInsResponse?.data || [];
+  const allCheckIns = checkInsResponse?.data || [];
+  
+  // Apply pagination
+  const totalPages = Math.ceil(allCheckIns.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const checkIns = allCheckIns.slice(startIndex, endIndex);
+
+  // Handle pagination
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   if (isLoading) {
     return (
@@ -126,6 +144,85 @@ export default function MasterData() {
               </div>
             );
           })}
+        </div>
+        
+        {/* Pagination */}
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Rows per page:</span>
+            <select 
+              className="w-20 text-sm border rounded px-1"
+              value={itemsPerPage}
+              onChange={(e) => handleItemsPerPageChange(e.target.value)}
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+          
+          {/* Pagination Controls */}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages} 
+              ({allCheckIns.length} total check-ins)
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs hover:bg-gray-200 disabled:opacity-50"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1}
+              >
+                Previous
+              </button>
+              
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNum = i + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      className={`w-8 h-8 p-0 text-xs rounded ${
+                        currentPage === pageNum 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                      }`}
+                      onClick={() => handlePageChange(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                
+                {totalPages > 5 && (
+                  <>
+                    <span className="text-muted-foreground">...</span>
+                    <button
+                      className={`w-8 h-8 p-0 text-xs rounded ${
+                        currentPage === totalPages 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                      }`}
+                      onClick={() => handlePageChange(totalPages)}
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+              </div>
+              
+              <button
+                className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs hover:bg-gray-200 disabled:opacity-50"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

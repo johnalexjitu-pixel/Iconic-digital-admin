@@ -18,6 +18,27 @@ export default function TasklistExpiration() {
     status: "all"
   });
   const [isFiltered, setIsFiltered] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  // Mock data for demonstration (since this page shows no records)
+  const mockData = [];
+  
+  // Apply pagination to mock data
+  const totalPages = Math.ceil(mockData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const displayData = mockData.slice(startIndex, endIndex);
+
+  // Handle pagination
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
   
   // Filter functions - TaskManagement style
   const handleFilterChange = (field: string, value: string) => {
@@ -32,6 +53,7 @@ export default function TasklistExpiration() {
 
   const handleApplyFilter = () => {
     setIsFiltered(true);
+    setCurrentPage(1); // Reset to first page when applying filters
     // You can add toast here if needed
   };
 
@@ -44,6 +66,7 @@ export default function TasklistExpiration() {
     setStartDate("2025-09-25");
     setEndDate("2025-10-09");
     setIsFiltered(false);
+    setCurrentPage(1); // Reset to first page when clearing filters
     // You can add toast here if needed
   };
 
@@ -133,16 +156,78 @@ export default function TasklistExpiration() {
         <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>{t('rowsPerPage')}:</span>
-            <Select defaultValue="100">
+            <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
               <SelectTrigger data-testid="select-rows-per-page" className="w-20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
                 <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm text-muted-foreground">0-0 of 0</div>
+          
+          {/* Pagination Controls */}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages} 
+              ({mockData.length} total records)
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1}
+              >
+                Previous
+              </Button>
+              
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNum = i + 1;
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageChange(pageNum)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+                
+                {totalPages > 5 && (
+                  <>
+                    <span className="text-muted-foreground">...</span>
+                    <Button
+                      variant={currentPage === totalPages ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageChange(totalPages)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {totalPages}
+                    </Button>
+                  </>
+                )}
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
