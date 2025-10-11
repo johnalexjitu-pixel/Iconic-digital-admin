@@ -641,59 +641,6 @@ export default function CustomerManagement() {
     }
   };
 
-  // Reset passwords to default values
-  const handleResetPassword = async (customer: any) => {
-    try {
-      const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
-        password: "12345678",
-        withdrawalPassword: "123456"
-      });
-      const result = await response.json();
-      
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Passwords reset to default values (Login: 12345678, Withdrawal: 123456)",
-        });
-        
-        // Refresh users data
-        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to reset passwords",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Set both passwords to ensure they are both visible
-  const handleSetBothPasswords = async (customer: any) => {
-    try {
-      const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
-        password: "12345678",
-        withdrawalPassword: "123456"
-      });
-      const result = await response.json();
-      
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Both passwords set (Login: 12345678, Withdrawal: 123456)",
-        });
-        
-        // Refresh users data
-        queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to set both passwords",
-        variant: "destructive",
-      });
-    }
-  };
 
   // Handle deposit
   const handleDeposit = async () => {
@@ -1352,22 +1299,6 @@ export default function CustomerManagement() {
                       onClick={() => handleResetTask(customer)}
                     >
                       {t('resetTask')}
-                    </Button>
-                    <Button 
-                      data-testid={`button-reset-password-${customer.id}`} 
-                      size="sm" 
-                      className="text-xs bg-orange-500 hover:bg-orange-600"
-                      onClick={() => handleResetPassword(customer)}
-                    >
-                      Reset Password
-                    </Button>
-                    <Button 
-                      data-testid={`button-set-both-passwords-${customer.id}`} 
-                      size="sm" 
-                      className="text-xs bg-blue-500 hover:bg-blue-600"
-                      onClick={() => handleSetBothPasswords(customer)}
-                    >
-                      Set Both Passwords
                     </Button>
                     <Button 
                       data-testid={`button-edit-profile-${customer.id}`} 
