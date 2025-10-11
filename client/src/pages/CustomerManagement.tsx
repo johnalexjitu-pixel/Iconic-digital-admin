@@ -797,12 +797,18 @@ export default function CustomerManagement() {
     success: boolean;
     data: any[];
   }>({
-    queryKey: ["/api/frontend/users", queryParams.toString()],
+    queryKey: ["/api/frontend/users", isFiltered ? queryParams.toString() : ""],
     queryFn: async () => {
       const url = `/api/frontend/users?${queryParams.toString()}`;
       console.log("🔍 Frontend users API URL:", url);
       console.log("🔍 Query params:", queryParams.toString());
-      const response = await fetch(url);
+      console.log("🔍 Is Filtered:", isFiltered);
+      const response = await fetch(url, {
+        cache: 'no-store', // Force fresh data
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch users');
       const data = await response.json();
       console.log("📥 Frontend users response:", data);
