@@ -966,7 +966,7 @@ export default async function handler(req, res) {
         isActive,
         startDate,
         endDate,
-        gmail,
+        number,
         withdrawalPassword,
         username,
         ipAddress,
@@ -998,8 +998,8 @@ export default async function handler(req, res) {
       }
       
       // New filter parameters
-      if (gmail) {
-        query.email = { $regex: gmail, $options: 'i' };
+      if (number) {
+        query.email = { $regex: number, $options: 'i' };
       }
       
       if (username) {
