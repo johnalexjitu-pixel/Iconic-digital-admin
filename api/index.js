@@ -1386,8 +1386,9 @@ export default async function handler(req, res) {
           updatedAt: new Date()
         };
 
-        result = await customerTasksCollection.insertOne(newTask);
+        const insertResult = await customerTasksCollection.insertOne(newTask);
         console.log("✅ New customer task created successfully");
+        result = newTask; // Return the full document for insert
       } else {
         console.log("✅ Existing customer task updated successfully");
       }
@@ -2606,7 +2607,7 @@ export default async function handler(req, res) {
     }
     
     // Update Combo Task (for customerTasks collection)
-    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && !path.includes('/save-task-price') && !path.includes('/toggle-golden-egg')) {
+    else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && !path.includes('/save-task-price') && !path.includes('/toggle-golden-egg') && !path.includes('/golden-egg-price-update')) {
       const customerId = path.split('/')[3];
       const { taskNumber, status, hasGoldenEgg, taskPrice } = req.body;
       console.log("✏️ Updating combo task in customerTasks:", { customerId, taskNumber, status, hasGoldenEgg, taskPrice });
@@ -3142,8 +3143,9 @@ export default async function handler(req, res) {
             updatedAt: new Date()
           };
 
-          result = await customerTasksCollection.insertOne(newTask);
+          const insertResult = await customerTasksCollection.insertOne(newTask);
           console.log("✅ New task created with golden egg");
+          result = newTask; // Return the full document for insert
         } else {
           console.log("✅ Task updated with golden egg");
         }
