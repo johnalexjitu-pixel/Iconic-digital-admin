@@ -833,20 +833,15 @@ export default function CustomerManagement() {
       if (!response.ok) throw new Error('Failed to fetch users');
       const data = await response.json();
       console.log("📥 Frontend users response:", data);
-      console.log("📊 Pagination check:", { 
-        hasPagination: !!data.pagination, 
-        paginationData: data.pagination,
-        dataLength: data.data?.length 
-      });
       
-      // Ensure pagination data exists
-      if (!data.pagination) {
-        console.warn("⚠️ No pagination data in response, adding default");
+      // Fallback pagination for Vercel deployment
+      if (!data.pagination && data.data) {
+        console.log("⚠️ No pagination data, creating fallback");
         data.pagination = {
           page: currentPage,
           limit: itemsPerPage,
-          total: data.data?.length || 0,
-          pages: Math.ceil((data.data?.length || 0) / itemsPerPage)
+          total: data.data.length,
+          pages: Math.ceil(data.data.length / itemsPerPage)
         };
       }
       
