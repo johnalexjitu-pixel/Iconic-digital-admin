@@ -977,6 +977,7 @@ export default async function handler(req, res) {
       if (search) {
         query.$or = [
           { name: { $regex: search, $options: 'i' } },
+          { username: { $regex: search, $options: 'i' } },
           { email: { $regex: search, $options: 'i' } },
           { membershipId: { $regex: search, $options: 'i' } }
         ];
@@ -1000,20 +1001,9 @@ export default async function handler(req, res) {
       }
       
       if (username) {
-        query.name = { $regex: username, $options: 'i' };
+        query.username = { $regex: username, $options: 'i' };
       }
       
-      if (startDate || endDate) {
-        query.createdAt = {};
-        if (startDate) {
-          query.createdAt.$gte = new Date(startDate);
-        }
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          query.createdAt.$lte = end;
-        }
-      }
 
       const usersCollection = database.collection('users');
       

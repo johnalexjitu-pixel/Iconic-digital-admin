@@ -16,8 +16,6 @@ import { useTranslation } from "react-i18next";
 
 export default function CustomerManagement() {
   const { t } = useTranslation();
-  const [startDate, setStartDate] = useState("2025-10-01");
-  const [endDate, setEndDate] = useState("2025-10-02");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
@@ -785,14 +783,12 @@ export default function CustomerManagement() {
   queryParams.append("limit", "100");
   
   // Always include filters if they have values (like TaskManagement style)
-  if (filters.username) queryParams.append("search", filters.username);
+  if (filters.username) queryParams.append("username", filters.username);
   if (filters.code) queryParams.append("membershipId", filters.code);
   if (filters.phoneNumber) queryParams.append("phoneNumber", filters.phoneNumber);
   if (filters.customerStatus && filters.customerStatus !== "all") {
     queryParams.append("isActive", filters.customerStatus === "active" ? "true" : "false");
   }
-  if (startDate) queryParams.append("startDate", startDate);
-  if (endDate) queryParams.append("endDate", endDate);
 
   // Fetch users from MongoDB frontend database
   const { data: frontendUsers, isLoading: frontendUsersLoading } = useQuery<{
@@ -957,18 +953,11 @@ export default function CustomerManagement() {
 
   // Filter functions - TaskManagement style
   const handleFilterChange = (field: string, value: string) => {
-    if (field === 'startDate') {
-      setStartDate(value);
-    } else if (field === 'endDate') {
-      setEndDate(value);
-    } else {
-      setFilters(prev => ({ ...prev, [field]: value }));
-    }
+    setFilters(prev => ({ ...prev, [field]: value }));
   };
 
   const handleApplyFilter = async () => {
     console.log("🔍 Applying filters:", filters);
-    console.log("🔍 Date range:", { startDate, endDate });
     setIsFiltered(true);
     toast({
       title: "Success",
@@ -988,8 +977,6 @@ export default function CustomerManagement() {
       customerStatus: "all",
       onlineStatus: "all"
     });
-    setStartDate("2025-10-01");
-    setEndDate("2025-10-02");
     setIsFiltered(false);
     toast({
       title: "Success",
@@ -1083,26 +1070,7 @@ export default function CustomerManagement() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div>
-            <Label className="text-muted-foreground">*{t('createdDate')}:</Label>
-            <div className="flex gap-2 mt-1">
-              <Input
-                data-testid="input-start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => handleFilterChange('startDate', e.target.value)}
-              />
-              <span className="flex items-center">-</span>
-              <Input
-                data-testid="input-end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => handleFilterChange('endDate', e.target.value)}
-              />
-            </div>
-          </div>
-
+        <div className="grid grid-cols-5 gap-4 mb-6">
           <div>
             <Label className="text-muted-foreground">{t('loginUserName')}:</Label>
             <Input 
