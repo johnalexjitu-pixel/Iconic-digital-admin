@@ -34,7 +34,7 @@ export default function UserManagement() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [membershipIdFilter, setMembershipIdFilter] = useState("");
-  const [gmailFilter, setGmailFilter] = useState("");
+  const [phoneNumberFilter, setPhoneNumberFilter] = useState("");
   const [usernameFilter, setUsernameFilter] = useState("");
   const [isFiltered, setIsFiltered] = useState(false);
 
@@ -84,19 +84,19 @@ export default function UserManagement() {
     setIsFiltered(true);
   };
 
-  // Filter functions for membershipId, gmail, username
+  // Filter functions for membershipId, number, username
   const handleFilterChange = (field: string, value: string) => {
     if (field === 'membershipId') {
       setMembershipIdFilter(value);
-    } else if (field === 'gmail') {
-      setGmailFilter(value);
+    } else if (field === 'phoneNumber') {
+      setPhoneNumberFilter(value);
     } else if (field === 'username') {
       setUsernameFilter(value);
     }
   };
 
   const handleApplyFilter = async () => {
-    console.log("🔍 Applying filters:", { membershipIdFilter, gmailFilter, usernameFilter });
+    console.log("🔍 Applying filters:", { membershipIdFilter, phoneNumberFilter, usernameFilter });
     setIsFiltered(true);
     toast({
       title: "Success",
@@ -109,7 +109,7 @@ export default function UserManagement() {
   const handleClearFilters = async () => {
     console.log("🔄 Clearing filters");
     setMembershipIdFilter("");
-    setGmailFilter("");
+    setPhoneNumberFilter("");
     setUsernameFilter("");
     setIsFiltered(false);
     toast({
@@ -124,9 +124,9 @@ export default function UserManagement() {
   const queryParams = new URLSearchParams();
   queryParams.append("limit", "100");
   
-  if (isFiltered && (membershipIdFilter || gmailFilter || usernameFilter)) {
+  if (isFiltered && (membershipIdFilter || phoneNumberFilter || usernameFilter)) {
     if (membershipIdFilter) queryParams.append("membershipId", membershipIdFilter);
-    if (gmailFilter) queryParams.append("gmail", gmailFilter);
+    if (phoneNumberFilter) queryParams.append("phoneNumber", phoneNumberFilter);
     if (usernameFilter) queryParams.append("username", usernameFilter);
   }
 
@@ -173,13 +173,13 @@ export default function UserManagement() {
             />
           </div>
           <div>
-            <Label className="text-muted-foreground">*Gmail:</Label>
+            <Label className="text-muted-foreground">*Number:</Label>
             <Input
-              data-testid="input-gmail"
-              type="email"
-              placeholder="Enter Gmail"
-              value={gmailFilter}
-              onChange={(e) => handleFilterChange('gmail', e.target.value)}
+              data-testid="input-number"
+              type="tel"
+              placeholder="Enter Number"
+              value={phoneNumberFilter}
+              onChange={(e) => handleFilterChange('phoneNumber', e.target.value)}
               className="mt-1"
             />
           </div>
