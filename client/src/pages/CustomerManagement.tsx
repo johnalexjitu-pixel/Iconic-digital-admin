@@ -782,12 +782,14 @@ export default function CustomerManagement() {
   const queryParams = new URLSearchParams();
   queryParams.append("limit", "100");
   
-  // Always include filters if they have values (like TaskManagement style)
-  if (filters.username) queryParams.append("username", filters.username);
-  if (filters.code) queryParams.append("membershipId", filters.code);
-  if (filters.phoneNumber) queryParams.append("phoneNumber", filters.phoneNumber);
-  if (filters.customerStatus && filters.customerStatus !== "all") {
-    queryParams.append("isActive", filters.customerStatus === "active" ? "true" : "false");
+  // Only apply filters if filter button was clicked (isFiltered is true)
+  if (isFiltered) {
+    if (filters.username) queryParams.append("username", filters.username);
+    if (filters.code) queryParams.append("membershipId", filters.code);
+    if (filters.phoneNumber) queryParams.append("phoneNumber", filters.phoneNumber);
+    if (filters.customerStatus && filters.customerStatus !== "all") {
+      queryParams.append("isActive", filters.customerStatus === "active" ? "true" : "false");
+    }
   }
 
   // Fetch users from MongoDB frontend database
