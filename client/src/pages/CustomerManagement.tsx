@@ -1079,7 +1079,8 @@ export default function CustomerManagement() {
         </div>
 
         {/* Date fields removed - no longer needed */}
-        <div className="grid grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-6 gap-4 mb-6">
+          {/* User Name */}
           <div>
             <Label className="text-muted-foreground">{t('loginUserName')}:</Label>
             <Input 
@@ -1091,6 +1092,7 @@ export default function CustomerManagement() {
             />
           </div>
 
+          {/* Code */}
           <div>
             <Label className="text-muted-foreground">{t('code')}:</Label>
             <Input 
@@ -1102,6 +1104,7 @@ export default function CustomerManagement() {
             />
           </div>
 
+          {/* IP Address */}
           <div>
             <Label className="text-muted-foreground">{t('ipAddress')}:</Label>
             <Input 
@@ -1113,6 +1116,7 @@ export default function CustomerManagement() {
             />
           </div>
 
+          {/* Phone Number */}
           <div>
             <Label className="text-muted-foreground">{t('phoneNumber')}:</Label>
             <Input 
@@ -1124,6 +1128,7 @@ export default function CustomerManagement() {
             />
           </div>
 
+          {/* Customer Status */}
           <div>
             <Label className="text-muted-foreground">{t('customerStatus')}:</Label>
             <Select value={filters.customerStatus} onValueChange={(value) => handleFilterChange('customerStatus', value)}>
@@ -1138,6 +1143,7 @@ export default function CustomerManagement() {
             </Select>
           </div>
 
+          {/* Online/Offline Status */}
           <div>
             <Label className="text-muted-foreground">{t('onlineOffline')}:</Label>
             <Select value={filters.onlineStatus} onValueChange={(value) => handleFilterChange('onlineStatus', value)}>
