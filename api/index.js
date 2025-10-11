@@ -251,6 +251,121 @@ export default async function handler(req, res) {
       });
     }
     
+    // Get Admin List
+    else if (req.method === 'GET' && path === '/api/admin/list') {
+      console.log('📋 Fetching admin list...');
+      
+      try {
+        const { page = 1, limit = 10, search = '', status = 'all' } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+        
+        const adminsCollection = database.collection('admins');
+        
+        // Build query
+        let query = {};
+        
+        if (search) {
+          query.$or = [
+            { username: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } },
+            { fullName: { $regex: search, $options: 'i' } }
+          ];
+        }
+        
+        if (status !== 'all') {
+          query.isActive = status === 'active';
+        }
+        
+        // Get total count
+        const total = await adminsCollection.countDocuments(query);
+        
+        // Get admins with pagination
+        const admins = await adminsCollection
+          .find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limitNum)
+          .toArray();
+        
+        // Remove password from response
+        const adminsWithoutPassword = admins.map(admin => {
+          const { password, ...adminWithoutPassword } = admin;
+          return adminWithoutPassword;
+        });
+        
+        const pages = Math.ceil(total / limitNum);
+        
+        console.log(`✅ Found ${adminsWithoutPassword.length} admins (total: ${total})`);
+        
+        res.json({
+          success: true,
+          data: adminsWithoutPassword,
+          total,
+          pages,
+          currentPage: pageNum,
+          limit: limitNum
+        });
+        
+      } catch (error) {
+        console.error('❌ Error fetching admin list:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch admin list'
+        });
+      }
+    }
+    
+    // Toggle Admin Status
+    else if (req.method === 'POST' && path === '/api/admin/toggle-status') {
+      console.log('🔄 Toggling admin status...');
+      
+      try {
+        const { adminId, isActive } = req.body;
+        
+        if (!adminId || typeof isActive !== 'boolean') {
+          return res.status(400).json({
+            success: false,
+            error: 'Admin ID and status are required'
+          });
+        }
+        
+        const adminsCollection = database.collection('admins');
+        
+        const result = await adminsCollection.updateOne(
+          { _id: new ObjectId(adminId) },
+          { 
+            $set: { 
+              isActive,
+              updatedAt: new Date()
+            }
+          }
+        );
+        
+        if (result.matchedCount === 0) {
+          return res.status(404).json({
+            success: false,
+            error: 'Admin not found'
+          });
+        }
+        
+        console.log(`✅ Admin status updated: ${adminId} -> ${isActive ? 'active' : 'inactive'}`);
+        
+        res.json({
+          success: true,
+          message: 'Admin status updated successfully'
+        });
+        
+      } catch (error) {
+        console.error('❌ Error updating admin status:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to update admin status'
+        });
+      }
+    }
+    
     // Change Admin Password
     else if (req.method === 'POST' && path === '/api/admin/change-password') {
       const { adminId, currentPassword, newPassword } = req.body;

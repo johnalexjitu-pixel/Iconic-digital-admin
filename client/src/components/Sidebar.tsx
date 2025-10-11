@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   LayoutGrid,
   Users,
@@ -10,6 +11,9 @@ import {
   Crown,
   FileCheck,
   UserPlus,
+  UserCheck,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -30,7 +34,14 @@ const navItems = [
     icon: UserCog,
     badgeKey: "pendingUsers",
   },
-  { href: "/admin-create", labelKey: "adminCreate", icon: UserPlus },
+  {
+    labelKey: "adminManagement",
+    icon: UserPlus,
+    children: [
+      { href: "/admin-create", labelKey: "adminCreate", icon: UserPlus },
+      { href: "/admin-list", labelKey: "adminList", icon: UserCheck },
+    ],
+  },
   { href: "/master-data", labelKey: "masterData", icon: Database },
   { href: "/vip-level", labelKey: "vipLevel", icon: Crown },
   {
@@ -47,6 +58,7 @@ interface SidebarProps {
 export default function Sidebar({ isOpen }: SidebarProps) {
   const [location] = useLocation();
   const { t } = useTranslation();
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
   // Fetch pending counts for badges
   const { data: pendingCounts } = useQuery<{
@@ -65,6 +77,14 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     staleTime: 25000, // Consider data stale after 25 seconds
   });
 
+  const toggleMenu = (labelKey: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(labelKey) 
+        ? prev.filter(key => key !== labelKey)
+        : [...prev, labelKey]
+    );
+  };
+
   return (
     <aside className={`${isOpen ? 'w-64' : 'w-0 overflow-hidden'} bg-card border-r border-border flex flex-col pt-2 px-4 pb-4 transition-all duration-300`}>
 
@@ -78,10 +98,69 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-12">
+      <nav className="flex-1 space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location === item.href;
+          const hasChildren = 'children' in item && item.children;
+          const isExpanded = expandedMenus.includes(item.labelKey);
+          const isActive = item.href ? location === item.href : 
+            (hasChildren && item.children?.some(child => location === child.href));
+
+          if (hasChildren) {
+            return (
+              <div key={item.labelKey} className="space-y-1">
+                <button
+                  onClick={() => toggleMenu(item.labelKey)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer border",
+                    isActive
+                      ? "bg-accent text-primary font-medium border-primary/50"
+                      : "text-muted-foreground border-transparent hover:bg-accent/50 hover:border-border"
+                  )}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  {isOpen && (
+                    <>
+                      <span className="flex-1 truncate text-left">{t(item.labelKey)}</span>
+                      {isExpanded ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </>
+                  )}
+                </button>
+                
+                {isOpen && isExpanded && (
+                  <div className="ml-6 space-y-1">
+                    {item.children.map((child) => {
+                      const ChildIcon = child.icon;
+                      const isChildActive = location === child.href;
+                      
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          data-testid={`link-nav-${child.labelKey
+                            .toLowerCase()
+                            .replace(/\s+/g, "-")}`}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer border",
+                            isChildActive
+                              ? "bg-accent text-primary font-medium border-primary/50"
+                              : "text-muted-foreground border-transparent hover:bg-accent/50 hover:border-border"
+                          )}
+                        >
+                          <ChildIcon className="w-4 h-4 flex-shrink-0" />
+                          <span className="flex-1 truncate">{t(child.labelKey)}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
 
           return (
             <Link
