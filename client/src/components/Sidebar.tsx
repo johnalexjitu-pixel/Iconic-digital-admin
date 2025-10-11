@@ -60,6 +60,9 @@ export default function Sidebar({ isOpen }: SidebarProps) {
   const { t } = useTranslation();
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
+  // Get current user role
+  const currentUserRole = localStorage.getItem('adminRole') || 'team';
+
   // Fetch pending counts for badges
   const { data: pendingCounts } = useQuery<{
     success: boolean;
@@ -85,6 +88,30 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     );
   };
 
+  // Filter nav items based on user role
+  const filteredNavItems = navItems.map(item => {
+    if (item.labelKey === 'adminManagement' && 'children' in item) {
+      // Filter admin management children based on role
+      const filteredChildren = item.children.filter(child => {
+        if (child.labelKey === 'adminCreate') {
+          // Only superadmin and admin can create admins
+          return currentUserRole === 'superadmin' || currentUserRole === 'admin';
+        }
+        if (child.labelKey === 'adminList') {
+          // All roles can view admin list
+          return true;
+        }
+        return true;
+      });
+      
+      return {
+        ...item,
+        children: filteredChildren
+      };
+    }
+    return item;
+  });
+
   return (
     <aside className={`${isOpen ? 'w-64' : 'w-0 overflow-hidden'} bg-card border-r border-border flex flex-col pt-2 px-4 pb-4 transition-all duration-300`}>
 
@@ -99,7 +126,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-2">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const hasChildren = 'children' in item && item.children;
           const isExpanded = expandedMenus.includes(item.labelKey);

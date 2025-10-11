@@ -1,18 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
-import { UserPlus, Eye, EyeOff } from "lucide-react";
+import { UserPlus, Eye, EyeOff, Shield } from "lucide-react";
 
 export default function AdminCreate() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [hasPermission, setHasPermission] = useState(false);
   
   const [formData, setFormData] = useState({
     username: "",
@@ -20,8 +22,23 @@ export default function AdminCreate() {
     password: "",
     confirmPassword: "",
     fullName: "",
-    role: "admin"
+    role: "team"
   });
+
+  // Check user permission on component mount
+  useEffect(() => {
+    const currentUserRole = localStorage.getItem('adminRole') || 'team';
+    const canCreateAdmin = currentUserRole === 'superadmin' || currentUserRole === 'admin';
+    setHasPermission(canCreateAdmin);
+    
+    if (!canCreateAdmin) {
+      toast({
+        title: t("accessDenied") || "Access Denied",
+        description: t("insufficientPermissions") || "You don't have permission to perform this action",
+        variant: "destructive",
+      });
+    }
+  }, [t, toast]);
 
   const createAdminMutation = useMutation({
     mutationFn: async (adminData: {
@@ -58,7 +75,7 @@ export default function AdminCreate() {
         password: "",
         confirmPassword: "",
         fullName: "",
-        role: "admin"
+        role: "team"
       });
     },
     onError: (error: Error) => {
@@ -114,6 +131,30 @@ export default function AdminCreate() {
       role: formData.role
     });
   };
+
+  // Show access denied message if user doesn't have permission
+  if (!hasPermission) {
+    return (
+      <div className="p-6">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Shield className="w-16 h-16 text-red-500 mb-4" />
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                {t('accessDenied') || 'Access Denied'}
+              </h2>
+              <p className="text-muted-foreground text-center mb-6">
+                {t('insufficientPermissions') || 'You don\'t have permission to perform this action'}
+              </p>
+              <p className="text-sm text-muted-foreground text-center">
+                {t('adminCreateAccessNote') || 'Only Super Admin and Admin roles can create new administrators.'}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -172,6 +213,22 @@ export default function AdminCreate() {
                   className="mt-1"
                   required
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="role" className="text-muted-foreground">
+                  {t('role') || 'Role'} *
+                </Label>
+                <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder={t('selectRole') || 'Select Role'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="superadmin">{t('superadmin') || 'Super Admin'}</SelectItem>
+                    <SelectItem value="admin">{t('admin') || 'Admin'}</SelectItem>
+                    <SelectItem value="team">{t('team') || 'Team'}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

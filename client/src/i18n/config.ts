@@ -28,6 +28,15 @@ const resources = {
       passwordMustBeAtLeast6Characters: "Password must be at least 6 characters",
       pleaseFillAllFields: "Please fill all required fields",
       
+      // Admin Roles
+      superadmin: "Super Admin",
+      admin: "Admin",
+      team: "Team",
+      selectRole: "Select Role",
+      accessDenied: "Access Denied",
+      insufficientPermissions: "You don't have permission to perform this action",
+      adminCreateAccessNote: "Only Super Admin and Admin roles can create new administrators.",
+      
       // Dashboard
       deposit: "Deposit",
       approvedWithdrawal: "Approved Withdrawal",
@@ -239,6 +248,15 @@ const resources = {
       vipLevel: "ভিআইপি লেভেল ম্যানেজমেন্ট",
       tasklistExpiration: "কাস্টমার টাস্কলিস্ট মেয়াদ",
       
+      // Admin Roles
+      superadmin: "সুপার অ্যাডমিন",
+      admin: "অ্যাডমিন",
+      team: "টিম",
+      selectRole: "ভূমিকা নির্বাচন করুন",
+      accessDenied: "অ্যাক্সেস অস্বীকৃত",
+      insufficientPermissions: "এই কাজটি করার আপনার অনুমতি নেই",
+      adminCreateAccessNote: "শুধুমাত্র সুপার অ্যাডমিন এবং অ্যাডমিন ভূমিকার ব্যবহারকারীরা নতুন অ্যাডমিন তৈরি করতে পারেন।",
+      
       // Dashboard
       deposit: "জমা",
       approvedWithdrawal: "অনুমোদিত উত্তোলন",
@@ -449,6 +467,15 @@ const resources = {
       masterData: "主数据管理",
       vipLevel: "VIP等级管理",
       tasklistExpiration: "客户任务列表到期",
+      
+      // Admin Roles
+      superadmin: "超级管理员",
+      admin: "管理员",
+      team: "团队",
+      selectRole: "选择角色",
+      accessDenied: "访问被拒绝",
+      insufficientPermissions: "您没有执行此操作的权限",
+      adminCreateAccessNote: "只有超级管理员和管理员角色可以创建新管理员。",
       
       // Dashboard
       deposit: "存款",
