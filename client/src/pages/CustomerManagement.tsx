@@ -612,20 +612,18 @@ export default function CustomerManagement() {
   // Reset task completion count and delete all customer tasks history
   const handleResetTask = async (customer: any) => {
     try {
-      // Reset campaignsCompleted to 0 in users collection
+      // Reset campaignsCompleted to 0 - this will automatically delete customer tasks history
       const response = await apiRequest("PATCH", `/api/frontend/users/${customer.id}`, {
         campaignsCompleted: 0
       });
       const result = await response.json();
       
       if (result.success) {
-        // Also delete all customer tasks history
-        const deleteResponse = await apiRequest("DELETE", `/api/frontend/customer-tasks/${customer.id}/reset-history`);
-        const deleteResult = await deleteResponse.json();
-        
         toast({
           title: "Success",
-          description: `Task completion count and ${deleteResult.deletedCount || 0} tasks history reset successfully`,
+          description: result.data?.tasksDeleted ? 
+            `Task completion count and ${result.data.tasksDeleted} tasks history reset successfully` :
+            "Task completion count reset successfully",
         });
         
         // Refresh both users and combo tasks data

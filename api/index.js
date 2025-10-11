@@ -569,10 +569,51 @@ export default async function handler(req, res) {
         accountStatus: result.accountStatus
       });
 
+      // If campaignsCompleted is being reset to 0, also delete customer tasks history
+      if (updateData.campaignsCompleted === 0) {
+        console.log("🗑️ Campaigns completed reset to 0, deleting customer tasks history");
+        
+        try {
+          const customerTasksCollection = database.collection('customerTasks');
+          
+          // Delete all tasks using multiple criteria
+          const deleteCriteria = {
+            $or: [
+              { customerId: userId },
+              { customerId: new ObjectId(userId) }
+            ]
+          };
+          
+          // Add customerCode to criteria
+          if (result.membershipId) {
+            deleteCriteria.$or.push({ customerCode: result.membershipId });
+            deleteCriteria.$or.push({ customerCode: result.membershipId.toString() });
+          }
+          if (result.code) {
+            deleteCriteria.$or.push({ customerCode: result.code });
+            deleteCriteria.$or.push({ customerCode: result.code.toString() });
+          }
+          
+          console.log("🗑️ Delete criteria:", JSON.stringify(deleteCriteria, null, 2));
+          
+          const deleteResult = await customerTasksCollection.deleteMany(deleteCriteria);
+          
+          console.log(`🗑️ Deleted ${deleteResult.deletedCount} tasks for customer ${userId}`);
+          
+          // Update the response message
+          result.tasksDeleted = deleteResult.deletedCount;
+        } catch (deleteError) {
+          console.error("❌ Error deleting customer tasks:", deleteError);
+          // Don't fail the entire operation if task deletion fails
+        }
+      }
+
       res.json({
         success: true,
         data: result,
-        message: "User profile updated successfully"
+        message: updateData.campaignsCompleted === 0 && result.tasksDeleted ? 
+          `User profile updated and ${result.tasksDeleted} tasks history cleared` : 
+          "User profile updated successfully"
       });
     }
     
