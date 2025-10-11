@@ -24,7 +24,11 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useState } from "react";
 
-export default function Header() {
+interface HeaderProps {
+  onToggleSidebar: () => void;
+}
+
+export default function Header({ onToggleSidebar }: HeaderProps) {
   const { t, i18n } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -144,7 +148,9 @@ export default function Header() {
       <div className="flex items-center gap-2">
         <button
           data-testid="button-menu"
-          className="p-2 hover:bg-muted rounded-md"
+          onClick={onToggleSidebar}
+          className="p-2 hover:bg-muted rounded-md transition-colors"
+          title="Toggle Sidebar"
         >
           <Menu className="w-5 h-5 text-muted-foreground" />
         </button>

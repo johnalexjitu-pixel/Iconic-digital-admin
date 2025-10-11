@@ -38,7 +38,11 @@ const navItems = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+}
+
+export default function Sidebar({ isOpen }: SidebarProps) {
   const [location] = useLocation();
   const { t } = useTranslation();
 
@@ -60,14 +64,16 @@ export default function Sidebar() {
   });
 
   return (
-    <aside className="w-64 bg-card border-r border-border flex flex-col pt-2 px-4 pb-4">
+    <aside className={`${isOpen ? 'w-64' : 'w-0 overflow-hidden'} bg-card border-r border-border flex flex-col pt-2 px-4 pb-4 transition-all duration-300`}>
 
       {/* Header */}
-      <div className="pb-4 mb-4 border-b border-border">
-        <h1 className="text-base font-semibold text-foreground">
-          Account Backoffice
-        </h1>
-      </div>
+      {isOpen && (
+        <div className="pb-4 mb-4 border-b border-border">
+          <h1 className="text-base font-semibold text-foreground">
+            Account Backoffice
+          </h1>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 space-y-12">
@@ -90,16 +96,20 @@ export default function Sidebar() {
               )}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
-              <span className="flex-1 truncate">{t(item.labelKey)}</span>
-              {item.badgeKey && pendingCounts?.data && (
-                <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold min-w-[20px] text-center">
-                  {pendingCounts.data[item.badgeKey] || 0}
-                </span>
-              )}
-              {item.badge && (
-                <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded">
-                  {item.badge}
-                </span>
+              {isOpen && (
+                <>
+                  <span className="flex-1 truncate">{t(item.labelKey)}</span>
+                  {item.badgeKey && pendingCounts?.data && (
+                    <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold min-w-[20px] text-center">
+                      {pendingCounts.data[item.badgeKey] || 0}
+                    </span>
+                  )}
+                  {item.badge && (
+                    <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded">
+                      {item.badge}
+                    </span>
+                  )}
+                </>
               )}
             </Link>
           );
