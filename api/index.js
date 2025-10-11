@@ -139,6 +139,9 @@ export default async function handler(req, res) {
           });
         }
         
+        // Get admins collection
+        const adminsCollection = database.collection('admins');
+        
         // Check if admin already exists
         const existingAdmin = await adminsCollection.findOne({
           $or: [
@@ -245,58 +248,6 @@ export default async function handler(req, res) {
           role: admin.role
         },
         message: "Login successful"
-      });
-    }
-    
-    // Create Admin
-    else if (req.method === 'POST' && path === '/api/admin/create') {
-      const { username, password, email, role = 'admin' } = req.body;
-      
-      console.log(`👤 Creating admin: ${username}`);
-
-      if (!username || !password || !email) {
-        return res.status(400).json({ 
-          success: false, 
-          error: "Username, password, and email are required" 
-        });
-      }
-
-      const adminsCollection = database.collection('admins');
-      
-      const existingAdmin = await adminsCollection.findOne({ 
-        $or: [{ username }, { email }] 
-      });
-
-      if (existingAdmin) {
-        return res.status(400).json({ 
-          success: false, 
-          error: "Admin with this username or email already exists" 
-        });
-      }
-
-      const newAdmin = {
-        username,
-        password,
-        email,
-        role,
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-
-      const result = await adminsCollection.insertOne(newAdmin);
-      
-      console.log(`✅ Admin created successfully: ${username}`);
-
-      res.json({
-        success: true,
-        data: {
-          id: result.insertedId,
-          username,
-          email,
-          role
-        },
-        message: "Admin created successfully"
       });
     }
     
