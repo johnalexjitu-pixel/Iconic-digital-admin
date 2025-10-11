@@ -620,11 +620,12 @@ export default function CustomerManagement() {
       
       if (result.success) {
         // Also delete all customer tasks history
-        await apiRequest("DELETE", `/api/frontend/customer-tasks/${customer.id}/reset-history`);
+        const deleteResponse = await apiRequest("DELETE", `/api/frontend/customer-tasks/${customer.id}/reset-history`);
+        const deleteResult = await deleteResponse.json();
         
         toast({
           title: "Success",
-          description: "Task completion count and history reset successfully",
+          description: `Task completion count and ${deleteResult.deletedCount || 0} tasks history reset successfully`,
         });
         
         // Refresh both users and combo tasks data

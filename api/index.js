@@ -1408,8 +1408,30 @@ export default async function handler(req, res) {
       try {
         const customerTasksCollection = database.collection('customerTasks');
         
-        // Delete all tasks for this customer
-        const result = await customerTasksCollection.deleteMany({ customerId: customerId });
+        // Delete all tasks for this customer - try multiple approaches
+        let result;
+        
+        // First try with exact customerId
+        result = await customerTasksCollection.deleteMany({ customerId: customerId });
+        
+        // If no tasks found with exact customerId, try with ObjectId
+        if (result.deletedCount === 0) {
+          try {
+            result = await customerTasksCollection.deleteMany({ customerId: new ObjectId(customerId) });
+          } catch (objectIdError) {
+            // If ObjectId fails, try with customerCode as well
+            const usersCollection = database.collection('users');
+            const user = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+            if (user) {
+              result = await customerTasksCollection.deleteMany({ 
+                $or: [
+                  { customerId: customerId },
+                  { customerCode: user.membershipId || user.code }
+                ]
+              });
+            }
+          }
+        }
         
         console.log(`🗑️ Deleted ${result.deletedCount} tasks for customer ${customerId}`);
 
