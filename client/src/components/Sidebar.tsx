@@ -9,6 +9,7 @@ import {
   Database,
   Crown,
   FileCheck,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -29,6 +30,7 @@ const navItems = [
     icon: UserCog,
     badgeKey: "pendingUsers",
   },
+  { href: "/admin-create", labelKey: "adminCreate", icon: UserPlus },
   { href: "/master-data", labelKey: "masterData", icon: Database },
   { href: "/vip-level", labelKey: "vipLevel", icon: Crown },
   {
@@ -101,10 +103,10 @@ export default function Sidebar({ isOpen }: SidebarProps) {
                   <span className="flex-1 truncate">{t(item.labelKey)}</span>
                   {item.badgeKey && pendingCounts?.data && (
                     <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold min-w-[20px] text-center">
-                      {pendingCounts.data[item.badgeKey] || 0}
+                      {pendingCounts.data[item.badgeKey as keyof typeof pendingCounts.data] || 0}
                     </span>
                   )}
-                  {item.badge && (
+                  {'badge' in item && item.badge && (
                     <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded">
                       {item.badge}
                     </span>

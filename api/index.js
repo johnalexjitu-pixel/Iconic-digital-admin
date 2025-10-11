@@ -117,6 +117,83 @@ export default async function handler(req, res) {
     
     // Admin Authentication Routes
     
+    // Create Admin
+    if (req.method === 'POST' && path === '/api/admin/create') {
+      console.log('👤 Creating new admin...');
+      
+      try {
+        const { username, email, password, fullName, role = 'admin' } = req.body;
+        
+        // Validation
+        if (!username || !email || !password || !fullName) {
+          return res.status(400).json({
+            success: false,
+            error: 'All fields are required'
+          });
+        }
+        
+        if (password.length < 6) {
+          return res.status(400).json({
+            success: false,
+            error: 'Password must be at least 6 characters long'
+          });
+        }
+        
+        // Check if admin already exists
+        const existingAdmin = await adminsCollection.findOne({
+          $or: [
+            { username: username },
+            { email: email }
+          ]
+        });
+        
+        if (existingAdmin) {
+          return res.status(400).json({
+            success: false,
+            error: 'Admin with this username or email already exists'
+          });
+        }
+        
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Create admin
+        const adminData = {
+          username,
+          email,
+          password: hashedPassword,
+          fullName,
+          role,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        const result = await adminsCollection.insertOne(adminData);
+        
+        console.log(`✅ Admin created successfully: ${username}`);
+        
+        res.json({
+          success: true,
+          message: 'Admin created successfully',
+          data: {
+            id: result.insertedId,
+            username,
+            email,
+            fullName,
+            role
+          }
+        });
+        
+      } catch (error) {
+        console.error('❌ Error creating admin:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to create admin'
+        });
+      }
+    }
+    
     // Admin Login
     if (req.method === 'POST' && path === '/api/admin/login') {
       const { username, password } = req.body;

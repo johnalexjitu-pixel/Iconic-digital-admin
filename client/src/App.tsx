@@ -14,6 +14,7 @@ import EditCustomerProfile from "@/pages/EditCustomerProfile";
 import TaskManagement from "@/pages/TaskManagement";
 import WithdrawalManagement from "@/pages/WithdrawalManagement";
 import UserManagement from "@/pages/UserManagement";
+import AdminCreate from "@/pages/AdminCreate";
 import MasterData from "@/pages/MasterData";
 import VIPLevel from "@/pages/VIPLevel";
 import TasklistExpiration from "@/pages/TasklistExpiration";
@@ -74,6 +75,9 @@ function Router() {
             </Route>
             <Route path="/user-management">
               <ProtectedRoute component={UserManagement} />
+            </Route>
+            <Route path="/admin-create">
+              <ProtectedRoute component={AdminCreate} />
             </Route>
             <Route path="/master-data">
               <ProtectedRoute component={MasterData} />

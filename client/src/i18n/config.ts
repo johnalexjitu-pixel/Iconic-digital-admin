@@ -11,9 +11,20 @@ const resources = {
       taskManagement: "Task Management",
       withdrawalManagement: "Withdrawal Management",
       userManagement: "User Management",
+      adminCreate: "Admin Create",
       masterData: "Master Data Management",
       vipLevel: "VIP Level Management",
       tasklistExpiration: "Customer Tasklist Expiration",
+      
+      // Admin Create
+      adminCreatedSuccessfully: "Admin created successfully",
+      createAdmin: "Create Admin",
+      fullName: "Full Name",
+      enterFullName: "Enter full name",
+      confirmPassword: "Confirm Password",
+      passwordsDoNotMatch: "Passwords do not match",
+      passwordMustBeAtLeast6Characters: "Password must be at least 6 characters",
+      pleaseFillAllFields: "Please fill all required fields",
       
       // Dashboard
       deposit: "Deposit",
@@ -219,6 +230,7 @@ const resources = {
       taskManagement: "টাস্ক ম্যানেজমেন্ট",
       withdrawalManagement: "উত্তোলন ম্যানেজমেন্ট",
       userManagement: "ইউজার ম্যানেজমেন্ট",
+      adminCreate: "অ্যাডমিন তৈরি করুন",
       masterData: "মাস্টার ডেটা ম্যানেজমেন্ট",
       vipLevel: "ভিআইপি লেভেল ম্যানেজমেন্ট",
       tasklistExpiration: "কাস্টমার টাস্কলিস্ট মেয়াদ",
@@ -427,6 +439,7 @@ const resources = {
       taskManagement: "任务管理",
       withdrawalManagement: "提款管理",
       userManagement: "用户管理",
+      adminCreate: "创建管理员",
       masterData: "主数据管理",
       vipLevel: "VIP等级管理",
       tasklistExpiration: "客户任务列表到期",
