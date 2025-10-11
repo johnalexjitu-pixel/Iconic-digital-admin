@@ -1078,6 +1078,7 @@ export default function CustomerManagement() {
           </Button>
         </div>
 
+        {/* Date fields removed - no longer needed */}
         <div className="grid grid-cols-5 gap-4 mb-6">
           <div>
             <Label className="text-muted-foreground">{t('loginUserName')}:</Label>
