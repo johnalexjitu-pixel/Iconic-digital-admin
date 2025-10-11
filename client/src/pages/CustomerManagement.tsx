@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { type Customer } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -782,24 +782,30 @@ export default function CustomerManagement() {
     queryKey: ["/api/customers"],
   });
 
-  // Build query parameters for API
-  const queryParams = new URLSearchParams();
-  queryParams.append("limit", itemsPerPage.toString());
-  queryParams.append("page", currentPage.toString());
-  
-  // Only apply filters if filter button was clicked (isFiltered is true)
-  if (isFiltered) {
-    if (filters.username) queryParams.append("username", filters.username);
-    if (filters.code) queryParams.append("membershipId", filters.code);
-    if (filters.ipAddress) queryParams.append("ipAddress", filters.ipAddress);
-    if (filters.phoneNumber) queryParams.append("phoneNumber", filters.phoneNumber);
-    if (filters.customerStatus && filters.customerStatus !== "all") {
-      queryParams.append("isActive", filters.customerStatus === "active" ? "true" : "false");
+  // Build query parameters for API using useMemo for proper reactivity
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    params.append("limit", itemsPerPage.toString());
+    params.append("page", currentPage.toString());
+    
+    console.log("🔧 Pagination Debug:", { currentPage, itemsPerPage });
+    
+    // Only apply filters if filter button was clicked (isFiltered is true)
+    if (isFiltered) {
+      if (filters.username) params.append("username", filters.username);
+      if (filters.code) params.append("membershipId", filters.code);
+      if (filters.ipAddress) params.append("ipAddress", filters.ipAddress);
+      if (filters.phoneNumber) params.append("phoneNumber", filters.phoneNumber);
+      if (filters.customerStatus && filters.customerStatus !== "all") {
+        params.append("isActive", filters.customerStatus === "active" ? "true" : "false");
+      }
+      if (filters.onlineStatus && filters.onlineStatus !== "all") {
+        params.append("onlineStatus", filters.onlineStatus);
+      }
     }
-    if (filters.onlineStatus && filters.onlineStatus !== "all") {
-      queryParams.append("onlineStatus", filters.onlineStatus);
-    }
-  }
+    
+    return params;
+  }, [currentPage, itemsPerPage, isFiltered, filters]);
 
   // Fetch users from MongoDB frontend database
   const { data: frontendUsers, isLoading: frontendUsersLoading } = useQuery<{
