@@ -2911,7 +2911,7 @@ export default async function handler(req, res) {
         // Get existing customer tasks to check if any are already saved
         const customerTasksCollection = database.collection('customerTasks');
         const existingTasks = await customerTasksCollection
-          .find({ customerCode: customer?.membershipId || customer?.code })
+          .find({ customerId: customerId })
           .sort({ taskNumber: 1 })
           .toArray();
         
