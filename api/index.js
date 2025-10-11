@@ -1407,31 +1407,39 @@ export default async function handler(req, res) {
 
       try {
         const customerTasksCollection = database.collection('customerTasks');
+        const usersCollection = database.collection('users');
         
-        // Delete all tasks for this customer - try multiple approaches
-        let result;
-        
-        // First try with exact customerId
-        result = await customerTasksCollection.deleteMany({ customerId: customerId });
-        
-        // If no tasks found with exact customerId, try with ObjectId
-        if (result.deletedCount === 0) {
-          try {
-            result = await customerTasksCollection.deleteMany({ customerId: new ObjectId(customerId) });
-          } catch (objectIdError) {
-            // If ObjectId fails, try with customerCode as well
-            const usersCollection = database.collection('users');
-            const user = await usersCollection.findOne({ _id: new ObjectId(customerId) });
-            if (user) {
-              result = await customerTasksCollection.deleteMany({ 
-                $or: [
-                  { customerId: customerId },
-                  { customerCode: user.membershipId || user.code }
-                ]
-              });
-            }
-          }
+        // Get user info first to get customerCode
+        let user;
+        try {
+          user = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        } catch (objectIdError) {
+          user = await usersCollection.findOne({ _id: customerId });
         }
+        
+        console.log("🗑️ Found user:", user);
+        
+        // Delete all tasks using multiple criteria
+        const deleteCriteria = {
+          $or: [
+            { customerId: customerId },
+            { customerId: new ObjectId(customerId) }
+          ]
+        };
+        
+        // Add customerCode to criteria if user exists
+        if (user) {
+          deleteCriteria.$or.push(
+            { customerCode: user.membershipId },
+            { customerCode: user.code },
+            { customerCode: user.membershipId?.toString() },
+            { customerCode: user.code?.toString() }
+          );
+        }
+        
+        console.log("🗑️ Delete criteria:", JSON.stringify(deleteCriteria, null, 2));
+        
+        const result = await customerTasksCollection.deleteMany(deleteCriteria);
         
         console.log(`🗑️ Deleted ${result.deletedCount} tasks for customer ${customerId}`);
 
@@ -1439,7 +1447,8 @@ export default async function handler(req, res) {
           success: true,
           message: `Successfully deleted ${result.deletedCount} tasks from customer history`,
           deletedCount: result.deletedCount,
-          customerId: customerId
+          customerId: customerId,
+          customerCode: user?.membershipId || user?.code
         });
       } catch (error) {
         console.error("❌ Error resetting customer tasks history:", error);
