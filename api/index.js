@@ -538,14 +538,24 @@ export default async function handler(req, res) {
       delete updateData._id;
       delete updateData.createdAt;
 
-      updateData.updatedAt = new Date();
+      // Filter out empty/undefined fields to avoid overwriting existing data with empty values
+      const filteredUpdateData = {};
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] !== undefined && updateData[key] !== null && updateData[key] !== "") {
+          filteredUpdateData[key] = updateData[key];
+        }
+      });
+
+      filteredUpdateData.updatedAt = new Date();
+      
+      console.log(`✏️ Filtered update data:`, filteredUpdateData);
 
       const usersCollection = database.collection('users');
-      console.log(`✏️ Database update query:`, { _id: new ObjectId(userId) }, { $set: updateData });
+      console.log(`✏️ Database update query:`, { _id: new ObjectId(userId) }, { $set: filteredUpdateData });
       
       const result = await usersCollection.findOneAndUpdate(
         { _id: new ObjectId(userId) },
-        { $set: updateData },
+        { $set: filteredUpdateData },
         { 
           returnDocument: 'after',
           projection: {}
@@ -570,7 +580,7 @@ export default async function handler(req, res) {
       });
 
       // If campaignsCompleted is being reset to 0, also delete customer tasks history
-      if (updateData.campaignsCompleted === 0) {
+      if (filteredUpdateData.campaignsCompleted === 0) {
         console.log("🗑️ Campaigns completed reset to 0, deleting customer tasks history");
         
         try {
@@ -611,7 +621,7 @@ export default async function handler(req, res) {
       res.json({
         success: true,
         data: result,
-        message: updateData.campaignsCompleted === 0 && result.tasksDeleted ? 
+        message: filteredUpdateData.campaignsCompleted === 0 && result.tasksDeleted ? 
           `User profile updated and ${result.tasksDeleted} tasks history cleared` : 
           "User profile updated successfully"
       });
