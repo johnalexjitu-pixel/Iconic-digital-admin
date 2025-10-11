@@ -968,7 +968,9 @@ export default async function handler(req, res) {
         endDate,
         gmail,
         withdrawalPassword,
-        username
+        username,
+        ipAddress,
+        onlineStatus
       } = req.query;
       const query = {};
       
@@ -1004,6 +1006,19 @@ export default async function handler(req, res) {
         query.username = { $regex: username, $options: 'i' };
       }
       
+      if (ipAddress) {
+        query.ipAddress = { $regex: ipAddress, $options: 'i' };
+      }
+      
+      if (onlineStatus && onlineStatus !== 'all') {
+        // For now, we'll use a placeholder logic for online/offline status
+        // You can implement actual online status tracking based on your requirements
+        if (onlineStatus === 'online') {
+          query.lastLogin = { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }; // Last 24 hours
+        } else if (onlineStatus === 'offline') {
+          query.lastLogin = { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) }; // More than 24 hours ago
+        }
+      }
 
       const usersCollection = database.collection('users');
       

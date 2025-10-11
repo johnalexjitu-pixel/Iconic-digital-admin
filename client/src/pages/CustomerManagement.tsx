@@ -786,9 +786,13 @@ export default function CustomerManagement() {
   if (isFiltered) {
     if (filters.username) queryParams.append("username", filters.username);
     if (filters.code) queryParams.append("membershipId", filters.code);
+    if (filters.ipAddress) queryParams.append("ipAddress", filters.ipAddress);
     if (filters.phoneNumber) queryParams.append("phoneNumber", filters.phoneNumber);
     if (filters.customerStatus && filters.customerStatus !== "all") {
       queryParams.append("isActive", filters.customerStatus === "active" ? "true" : "false");
+    }
+    if (filters.onlineStatus && filters.onlineStatus !== "all") {
+      queryParams.append("onlineStatus", filters.onlineStatus);
     }
   }
 
