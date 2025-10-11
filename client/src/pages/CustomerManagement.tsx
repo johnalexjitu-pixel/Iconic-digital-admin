@@ -30,6 +30,10 @@ export default function CustomerManagement() {
   });
   const [isFiltered, setIsFiltered] = useState(false);
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
   // Edit Balance Modal State
   const [editBalanceModal, setEditBalanceModal] = useState<{
     open: boolean;
@@ -780,7 +784,8 @@ export default function CustomerManagement() {
 
   // Build query parameters for API
   const queryParams = new URLSearchParams();
-  queryParams.append("limit", "100");
+  queryParams.append("limit", itemsPerPage.toString());
+  queryParams.append("page", currentPage.toString());
   
   // Only apply filters if filter button was clicked (isFiltered is true)
   if (isFiltered) {
@@ -800,8 +805,14 @@ export default function CustomerManagement() {
   const { data: frontendUsers, isLoading: frontendUsersLoading } = useQuery<{
     success: boolean;
     data: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
   }>({
-    queryKey: ["/api/frontend/users", isFiltered ? queryParams.toString() : ""],
+    queryKey: ["/api/frontend/users", queryParams.toString()],
     queryFn: async () => {
       const url = `/api/frontend/users?${queryParams.toString()}`;
       console.log("🔍 Frontend users API URL:", url);
@@ -968,16 +979,6 @@ export default function CustomerManagement() {
     setFilters(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleApplyFilter = async () => {
-    console.log("🔍 Applying filters:", filters);
-    setIsFiltered(true);
-    toast({
-      title: "Success",
-      description: "Filters applied successfully",
-    });
-    // Refetch with new filters - the query will automatically use new queryParams
-    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
-  };
 
   const handleClearFilters = async () => {
     console.log("🔄 Clearing filters");
@@ -990,11 +991,34 @@ export default function CustomerManagement() {
       onlineStatus: "all"
     });
     setIsFiltered(false);
+    setCurrentPage(1); // Reset to first page when clearing filters
     toast({
       title: "Success",
       description: "Filters cleared successfully",
     });
     // Refetch all data
+    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+  };
+
+  // Pagination functions
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: string) => {
+    setItemsPerPage(Number(newItemsPerPage));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  const handleApplyFilter = async () => {
+    console.log("🔍 Applying filters:", filters);
+    setIsFiltered(true);
+    setCurrentPage(1); // Reset to first page when applying filters
+    toast({
+      title: "Success",
+      description: "Filters applied successfully",
+    });
+    // Refetch with new filters - the query will automatically use new queryParams
     await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
   };
 
@@ -1356,19 +1380,85 @@ export default function CustomerManagement() {
         <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>{t('rowsPerPage')}:</span>
-            <Select defaultValue="100">
+            <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
               <SelectTrigger data-testid="select-rows-per-page" className="w-20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="100">100</SelectItem>
-                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="10">10</SelectItem>
                 <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm text-muted-foreground">
-            1-{displayCustomers?.length} of {displayCustomers?.length}
+          
+          {/* Pagination Controls */}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              {frontendUsers?.pagination ? (
+                <>
+                  Page {currentPage} of {frontendUsers.pagination.pages} 
+                  ({frontendUsers.pagination.total} total customers)
+                </>
+              ) : (
+                `Showing ${displayCustomers?.length || 0} customers`
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1}
+              >
+                Previous
+              </Button>
+              
+              {/* Page Numbers */}
+              {frontendUsers?.pagination && (
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, frontendUsers.pagination.pages) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                  
+                  {frontendUsers.pagination.pages > 5 && (
+                    <>
+                      <span className="text-muted-foreground">...</span>
+                      <Button
+                        variant={currentPage === frontendUsers.pagination.pages ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(frontendUsers.pagination.pages)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {frontendUsers.pagination.pages}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={!frontendUsers?.pagination || currentPage >= frontendUsers.pagination.pages}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </div>
       </div>
