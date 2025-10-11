@@ -833,6 +833,23 @@ export default function CustomerManagement() {
       if (!response.ok) throw new Error('Failed to fetch users');
       const data = await response.json();
       console.log("📥 Frontend users response:", data);
+      console.log("📊 Pagination check:", { 
+        hasPagination: !!data.pagination, 
+        paginationData: data.pagination,
+        dataLength: data.data?.length 
+      });
+      
+      // Ensure pagination data exists
+      if (!data.pagination) {
+        console.warn("⚠️ No pagination data in response, adding default");
+        data.pagination = {
+          page: currentPage,
+          limit: itemsPerPage,
+          total: data.data?.length || 0,
+          pages: Math.ceil((data.data?.length || 0) / itemsPerPage)
+        };
+      }
+      
       return data;
     },
     staleTime: 0, // Always fetch fresh data
@@ -1408,7 +1425,7 @@ export default function CustomerManagement() {
                   ({frontendUsers.pagination.total} total customers)
                 </>
               ) : (
-                `Showing ${displayCustomers?.length || 0} customers`
+                `Showing ${displayCustomers?.length || 0} customers (Page ${currentPage})`
               )}
             </div>
             
@@ -1460,7 +1477,7 @@ export default function CustomerManagement() {
                 variant="outline"
                 size="sm"
                 onClick={() => handlePageChange(currentPage + 1)}
-                disabled={!frontendUsers?.pagination || currentPage >= frontendUsers.pagination.pages}
+                disabled={frontendUsers?.pagination ? currentPage >= frontendUsers.pagination.pages : displayCustomers?.length < itemsPerPage}
               >
                 Next
               </Button>

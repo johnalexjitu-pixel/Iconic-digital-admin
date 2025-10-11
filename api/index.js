@@ -955,6 +955,8 @@ export default async function handler(req, res) {
     else if (req.method === 'GET' && path === '/api/frontend/users') {
       console.log("🔍 Frontend users API called with query params:", req.query);
       console.log("🔍 Request URL:", req.url);
+      console.log("🔍 Environment:", process.env.NODE_ENV || 'development');
+      console.log("🔍 Pagination params:", { page: req.query.page, limit: req.query.limit });
       
       const { 
         page = 1, 
@@ -1043,6 +1045,7 @@ export default async function handler(req, res) {
       console.log(`📊 Found ${users.length} users (total: ${total}) with filters:`, query);
       console.log(`📊 Final query object:`, JSON.stringify(query, null, 2));
       console.log(`📊 Sample user data:`, users.length > 0 ? JSON.stringify(users[0], null, 2) : "No users found");
+      console.log(`📊 Pagination data:`, { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / Number(limit)) });
       
       // Debug withdrawalPassword field specifically
       if (users.length > 0) {
