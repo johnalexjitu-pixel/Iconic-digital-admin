@@ -818,7 +818,7 @@ export default function CustomerManagement() {
       pages: number;
     };
   }>({
-    queryKey: ["/api/frontend/users", queryParams.toString()],
+    queryKey: ["/api/frontend/users", currentPage, itemsPerPage, isFiltered, filters],
     queryFn: async () => {
       const url = `/api/frontend/users?${queryParams.toString()}`;
       console.log("🔍 Frontend users API URL:", url);
