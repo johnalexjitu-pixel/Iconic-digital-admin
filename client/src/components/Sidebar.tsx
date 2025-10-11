@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutGrid,
   Users,
@@ -20,9 +21,14 @@ const navItems = [
     href: "/withdrawal-management",
     labelKey: "withdrawalManagement",
     icon: Banknote,
-    badge: 342,
+    badgeKey: "pendingWithdrawals",
   },
-  { href: "/user-management", labelKey: "userManagement", icon: UserCog },
+  { 
+    href: "/user-management", 
+    labelKey: "userManagement", 
+    icon: UserCog,
+    badgeKey: "pendingUsers",
+  },
   { href: "/master-data", labelKey: "masterData", icon: Database },
   { href: "/vip-level", labelKey: "vipLevel", icon: Crown },
   {
@@ -35,6 +41,23 @@ const navItems = [
 export default function Sidebar() {
   const [location] = useLocation();
   const { t } = useTranslation();
+
+  // Fetch pending counts for badges
+  const { data: pendingCounts } = useQuery<{
+    success: boolean;
+    data: {
+      pendingWithdrawals: number;
+      pendingUsers: number;
+    };
+  }>({
+    queryKey: ["/api/frontend/pending-counts"],
+    queryFn: async () => {
+      const response = await fetch("/api/frontend/pending-counts");
+      return response.json();
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 25000, // Consider data stale after 25 seconds
+  });
 
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col pt-2 px-4 pb-4">
@@ -68,6 +91,11 @@ export default function Sidebar() {
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
               <span className="flex-1 truncate">{t(item.labelKey)}</span>
+              {item.badgeKey && pendingCounts?.data && (
+                <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold min-w-[20px] text-center">
+                  {pendingCounts.data[item.badgeKey] || 0}
+                </span>
+              )}
               {item.badge && (
                 <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded">
                   {item.badge}

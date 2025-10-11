@@ -1647,6 +1647,40 @@ export default async function handler(req, res) {
       });
     }
     
+    // Pending Counts for Sidebar
+    else if (req.method === 'GET' && path === '/api/frontend/pending-counts') {
+      console.log('📊 Fetching pending counts for sidebar...');
+      
+      try {
+        // Get pending withdrawals count
+        const pendingWithdrawals = await withdrawalsCollection.countDocuments({ status: 'pending' });
+        
+        // Get pending/inactive users count (users with inactive status or isActive: false)
+        const pendingUsers = await usersCollection.countDocuments({
+          $or: [
+            { status: 'inactive' },
+            { isActive: false }
+          ]
+        });
+        
+        console.log(`📊 Pending counts - Withdrawals: ${pendingWithdrawals}, Users: ${pendingUsers}`);
+        
+        res.json({
+          success: true,
+          data: {
+            pendingWithdrawals,
+            pendingUsers
+          }
+        });
+      } catch (error) {
+        console.error('❌ Error fetching pending counts:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch pending counts'
+        });
+      }
+    }
+    
     // Daily Check-Ins
     else if (req.method === 'GET' && path === '/api/frontend/daily-check-ins') {
       const dailyCheckInsCollection = database.collection('dailyCheckIns');
