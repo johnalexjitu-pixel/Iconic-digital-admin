@@ -216,20 +216,41 @@ export default function CustomerManagement() {
   });
 
   const handleTaskClick = (task: any, taskNumber: number) => {
-    setTaskEditModal({
-      open: true,
-      taskNumber,
-      campaign: task,
-      taskCommission: task.taskCommission?.toString() || "0",
-      expiredDate: task.expiredDate 
-        ? new Date(task.expiredDate).toISOString().split('T')[0]
-        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      negativeAmount: task.estimatedNegativeAmount?.toString() || "0",
-      priceFrom: task.priceFrom?.toString() || "0",
-      priceTo: task.priceTo?.toString() || "0",
-      selectedOption: "",
-      hasGoldenEgg: task.hasGoldenEgg || false
-    });
+    try {
+      console.log("🎯 Task clicked:", { taskNumber, task });
+      console.log("🎯 Task data:", {
+        taskCommission: task.taskCommission,
+        estimatedNegativeAmount: task.estimatedNegativeAmount,
+        priceFrom: task.priceFrom,
+        priceTo: task.priceTo,
+        hasGoldenEgg: task.hasGoldenEgg,
+        expiredDate: task.expiredDate
+      });
+
+      setTaskEditModal({
+        open: true,
+        taskNumber,
+        campaign: task,
+        taskCommission: task.taskCommission?.toString() || "0",
+        expiredDate: task.expiredDate 
+          ? new Date(task.expiredDate).toISOString().split('T')[0]
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        negativeAmount: task.estimatedNegativeAmount?.toString() || "0",
+        priceFrom: task.priceFrom?.toString() || "0",
+        priceTo: task.priceTo?.toString() || "0",
+        selectedOption: "",
+        hasGoldenEgg: task.hasGoldenEgg || false
+      });
+      
+      console.log("✅ Task edit modal opened successfully");
+    } catch (error) {
+      console.error("❌ Error opening task edit modal:", error);
+      toast({
+        title: "Error",
+        description: "Failed to open task editor",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleTaskEditSave = async () => {
@@ -392,32 +413,40 @@ export default function CustomerManagement() {
   };
 
   const handleTaskPriceChange = (task: any, value: string) => {
-    // Allow empty string, negative numbers, and positive numbers
-    if (value === '' || value === '-') {
-      setTaskPrices(prev => ({
-        ...prev,
-        [task._id]: value
-      }));
-    } else {
-      const price = parseFloat(value);
-      if (!isNaN(price)) {
+    try {
+      const taskKey = task._id || `task-${task.taskNumber}`;
+      console.log("💰 Task price change:", { taskKey, value, task });
+      
+      // Allow empty string, negative numbers, and positive numbers
+      if (value === '' || value === '-') {
         setTaskPrices(prev => ({
           ...prev,
-          [task._id]: price
+          [taskKey]: value
         }));
+      } else {
+        const price = parseFloat(value);
+        if (!isNaN(price)) {
+          setTaskPrices(prev => ({
+            ...prev,
+            [taskKey]: price
+          }));
+        }
       }
+    } catch (error) {
+      console.error("❌ Error in handleTaskPriceChange:", error);
     }
   };
 
   const handleSaveTaskPrice = async (task: any) => {
     try {
-      console.log("💰 Saving task price:", task.taskNumber, "price:", taskPrices[task._id]);
+      const taskKey = task._id || `task-${task.taskNumber}`;
+      console.log("💰 Saving task price:", task.taskNumber, "price:", taskPrices[taskKey]);
       
       if (!taskDetailsModal.customer?.id) {
         throw new Error("Customer ID not found");
       }
 
-      const newPrice = taskPrices[task._id];
+      const newPrice = taskPrices[taskKey];
       if (newPrice === undefined || newPrice === null) {
         throw new Error("Please enter a valid price");
       }
@@ -1943,7 +1972,23 @@ export default function CustomerManagement() {
                       {(() => {
                         console.log("🎯 Rendering combo tasks table with data:", comboTasksData?.data?.length);
                         console.log("🎯 Combo tasks data:", comboTasksData?.data);
-                        return comboTasksData?.data?.map((task: any) => {
+                        
+                        if (!comboTasksData?.data || !Array.isArray(comboTasksData.data)) {
+                          console.error("❌ Invalid combo tasks data:", comboTasksData);
+                          return (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center text-red-500">
+                                Error loading tasks data
+                              </TableCell>
+                            </TableRow>
+                          );
+                        }
+                        
+                        return comboTasksData.data.map((task: any, index: number) => {
+                          if (!task) {
+                            console.error("❌ Invalid task at index:", index);
+                            return null;
+                          }
                         const commission = task.taskCommission || 0;
                         const taskPrice = task.taskPrice || 0;
                         const estimatedNegative = task.estimatedNegativeAmount || 0;
@@ -1953,7 +1998,7 @@ export default function CustomerManagement() {
                           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString();
 
                         return (
-                          <TableRow key={task._id}>
+                          <TableRow key={task._id || `task-${index}`}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
                                 <span>Task {task.taskNumber}</span>
@@ -1973,7 +2018,7 @@ export default function CustomerManagement() {
                               <div className="flex items-center gap-2">
                                 <Input
                                   type="number"
-                                  value={taskPrices[task._id] !== undefined ? taskPrices[task._id] : taskPrice}
+                                  value={taskPrices[task._id || `task-${index}`] !== undefined ? taskPrices[task._id || `task-${index}`] : taskPrice}
                                   onChange={(e) => handleTaskPriceChange(task, e.target.value)}
                                   className="w-20 h-8 text-sm"
                                   placeholder="0"
@@ -1984,7 +2029,7 @@ export default function CustomerManagement() {
                                   variant="outline"
                                   onClick={() => handleSaveTaskPrice(task)}
                                   className="h-8 px-2 text-xs"
-                                  disabled={taskPrices[task._id] === undefined || taskPrices[task._id] === null}
+                                  disabled={taskPrices[task._id || `task-${index}`] === undefined || taskPrices[task._id || `task-${index}`] === null}
                                 >
                                   {t('save')}
                                 </Button>
