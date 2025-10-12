@@ -1,5 +1,99 @@
 import { MongoClient, ObjectId } from 'mongodb';
 
+// Function to parse user agent for device information
+function parseUserAgent(userAgent) {
+  const ua = userAgent.toLowerCase();
+  
+  // Device type detection
+  let deviceType = 'Desktop';
+  if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
+    deviceType = 'Mobile';
+  } else if (ua.includes('tablet') || ua.includes('ipad')) {
+    deviceType = 'Tablet';
+  }
+  
+  // Device name and model detection
+  let deviceName = 'Unknown Device';
+  let deviceModel = 'Unknown Model';
+  
+  if (ua.includes('iphone')) {
+    deviceName = 'iPhone';
+    // Extract iPhone model
+    const iphoneMatch = ua.match(/iphone\s+os\s+[\d_]+/);
+    if (iphoneMatch) {
+      deviceModel = iphoneMatch[0].replace('iphone os ', '').replace(/_/g, '.');
+    }
+  } else if (ua.includes('ipad')) {
+    deviceName = 'iPad';
+    deviceModel = 'iPad';
+  } else if (ua.includes('android')) {
+    deviceName = 'Android Device';
+    // Extract Android device info
+    const androidMatch = ua.match(/android\s+[\d.]+/);
+    if (androidMatch) {
+      deviceModel = androidMatch[0];
+    }
+  } else if (ua.includes('windows')) {
+    deviceName = 'Windows PC';
+    if (ua.includes('windows nt 10.0')) {
+      deviceModel = 'Windows 10';
+    } else if (ua.includes('windows nt 11.0')) {
+      deviceModel = 'Windows 11';
+    } else {
+      deviceModel = 'Windows';
+    }
+  } else if (ua.includes('macintosh') || ua.includes('mac os')) {
+    deviceName = 'Mac';
+    if (ua.includes('mac os x')) {
+      deviceModel = 'macOS';
+    } else {
+      deviceModel = 'Mac';
+    }
+  } else if (ua.includes('linux')) {
+    deviceName = 'Linux PC';
+    deviceModel = 'Linux';
+  }
+  
+  // Browser detection
+  let browserInfo = 'Unknown Browser';
+  if (ua.includes('chrome') && !ua.includes('edg')) {
+    const chromeMatch = ua.match(/chrome\/([\d.]+)/);
+    browserInfo = chromeMatch ? `Chrome ${chromeMatch[1]}` : 'Chrome';
+  } else if (ua.includes('firefox')) {
+    const firefoxMatch = ua.match(/firefox\/([\d.]+)/);
+    browserInfo = firefoxMatch ? `Firefox ${firefoxMatch[1]}` : 'Firefox';
+  } else if (ua.includes('safari') && !ua.includes('chrome')) {
+    const safariMatch = ua.match(/version\/([\d.]+)/);
+    browserInfo = safariMatch ? `Safari ${safariMatch[1]}` : 'Safari';
+  } else if (ua.includes('edg')) {
+    const edgeMatch = ua.match(/edg\/([\d.]+)/);
+    browserInfo = edgeMatch ? `Edge ${edgeMatch[1]}` : 'Edge';
+  }
+  
+  // OS information
+  let osInfo = 'Unknown OS';
+  if (ua.includes('windows nt 10.0')) {
+    osInfo = 'Windows 10';
+  } else if (ua.includes('windows nt 11.0')) {
+    osInfo = 'Windows 11';
+  } else if (ua.includes('mac os x')) {
+    osInfo = 'macOS';
+  } else if (ua.includes('android')) {
+    osInfo = 'Android';
+  } else if (ua.includes('iphone') || ua.includes('ipad')) {
+    osInfo = 'iOS';
+  } else if (ua.includes('linux')) {
+    osInfo = 'Linux';
+  }
+  
+  return {
+    deviceType,
+    deviceName,
+    deviceModel,
+    browserInfo,
+    osInfo
+  };
+}
 
 const MONGODB_URI = 'mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/?retryWrites=true&w=majority&appName=iconicdigital';
 const DB_NAME = 'iconicdigital';
@@ -242,13 +336,20 @@ export default async function handler(req, res) {
       // Generate or use provided device ID
       const deviceId = deviceInfo?.deviceId || `device_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       
-      // Create device session
+      // Parse user agent for device information
+      const userAgent = req.headers['user-agent'] || 'Unknown';
+      const deviceDetails = parseUserAgent(userAgent);
+      
+      // Create device session with enhanced information
       const deviceSession = {
         deviceId,
         ipAddress: clientIP,
-        userAgent: req.headers['user-agent'] || 'Unknown',
-        deviceType: deviceInfo?.deviceType || 'Unknown',
-        browserInfo: deviceInfo?.browserInfo || 'Unknown',
+        userAgent: userAgent,
+        deviceType: deviceInfo?.deviceType || deviceDetails.deviceType,
+        deviceName: deviceInfo?.deviceName || deviceDetails.deviceName,
+        deviceModel: deviceInfo?.deviceModel || deviceDetails.deviceModel,
+        browserInfo: deviceInfo?.browserInfo || deviceDetails.browserInfo,
+        osInfo: deviceInfo?.osInfo || deviceDetails.osInfo,
         loginTime: new Date(),
         isActive: true
       };
@@ -501,10 +602,23 @@ export default async function handler(req, res) {
         
         console.log(`🔧 Found ${adminsWithoutDeviceInfo.length} admins without device info`);
         
-        // Update each admin with basic device info
+        // Update each admin with enhanced device info
         for (const admin of adminsWithoutDeviceInfo) {
           const mockIP = `192.168.1.${Math.floor(Math.random() * 255)}`;
           const mockDeviceId = `device_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          
+          // Generate realistic device information
+          const deviceTypes = ['Desktop', 'Mobile', 'Tablet'];
+          const deviceNames = ['Windows PC', 'Mac', 'iPhone', 'Android Device', 'iPad'];
+          const deviceModels = ['Windows 10', 'Windows 11', 'macOS', 'iPhone 15', 'Samsung Galaxy S24'];
+          const browsers = ['Chrome 120.0.0.0', 'Firefox 119.0', 'Safari 17.0', 'Edge 120.0.0.0'];
+          const osInfo = ['Windows 11', 'macOS Sonoma', 'iOS 17', 'Android 14'];
+          
+          const randomDeviceType = deviceTypes[Math.floor(Math.random() * deviceTypes.length)];
+          const randomDeviceName = deviceNames[Math.floor(Math.random() * deviceNames.length)];
+          const randomDeviceModel = deviceModels[Math.floor(Math.random() * deviceModels.length)];
+          const randomBrowser = browsers[Math.floor(Math.random() * browsers.length)];
+          const randomOS = osInfo[Math.floor(Math.random() * osInfo.length)];
           
           await adminsCollection.updateOne(
             { _id: admin._id },
@@ -515,9 +629,12 @@ export default async function handler(req, res) {
                 deviceSessions: [{
                   deviceId: mockDeviceId,
                   ipAddress: mockIP,
-                  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                  deviceType: 'Desktop',
-                  browserInfo: 'Chrome/120.0.0.0',
+                  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  deviceType: randomDeviceType,
+                  deviceName: randomDeviceName,
+                  deviceModel: randomDeviceModel,
+                  browserInfo: randomBrowser,
+                  osInfo: randomOS,
                   loginTime: admin.lastLogin || new Date(),
                   isActive: true
                 }]

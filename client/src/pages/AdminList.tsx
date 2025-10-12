@@ -31,7 +31,10 @@ interface Admin {
       ipAddress: string;
       userAgent: string;
       deviceType: string;
+      deviceName: string;
+      deviceModel: string;
       browserInfo: string;
+      osInfo: string;
       loginTime: string;
       isActive: boolean;
     }>;
@@ -537,7 +540,7 @@ export default function AdminList() {
                   <CardTitle className="text-lg">Current Session</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <Label className="text-sm font-medium">Current IP Address</Label>
                       <p className="text-sm text-muted-foreground">
@@ -548,6 +551,18 @@ export default function AdminList() {
                       <Label className="text-sm font-medium">Current Device ID</Label>
                       <p className="text-sm text-muted-foreground font-mono">
                         {selectedAdminForDevices.deviceInfo?.currentDeviceId || 'Not Available'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Current Device</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedAdminForDevices.deviceInfo?.deviceSessions?.[0]?.deviceName || 'Not Available'} {selectedAdminForDevices.deviceInfo?.deviceSessions?.[0]?.deviceModel || ''}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Operating System</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedAdminForDevices.deviceInfo?.deviceSessions?.[0]?.osInfo || 'Not Available'}
                       </p>
                     </div>
                     <div>
@@ -588,7 +603,10 @@ export default function AdminList() {
                                 <span className="text-sm font-medium">Device ID: {session.deviceId}</span>
                               </div>
                               <p className="text-sm text-muted-foreground">
-                                IP: {session.ipAddress} | {session.deviceType} | {session.browserInfo}
+                                IP: {session.ipAddress} | {session.deviceName} {session.deviceModel} | {session.osInfo}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {session.deviceType} • {session.browserInfo}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 Login: {new Date(session.loginTime).toLocaleString()}
