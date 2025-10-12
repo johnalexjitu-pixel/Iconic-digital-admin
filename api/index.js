@@ -4026,12 +4026,12 @@ export default async function handler(req, res) {
     
     // Get combo tasks for a specific user - Fetch from campaigns collection
     else if (req.method === 'GET' && path.startsWith('/api/frontend/combo-tasks/')) {
-      console.log("🎯 MATCHED: Combo tasks endpoint - Dynamic tasks based on requiredTask");
+      console.log("🎯 MATCHED: Combo tasks endpoint - Manual 30 tasks display");
       const customerId = path.split('/')[3];
-      console.log("🎯 Showing combo tasks for customer:", customerId);
+      console.log("🎯 Showing manual combo tasks for customer:", customerId);
 
       try {
-        console.log("🎯 Creating combo tasks for customer:", customerId);
+        console.log("🎯 Creating manual combo tasks for customer:", customerId);
         
         // Get customer info first
         const usersCollection = database.collection('users');
@@ -4042,18 +4042,6 @@ export default async function handler(req, res) {
           customer = await usersCollection.findOne({ _id: customerId });
         }
         
-        if (!customer) {
-          console.error("❌ Customer not found for ID:", customerId);
-          return res.status(404).json({ success: false, error: "Customer not found" });
-        }
-        
-        console.log("🎯 Customer found:", {
-          id: customer._id,
-          username: customer.username,
-          requiredTask: customer.requiredTask,
-          taskCount: customer.taskCount
-        });
-        
         // Get existing customer tasks to check if any are already saved
         const customerTasksCollection = database.collection('customerTasks');
         const existingTasks = await customerTasksCollection
@@ -4063,14 +4051,9 @@ export default async function handler(req, res) {
         
         console.log("🎯 Found existing customer tasks:", existingTasks.length);
         
-        // Get user's required task count (requiredTask field)
-        const userTaskCount = customer?.requiredTask || customer?.taskCount || 30; // Default to 30 if not specified
-        console.log("🎯 User requiredTask from database:", userTaskCount);
-        console.log("🎯 Will create tasks from 1 to:", userTaskCount);
-        
-        // Create dynamic combo tasks based on user's requiredTask (Task 1 to requiredTask)
+        // Create manual 30 combo tasks (Task 1 to 30)
         const manualComboTasks = [];
-        for (let i = 1; i <= userTaskCount; i++) {
+        for (let i = 1; i <= 30; i++) {
           // Check if task already exists in database
           const existingTask = existingTasks.find(task => task.taskNumber === i);
           
@@ -4101,22 +4084,14 @@ export default async function handler(req, res) {
           });
         }
 
-        console.log("🎯 Created", manualComboTasks.length, "combo tasks");
-        console.log("🎯 Task range: Task 1 to Task", manualComboTasks.length);
-        console.log("🎯 User requiredTask was:", userTaskCount);
+        console.log("🎯 Created", manualComboTasks.length, "manual combo tasks");
         
-        // Response with dynamic combo tasks based on requiredTask
-        res.json({ 
-          success: true, 
-          data: manualComboTasks, 
-          total: manualComboTasks.length,
-          requiredTask: userTaskCount,
-          message: `Created ${manualComboTasks.length} tasks based on requiredTask: ${userTaskCount}`
-        });
+        // Response with manual combo tasks (always 30 tasks)
+        res.json({ success: true, data: manualComboTasks, total: manualComboTasks.length });
         
       } catch (error) {
-        console.error("❌ Error creating combo tasks:", error);
-        res.status(500).json({ success: false, error: "Failed to create combo tasks" });
+        console.error("❌ Error creating manual combo tasks:", error);
+        res.status(500).json({ success: false, error: "Failed to create manual combo tasks" });
       }
     }
     
