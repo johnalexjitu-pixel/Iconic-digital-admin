@@ -1,6 +1,7 @@
-import { Menu, Settings, LogOut, KeyRound } from "lucide-react";
+import { Menu, Settings, LogOut, KeyRound, FileText, AlertCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -28,11 +29,67 @@ interface HeaderProps {
   onToggleSidebar: () => void;
 }
 
+interface DeveloperNotice {
+  _id: string;
+  content: string;
+  visibleToRoles: string[];
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+}
+
 export default function Header({ onToggleSidebar }: HeaderProps) {
   const { t, i18n } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showChangePassword, setShowChangePassword] = useState(false);
+
+  // Get current user info from localStorage
+  const adminUser = localStorage.getItem('adminUser');
+  const currentUsername = adminUser ? JSON.parse(adminUser).username : null;
+
+  // Fetch current admin role from database
+  const { data: currentAdminData } = useQuery<{
+    success: boolean;
+    data: {
+      role: string;
+      username: string;
+    };
+  }>({
+    queryKey: ["/api/admin/current", currentUsername],
+    queryFn: async () => {
+      if (!currentUsername) return { success: false, data: { role: 'team', username: '' } };
+      
+      const response = await fetch(`/api/admin/current?username=${currentUsername}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch current admin info");
+      }
+      return response.json();
+    },
+    enabled: !!currentUsername,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  });
+
+  const currentUserRole = currentAdminData?.data?.role || 'team';
+
+  // Fetch developer notices for current user
+  const { data: noticesData } = useQuery<{
+    success: boolean;
+    data: DeveloperNotice[];
+  }>({
+    queryKey: ["/api/developer-notice/list", currentUsername],
+    queryFn: async () => {
+      const response = await fetch(`/api/developer-notice/list?currentUserUsername=${currentUsername}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch developer notices");
+      }
+      return response.json();
+    },
+    enabled: !!currentUsername,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -155,6 +212,21 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           <Menu className="w-5 h-5 text-muted-foreground" />
         </button>
       </div>
+
+      {/* Developer Notice Display */}
+      {noticesData?.data && noticesData.data.length > 0 && (
+        <div className="flex-1 mx-6">
+          {noticesData.data.map((notice) => (
+            <div
+              key={notice._id}
+              className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg"
+            >
+              <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0" />
+              <span className="text-sm text-blue-800">{notice.content}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
