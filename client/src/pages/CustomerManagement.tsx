@@ -1754,7 +1754,7 @@ export default function CustomerManagement() {
 
       {/* Task Details Dialog */}
       <Dialog open={taskDetailsModal.open} onOpenChange={(open) => setTaskDetailsModal({ ...taskDetailsModal, open })}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-auto">
           <DialogHeader>
             <div className="flex justify-between items-center">
               <DialogTitle className="text-lg font-semibold">{t('customerTaskDetails')}</DialogTitle>
@@ -1896,7 +1896,7 @@ export default function CustomerManagement() {
                       )}
                     </div>
                   </div>
-                  <div className="max-h-96 overflow-y-auto border rounded-md">
+                  <div className="max-h-96 overflow-y-auto overflow-x-visible border rounded-md">
                     <Table>
                     <TableHeader>
                       <TableRow>
