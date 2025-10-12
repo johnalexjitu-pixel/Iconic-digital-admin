@@ -754,15 +754,30 @@ export default function CustomerManagement() {
     
     // Only apply filters if filter button was clicked (isFiltered is true)
     if (isFiltered) {
-      if (filters.username) params.append("username", filters.username);
-      if (filters.code) params.append("membershipId", filters.code);
-      if (filters.ipAddress) params.append("ipAddress", filters.ipAddress);
-      if (filters.phoneNumber) params.append("phoneNumber", filters.phoneNumber);
+      console.log("🔍 Building query params with filters:", filters);
+      if (filters.username) {
+        params.append("username", filters.username);
+        console.log("✅ Added username filter:", filters.username);
+      }
+      if (filters.code) {
+        params.append("membershipId", filters.code);
+        console.log("✅ Added code filter:", filters.code);
+      }
+      if (filters.ipAddress) {
+        params.append("ipAddress", filters.ipAddress);
+        console.log("✅ Added IP address filter:", filters.ipAddress);
+      }
+      if (filters.phoneNumber) {
+        params.append("phoneNumber", filters.phoneNumber);
+        console.log("✅ Added phone number filter:", filters.phoneNumber);
+      }
       if (filters.customerStatus && filters.customerStatus !== "all") {
         params.append("isActive", filters.customerStatus === "active" ? "true" : "false");
+        console.log("✅ Added customer status filter:", filters.customerStatus);
       }
       if (filters.onlineStatus && filters.onlineStatus !== "all") {
         params.append("onlineStatus", filters.onlineStatus);
+        console.log("✅ Added online status filter:", filters.onlineStatus);
       }
     }
     
@@ -786,6 +801,7 @@ export default function CustomerManagement() {
       console.log("🔍 Frontend users API URL:", url);
       console.log("🔍 Query params:", queryParams.toString());
       console.log("🔍 Is Filtered:", isFiltered);
+      console.log("🔍 Current filters state:", filters);
       const response = await fetch(url, {
         cache: 'no-store', // Force fresh data
         headers: {
@@ -962,6 +978,14 @@ export default function CustomerManagement() {
 
   const handleApplyFilter = async () => {
     console.log("🔍 Applying filters:", filters);
+    console.log("🔍 Filter details:", {
+      username: filters.username,
+      code: filters.code,
+      ipAddress: filters.ipAddress,
+      phoneNumber: filters.phoneNumber,
+      customerStatus: filters.customerStatus,
+      onlineStatus: filters.onlineStatus
+    });
     setIsFiltered(true);
     setCurrentPage(1); // Reset to first page when applying filters
     toast({
@@ -1126,7 +1150,7 @@ export default function CustomerManagement() {
             <Label className="text-muted-foreground">{t('code')}:</Label>
             <Input 
               data-testid="input-code" 
-              className="mt-1" 
+              className={`mt-1 ${filters.code ? 'border-blue-500 bg-blue-50' : ''}`}
               value={filters.code}
               onChange={(e) => handleFilterChange('code', e.target.value)}
               placeholder="Enter code"
@@ -1138,7 +1162,7 @@ export default function CustomerManagement() {
             <Label className="text-muted-foreground">{t('ipAddress')}:</Label>
             <Input 
               data-testid="input-ip" 
-              className="mt-1" 
+              className={`mt-1 ${filters.ipAddress ? 'border-blue-500 bg-blue-50' : ''}`}
               value={filters.ipAddress}
               onChange={(e) => handleFilterChange('ipAddress', e.target.value)}
               placeholder="Enter IP address"
@@ -1150,7 +1174,7 @@ export default function CustomerManagement() {
             <Label className="text-muted-foreground">{t('phoneNumber')}:</Label>
             <Input 
               data-testid="input-phone" 
-              className="mt-1" 
+              className={`mt-1 ${filters.phoneNumber ? 'border-blue-500 bg-blue-50' : ''}`}
               value={filters.phoneNumber}
               onChange={(e) => handleFilterChange('phoneNumber', e.target.value)}
               placeholder="Enter phone number"
@@ -1161,7 +1185,10 @@ export default function CustomerManagement() {
           <div>
             <Label className="text-muted-foreground">{t('customerStatus')}:</Label>
             <Select value={filters.customerStatus} onValueChange={(value) => handleFilterChange('customerStatus', value)}>
-              <SelectTrigger data-testid="select-status" className="mt-1">
+              <SelectTrigger 
+                data-testid="select-status" 
+                className={`mt-1 ${filters.customerStatus && filters.customerStatus !== 'all' ? 'border-blue-500 bg-blue-50' : ''}`}
+              >
                 <SelectValue placeholder={t('pleaseSelectStatus')} />
               </SelectTrigger>
               <SelectContent>
@@ -1176,7 +1203,10 @@ export default function CustomerManagement() {
           <div>
             <Label className="text-muted-foreground">{t('onlineOffline')}:</Label>
             <Select value={filters.onlineStatus} onValueChange={(value) => handleFilterChange('onlineStatus', value)}>
-              <SelectTrigger data-testid="select-online-status" className="mt-1">
+              <SelectTrigger 
+                data-testid="select-online-status" 
+                className={`mt-1 ${filters.onlineStatus && filters.onlineStatus !== 'all' ? 'border-blue-500 bg-blue-50' : ''}`}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
