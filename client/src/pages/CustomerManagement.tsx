@@ -954,11 +954,24 @@ export default function CustomerManagement() {
     });
   };
 
-  // Filter functions - TaskManagement style
+  // Filter functions - Clean and efficient implementation
   const handleFilterChange = (field: string, value: string) => {
     setFilters(prev => ({ ...prev, [field]: value }));
+    // Reset filter state when user changes any filter field
+    setIsFiltered(false);
   };
 
+  const handleApplyFilter = async () => {
+    console.log("🔍 Applying filters:", filters);
+    setIsFiltered(true);
+    setCurrentPage(1); // Reset to first page when applying filters
+    toast({
+      title: "Success",
+      description: "Filters applied successfully",
+    });
+    // Refetch with new filters - the query will automatically use new queryParams
+    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
+  };
 
   const handleClearFilters = async () => {
     console.log("🔄 Clearing filters");
@@ -988,18 +1001,6 @@ export default function CustomerManagement() {
   const handleItemsPerPageChange = (newItemsPerPage: string) => {
     setItemsPerPage(Number(newItemsPerPage));
     setCurrentPage(1); // Reset to first page when changing items per page
-  };
-
-  const handleApplyFilter = async () => {
-    console.log("🔍 Applying filters:", filters);
-    setIsFiltered(true);
-    setCurrentPage(1); // Reset to first page when applying filters
-    toast({
-      title: "Success",
-      description: "Filters applied successfully",
-    });
-    // Refetch with new filters - the query will automatically use new queryParams
-    await queryClient.invalidateQueries({ queryKey: ["/api/frontend/users"] });
   };
 
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
@@ -1168,8 +1169,20 @@ export default function CustomerManagement() {
         </div>
 
         <div className="flex justify-center gap-3">
-          <Button data-testid="button-filter" className="px-8" onClick={handleApplyFilter}>{t('filter')}</Button>
-          <Button data-testid="button-clear-filter" variant="outline" className="px-8" onClick={handleClearFilters}>
+          <Button 
+            data-testid="button-filter" 
+            className={`px-8 ${isFiltered ? 'bg-green-600 hover:bg-green-700' : ''}`}
+            onClick={handleApplyFilter}
+          >
+            {isFiltered ? '✓ Filters Applied' : t('filter')}
+          </Button>
+          <Button 
+            data-testid="button-clear-filter" 
+            variant="outline" 
+            className="px-8" 
+            onClick={handleClearFilters}
+            disabled={!isFiltered && Object.values(filters).every(val => val === '' || val === 'all')}
+          >
             Clear Filters
           </Button>
         </div>
