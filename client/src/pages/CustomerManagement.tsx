@@ -1933,7 +1933,7 @@ export default function CustomerManagement() {
                                 <span className={`text-sm font-medium ${
                                   hasGoldenEgg ? 'text-yellow-600' : 'text-gray-500'
                                 }`}>
-                                  {hasGoldenEgg ? t('activate') : t('inactive')}
+                                  {hasGoldenEgg ? t('active') : t('inactive')}
                                 </span>
                               </div>
                             </TableCell>

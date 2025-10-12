@@ -258,13 +258,13 @@ export default async function handler(req, res) {
         const { username } = req.query;
         
         if (!username) {
-          return res.status(400).json({
-            success: false,
+        return res.status(400).json({ 
+          success: false, 
             error: 'Username is required'
-          });
-        }
-        
-        const adminsCollection = database.collection('admins');
+        });
+      }
+
+      const adminsCollection = database.collection('admins');
         const admin = await adminsCollection.findOne({ 
           username,
           isActive: true 
@@ -383,8 +383,8 @@ export default async function handler(req, res) {
         const { adminId, isActive } = req.body;
         
         if (!adminId || typeof isActive !== 'boolean') {
-          return res.status(400).json({
-            success: false,
+        return res.status(400).json({ 
+          success: false, 
             error: 'Admin ID and status are required'
           });
         }
@@ -396,7 +396,7 @@ export default async function handler(req, res) {
           { 
             $set: { 
               isActive,
-              updatedAt: new Date()
+        updatedAt: new Date()
             }
           }
         );
@@ -409,9 +409,9 @@ export default async function handler(req, res) {
         }
         
         console.log(`✅ Admin status updated: ${adminId} -> ${isActive ? 'active' : 'inactive'}`);
-        
-        res.json({
-          success: true,
+
+      res.json({
+        success: true,
           message: 'Admin status updated successfully'
         });
         
@@ -462,8 +462,8 @@ export default async function handler(req, res) {
         res.json({
           success: true,
           message: 'Developer notice created successfully',
-          data: {
-            id: result.insertedId,
+        data: {
+          id: result.insertedId,
             ...noticeData
           }
         });
