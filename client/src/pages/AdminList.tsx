@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useTranslation } from "react-i18next";
-import { Search, ChevronLeft, ChevronRight, UserCheck, UserX, Edit, Trash2, Smartphone, RefreshCw } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, UserCheck, UserX, Edit, Trash2, Smartphone, RefreshCw, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Admin {
@@ -51,6 +51,7 @@ export default function AdminList() {
   const [selectedAdminForDevices, setSelectedAdminForDevices] = useState<Admin | null>(null);
   const [showDeviceModal, setShowDeviceModal] = useState(false);
   const [realTimeDeviceStatus, setRealTimeDeviceStatus] = useState<any>(null);
+  const [currentUserSessions, setCurrentUserSessions] = useState<any>(null);
 
   // Function to fetch real-time device status
   const fetchRealTimeDeviceStatus = async () => {
@@ -61,8 +62,56 @@ export default function AdminList() {
       }
       const result = await response.json();
       setRealTimeDeviceStatus(result.data);
+      
+      // Also fetch current user's sessions if superadmin
+      if (currentUserRole === 'superadmin' && currentUsername) {
+        await fetchCurrentUserSessions();
+      }
     } catch (error) {
       console.error('Error fetching device status:', error);
+    }
+  };
+
+  // Function to fetch current user's own device sessions
+  const fetchCurrentUserSessions = async () => {
+    try {
+      const response = await fetch(`/api/admin/current-user-sessions?username=${currentUsername}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch current user sessions');
+      }
+      const result = await response.json();
+      setCurrentUserSessions(result.data);
+    } catch (error) {
+      console.error('Error fetching current user sessions:', error);
+    }
+  };
+
+  // Function to logout from all devices
+  const logoutFromAllDevices = async () => {
+    try {
+      const response = await fetch('/api/admin/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUsername })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to logout from all devices');
+      }
+      
+      toast({
+        title: "Success",
+        description: "Logged out from all devices successfully",
+      });
+      
+      // Refresh device status
+      fetchRealTimeDeviceStatus();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to logout from all devices",
+        variant: "destructive",
+      });
     }
   };
 
@@ -396,6 +445,63 @@ export default function AdminList() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {/* My Current Sessions */}
+            {currentUserSessions && (
+              <div className="mb-6 p-4 bg-white rounded-lg border border-green-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <h4 className="font-semibold text-green-700">My Current Sessions</h4>
+                  </div>
+                  {currentUserSessions.activeDeviceCount > 0 && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={logoutFromAllDevices}
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                    >
+                      <LogOut className="w-4 h-4 mr-1" />
+                      Logout All Devices
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-green-600">
+                      {currentUserSessions.activeDeviceCount}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Active Devices</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-blue-600">
+                      {currentUserSessions.currentIP}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Current IP</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-purple-600">
+                      {currentUserSessions.totalDeviceCount}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Total Devices</div>
+                  </div>
+                </div>
+                {currentUserSessions.activeDeviceCount > 0 && (
+                  <div className="mt-3 text-sm text-muted-foreground">
+                    <strong>Active Sessions:</strong>
+                    <div className="mt-1 space-y-1">
+                      {currentUserSessions.activeSessions.map((session: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center text-xs">
+                          <span>{session.deviceName} {session.deviceModel}</span>
+                          <span className="text-green-600">• {session.ipAddress}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* System Overview */}
             <div className="grid grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">

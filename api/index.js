@@ -813,6 +813,62 @@ export default async function handler(req, res) {
       }
     }
     
+    // Get Current User's Device Sessions
+    else if (req.method === 'GET' && path === '/api/admin/current-user-sessions') {
+      console.log('📱 Fetching current user device sessions...');
+      
+      try {
+        const { username } = req.query;
+        
+        if (!username) {
+          return res.status(400).json({
+            success: false,
+            error: 'Username is required'
+          });
+        }
+        
+        const adminsCollection = database.collection('admins');
+        const admin = await adminsCollection.findOne({ username: username });
+        
+        if (!admin) {
+          return res.status(404).json({
+            success: false,
+            error: 'Admin not found'
+          });
+        }
+        
+        const activeSessions = admin.deviceSessions ? admin.deviceSessions.filter(session => session.isActive) : [];
+        const totalSessions = admin.deviceSessions ? admin.deviceSessions.length : 0;
+        
+        const currentUserSessions = {
+          username: admin.username,
+          email: admin.email,
+          fullName: admin.fullName,
+          currentIP: admin.currentIP || 'Not Available',
+          currentDeviceId: admin.currentDeviceId || 'Not Available',
+          activeDeviceCount: activeSessions.length,
+          totalDeviceCount: totalSessions,
+          lastLogin: admin.lastLogin,
+          activeSessions: activeSessions,
+          allSessions: admin.deviceSessions || []
+        };
+        
+        console.log(`✅ Current user sessions retrieved for ${username}: ${activeSessions.length} active devices`);
+        
+        res.json({
+          success: true,
+          data: currentUserSessions
+        });
+        
+      } catch (error) {
+        console.error('❌ Error fetching current user sessions:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch current user sessions'
+        });
+      }
+    }
+    
     // Get Admin Device Info (Superadmin only)
     else if (req.method === 'GET' && path.startsWith('/api/admin/device-info/')) {
       console.log('📱 Fetching admin device info...');
