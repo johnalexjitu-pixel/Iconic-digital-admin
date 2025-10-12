@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useTranslation } from "react-i18next";
-import { Search, ChevronLeft, ChevronRight, UserCheck, UserX, Edit, Trash2, Smartphone } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, UserCheck, UserX, Edit, Trash2, Smartphone, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Admin {
@@ -50,6 +50,21 @@ export default function AdminList() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedAdminForDevices, setSelectedAdminForDevices] = useState<Admin | null>(null);
   const [showDeviceModal, setShowDeviceModal] = useState(false);
+  const [realTimeDeviceStatus, setRealTimeDeviceStatus] = useState<any>(null);
+
+  // Function to fetch real-time device status
+  const fetchRealTimeDeviceStatus = async () => {
+    try {
+      const response = await fetch(`/api/admin/device-status?currentUserRole=${currentUserRole}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch device status');
+      }
+      const result = await response.json();
+      setRealTimeDeviceStatus(result.data);
+    } catch (error) {
+      console.error('Error fetching device status:', error);
+    }
+  };
 
   // Function to populate device info for existing admins
   const populateDeviceInfo = async () => {
@@ -69,7 +84,10 @@ export default function AdminList() {
         description: `Updated device info for ${result.updatedCount} admins`,
       });
       
-      // Refresh the admin list
+      // Refresh real-time device status and reload page
+      if (currentUserRole === 'superadmin') {
+        fetchRealTimeDeviceStatus();
+      }
       window.location.reload();
     } catch (error: any) {
       toast({
@@ -108,6 +126,18 @@ export default function AdminList() {
   });
 
   const currentUserRole = currentAdminData?.data?.role || 'team';
+
+  // Fetch real-time device status for superadmin
+  useEffect(() => {
+    if (currentUserRole === 'superadmin') {
+      fetchRealTimeDeviceStatus();
+      
+      // Set up auto-refresh every 30 seconds
+      const interval = setInterval(fetchRealTimeDeviceStatus, 30000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [currentUserRole]);
 
   // Fetch admins data
   const { data: adminsData, isLoading, error } = useQuery<{
@@ -345,6 +375,57 @@ export default function AdminList() {
         </CardContent>
       </Card>
 
+      {/* Real-time Device Status Summary (Superadmin only) */}
+      {currentUserRole === 'superadmin' && realTimeDeviceStatus && (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              Real-time Device Status
+              <Badge variant="outline" className="ml-auto">
+                Live
+              </Badge>
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={fetchRealTimeDeviceStatus}
+                className="ml-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {realTimeDeviceStatus.summary.totalActiveDevices}
+                </div>
+                <div className="text-sm text-muted-foreground">Active Devices</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {realTimeDeviceStatus.summary.activeAdmins}
+                </div>
+                <div className="text-sm text-muted-foreground">Active Admins</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-600">
+                  {realTimeDeviceStatus.summary.totalAdmins}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Admins</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {realTimeDeviceStatus.summary.inactiveAdmins}
+                </div>
+                <div className="text-sm text-muted-foreground">Offline Admins</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Admins Table */}
       <Card>
         <CardHeader>
@@ -407,8 +488,8 @@ export default function AdminList() {
                             {admin.deviceInfo?.currentIP || 'N/A'}
                           </TableCell>
                           <TableCell className="text-sm">
-                            <Badge variant="outline">
-                              {admin.deviceInfo?.deviceCount || 0} devices
+                            <Badge variant="outline" className={realTimeDeviceStatus?.admins?.find((a: any) => a.username === admin.username)?.activeDeviceCount > 0 ? "border-green-500 text-green-700" : ""}>
+                              {realTimeDeviceStatus?.admins?.find((a: any) => a.username === admin.username)?.activeDeviceCount || 0} active
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm">

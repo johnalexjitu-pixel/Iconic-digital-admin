@@ -354,7 +354,17 @@ export default async function handler(req, res) {
         isActive: true
       };
 
-      // Update admin with device tracking
+      // First, mark all existing sessions for this admin as inactive
+      await adminsCollection.updateOne(
+        { _id: admin._id },
+        { 
+          $set: { 
+            'deviceSessions.$[].isActive': false
+          }
+        }
+      );
+
+      // Then add the new active session
       await adminsCollection.updateOne(
         { _id: admin._id },
         { 
@@ -385,6 +395,56 @@ export default async function handler(req, res) {
           currentIP: clientIP
         },
         message: "Login successful"
+      });
+    }
+    
+    // Admin Logout
+    else if (req.method === 'POST' && path === '/api/admin/logout') {
+      const { username, deviceId } = req.body;
+      
+      console.log(`🚪 Admin logout: ${username} from device: ${deviceId}`);
+
+      if (!username) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Username is required" 
+        });
+      }
+
+      const adminsCollection = database.collection('admins');
+      
+      // Mark the specific device session as inactive
+      if (deviceId) {
+        await adminsCollection.updateOne(
+          { 
+            username: username,
+            'deviceSessions.deviceId': deviceId
+          },
+          { 
+            $set: { 
+              'deviceSessions.$.isActive': false,
+              'deviceSessions.$.logoutTime': new Date()
+            }
+          }
+        );
+      } else {
+        // If no device ID provided, mark all sessions as inactive
+        await adminsCollection.updateOne(
+          { username: username },
+          { 
+            $set: { 
+              'deviceSessions.$[].isActive': false,
+              'deviceSessions.$[].logoutTime': new Date()
+            }
+          }
+        );
+      }
+
+      console.log(`✅ Admin logged out successfully: ${username}`);
+
+      res.json({
+        success: true,
+        message: "Logout successful"
       });
     }
     
@@ -687,6 +747,68 @@ export default async function handler(req, res) {
         res.status(500).json({
           success: false,
           error: 'Failed to populate device info'
+        });
+      }
+    }
+    
+    // Get Real-time Device Status (Superadmin only)
+    else if (req.method === 'GET' && path === '/api/admin/device-status') {
+      console.log('📊 Fetching real-time device status...');
+      
+      try {
+        const { currentUserRole } = req.query;
+        
+        // Only superadmin can access device status
+        if (currentUserRole !== 'superadmin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Access denied. Superadmin role required.'
+          });
+        }
+        
+        const adminsCollection = database.collection('admins');
+        
+        // Get all admins with their active device counts
+        const adminsWithDeviceStatus = await adminsCollection.find({}).toArray();
+        
+        const deviceStatus = adminsWithDeviceStatus.map(admin => ({
+          adminId: admin._id,
+          username: admin.username,
+          email: admin.email,
+          fullName: admin.fullName,
+          currentIP: admin.currentIP || 'Not Available',
+          currentDeviceId: admin.currentDeviceId || 'Not Available',
+          activeDeviceCount: admin.deviceSessions ? admin.deviceSessions.filter(session => session.isActive).length : 0,
+          totalDeviceCount: admin.deviceSessions ? admin.deviceSessions.length : 0,
+          lastLogin: admin.lastLogin,
+          isActive: admin.isActive
+        }));
+        
+        const totalActiveDevices = deviceStatus.reduce((sum, admin) => sum + admin.activeDeviceCount, 0);
+        const totalAdmins = deviceStatus.length;
+        const activeAdmins = deviceStatus.filter(admin => admin.activeDeviceCount > 0).length;
+        
+        console.log(`✅ Device status retrieved: ${totalActiveDevices} active devices across ${activeAdmins}/${totalAdmins} admins`);
+        
+        res.json({
+          success: true,
+          data: {
+            summary: {
+              totalActiveDevices,
+              totalAdmins,
+              activeAdmins,
+              inactiveAdmins: totalAdmins - activeAdmins
+            },
+            admins: deviceStatus
+          },
+          timestamp: new Date()
+        });
+        
+      } catch (error) {
+        console.error('❌ Error fetching device status:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch device status'
         });
       }
     }
