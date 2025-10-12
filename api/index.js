@@ -1853,6 +1853,9 @@ export default async function handler(req, res) {
       console.log('📊 Fetching pending counts for sidebar...');
       
       try {
+        const withdrawalsCollection = database.collection('withdrawals');
+        const usersCollection = database.collection('users');
+        
         // Get pending withdrawals count
         const pendingWithdrawals = await withdrawalsCollection.countDocuments({ status: 'pending' });
         
