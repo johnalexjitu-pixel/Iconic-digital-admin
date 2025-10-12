@@ -259,11 +259,14 @@ export default async function handler(req, res) {
     // Get Current Admin Info
     else if (req.method === 'GET' && path === '/api/admin/current') {
       console.log('👤 Fetching current admin info...');
+      console.log('📦 Query params:', req.query);
       
       try {
         const { username } = req.query;
+        console.log('🔍 Looking for username:', username);
         
         if (!username) {
+          console.log('❌ Username is missing');
           return res.status(400).json({
             success: false,
             error: 'Username is required'
@@ -271,10 +274,14 @@ export default async function handler(req, res) {
         }
         
         const adminsCollection = database.collection('admins');
+        console.log('🔍 Searching for admin in database...');
+        
         const admin = await adminsCollection.findOne({ 
           username,
           isActive: true 
         });
+        
+        console.log('🔍 Admin found:', admin ? `Yes (${admin.username})` : 'No');
         
         if (!admin) {
           return res.status(404).json({
@@ -295,9 +302,11 @@ export default async function handler(req, res) {
         
       } catch (error) {
         console.error('❌ Error fetching current admin info:', error);
+        console.error('❌ Error stack:', error.stack);
+        console.error('❌ Error message:', error.message);
         res.status(500).json({
           success: false,
-          error: 'Failed to fetch current admin info'
+          error: `Failed to fetch current admin info: ${error.message}`
         });
       }
     }
