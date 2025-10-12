@@ -1818,8 +1818,8 @@ export default function CustomerManagement() {
                   <div className="font-medium">{taskDetailsModal.customer.completedTasks || 0}</div>
                 </div>
                 <div>
-                  <span className="text-sm text-muted-foreground">{t('currentTask') || 'Current Task'}:</span>
-                  <div className="font-medium">{taskDetailsModal.customer.taskCount || 0}</div>
+                  <span className="text-sm text-muted-foreground">{t('requiredTask') || 'Required Task'}:</span>
+                  <div className="font-medium">{taskDetailsModal.customer.requiredTask || taskDetailsModal.customer.taskCount || 0}</div>
                 </div>
                 <div>
                   <span className="text-sm text-muted-foreground">{t('actualWalletBalance')}:</span>
@@ -1889,9 +1889,14 @@ export default function CustomerManagement() {
                     <div className="text-lg font-semibold">{t('comboTaskNumber') || 'Combo Task Number'}</div>
                     <div className="text-sm text-muted-foreground">
                       Showing {comboTasksData?.data?.length || 0} future tasks
-                      {taskDetailsModal.customer?.currentTask && (
+                      {taskDetailsModal.customer?.requiredTask && (
                         <span className="ml-2 text-blue-600">
-                          (Current: {taskDetailsModal.customer.currentTask})
+                          (Required: {taskDetailsModal.customer.requiredTask})
+                        </span>
+                      )}
+                      {taskDetailsModal.customer?.completedTasks && (
+                        <span className="ml-2 text-green-600">
+                          (Completed: {taskDetailsModal.customer.completedTasks})
                         </span>
                       )}
                     </div>

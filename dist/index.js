@@ -54,7 +54,7 @@ var MemStorage = class {
   }
   async createCustomer(insertCustomer) {
     const id = randomUUID();
-    const customer = {
+    const customer2 = {
       code: insertCustomer.code,
       username: insertCustomer.username,
       loginPassword: insertCustomer.loginPassword,
@@ -87,13 +87,13 @@ var MemStorage = class {
       createdAt: /* @__PURE__ */ new Date(),
       updatedAt: /* @__PURE__ */ new Date()
     };
-    this.customers.set(id, customer);
-    return customer;
+    this.customers.set(id, customer2);
+    return customer2;
   }
   async updateCustomer(id, updates) {
-    const customer = this.customers.get(id);
-    if (!customer) throw new Error("Customer not found");
-    const updated = { ...customer, ...updates, updatedAt: /* @__PURE__ */ new Date() };
+    const customer2 = this.customers.get(id);
+    if (!customer2) throw new Error("Customer not found");
+    const updated = { ...customer2, ...updates, updatedAt: /* @__PURE__ */ new Date() };
     this.customers.set(id, updated);
     return updated;
   }
@@ -868,17 +868,18 @@ async function registerRoutes(app2) {
       const customerTasksCollection = getCustomerTasksCollection();
       const tasks = await customerTasksCollection.find({ customerId }).sort({ taskNumber: 1 }).toArray();
       if (tasks.length === 0) {
-        console.log("No tasks found, initializing 30 tasks for customer:", customerId);
-        const campaignsCollection = getCampaignsCollection();
-        const campaigns = await campaignsCollection.find().limit(30).toArray();
         const usersCollection = getUsersCollection();
-        const customer = await usersCollection.findOne({ _id: new ObjectId2(customerId) });
-        if (!customer) {
+        const customer2 = await usersCollection.findOne({ _id: new ObjectId2(customerId) });
+        if (!customer2) {
           return res.json({ success: true, data: [], total: 0 });
         }
+        const userTaskCount2 = customer2.requiredTask || customer2.taskCount || 30;
+        console.log(`No tasks found, initializing ${userTaskCount2} tasks for customer:`, customerId);
+        const campaignsCollection = getCampaignsCollection();
+        const campaigns = await campaignsCollection.find().limit(userTaskCount2).toArray();
         const newTasks = campaigns.map((campaign, index) => ({
           customerId,
-          customerCode: customer.membershipId || "",
+          customerCode: customer2.membershipId || "",
           taskNumber: index + 1,
           campaignId: campaign._id.toString(),
           taskCommission: campaign.commissionAmount || 0,
@@ -957,8 +958,8 @@ async function registerRoutes(app2) {
         const campaignsCollection = getCampaignsCollection();
         const campaigns = await campaignsCollection.find().limit(30).toArray();
         const usersCollection2 = getUsersCollection();
-        const customer = await usersCollection2.findOne({ _id: new ObjectId2(customerId) });
-        if (!customer) {
+        const customer2 = await usersCollection2.findOne({ _id: new ObjectId2(customerId) });
+        if (!customer2) {
           return res.status(404).json({
             success: false,
             error: "Customer not found"
@@ -966,7 +967,7 @@ async function registerRoutes(app2) {
         }
         const newTasks = campaigns.map((campaign, index) => ({
           customerId,
-          customerCode: customer.membershipId || "",
+          customerCode: customer2.membershipId || "",
           taskNumber: index + 1,
           campaignId: campaign._id.toString(),
           taskCommission: campaign.commissionAmount || 0,
@@ -983,7 +984,7 @@ async function registerRoutes(app2) {
         if (newTasks.length > 0) {
           await customerTasksCollection.insertMany(newTasks);
         }
-        console.log(`\u2705 ${newTasks.length} tasks initialized for customer:`, customerId);
+        console.log(`\u2705 ${newTasks.length} tasks initialized for customer (requiredTask: ${userTaskCount}):`, customerId);
       }
       const usersCollection = getUsersCollection();
       await usersCollection.updateOne(
@@ -994,7 +995,7 @@ async function registerRoutes(app2) {
       res.json({
         success: true,
         message: "Customer allowed to start tasks",
-        tasksInitialized: existingTasks.length === 0 ? 30 : existingTasks.length
+        tasksInitialized: existingTasks.length === 0 ? customer?.requiredTask || customer?.taskCount || 30 : existingTasks.length
       });
     } catch (error) {
       console.error("\u274C Error allowing customer tasks:", error);
@@ -1322,19 +1323,19 @@ async function registerRoutes(app2) {
     res.json(customers);
   });
   app2.get("/api/customers/:id", async (req, res) => {
-    const customer = await storage.getCustomer(req.params.id);
-    if (!customer) {
+    const customer2 = await storage.getCustomer(req.params.id);
+    if (!customer2) {
       return res.status(404).json({ message: "Customer not found" });
     }
-    res.json(customer);
+    res.json(customer2);
   });
   app2.post("/api/customers", async (req, res) => {
-    const customer = await storage.createCustomer(req.body);
-    res.json(customer);
+    const customer2 = await storage.createCustomer(req.body);
+    res.json(customer2);
   });
   app2.patch("/api/customers/:id", async (req, res) => {
-    const customer = await storage.updateCustomer(req.params.id, req.body);
-    res.json(customer);
+    const customer2 = await storage.updateCustomer(req.params.id, req.body);
+    res.json(customer2);
   });
   app2.get("/api/withdrawals", async (_req, res) => {
     const withdrawals = await storage.getWithdrawals();
@@ -1391,21 +1392,21 @@ async function registerRoutes(app2) {
       const usersCollection = database.collection("users");
       const withdrawalsWithCustomerDetails = await Promise.all(
         withdrawals.map(async (withdrawal) => {
-          let customer = null;
+          let customer2 = null;
           try {
-            customer = await usersCollection.findOne({ _id: new ObjectId2(withdrawal.customerId) });
+            customer2 = await usersCollection.findOne({ _id: new ObjectId2(withdrawal.customerId) });
           } catch (objectIdError) {
-            customer = await usersCollection.findOne({ _id: withdrawal.customerId });
+            customer2 = await usersCollection.findOne({ _id: withdrawal.customerId });
           }
           return {
             ...withdrawal,
-            customer: customer ? {
-              _id: customer._id,
-              name: customer.name,
-              email: customer.email,
-              membershipId: customer.membershipId,
-              phoneNumber: customer.phoneNumber,
-              accountBalance: customer.accountBalance
+            customer: customer2 ? {
+              _id: customer2._id,
+              name: customer2.name,
+              email: customer2.email,
+              membershipId: customer2.membershipId,
+              phoneNumber: customer2.phoneNumber,
+              accountBalance: customer2.accountBalance
             } : null
           };
         })
@@ -1413,9 +1414,9 @@ async function registerRoutes(app2) {
       let filteredWithdrawals = withdrawalsWithCustomerDetails;
       if (search) {
         filteredWithdrawals = withdrawalsWithCustomerDetails.filter((withdrawal) => {
-          const customer = withdrawal.customer;
-          if (!customer) return false;
-          return customer.name?.toLowerCase().includes(search.toLowerCase()) || customer.membershipId?.toLowerCase().includes(search.toLowerCase()) || customer.email?.toLowerCase().includes(search.toLowerCase());
+          const customer2 = withdrawal.customer;
+          if (!customer2) return false;
+          return customer2.name?.toLowerCase().includes(search.toLowerCase()) || customer2.membershipId?.toLowerCase().includes(search.toLowerCase()) || customer2.email?.toLowerCase().includes(search.toLowerCase());
         });
       }
       console.log(`\u{1F4CA} Found ${withdrawals.length} withdrawals, ${filteredWithdrawals.length} after search filter`);
@@ -1458,22 +1459,22 @@ async function registerRoutes(app2) {
         });
       }
       const usersCollection = database.collection("users");
-      let customer = null;
+      let customer2 = null;
       try {
-        customer = await usersCollection.findOne({ _id: new ObjectId2(withdrawal.customerId) });
+        customer2 = await usersCollection.findOne({ _id: new ObjectId2(withdrawal.customerId) });
       } catch (objectIdError) {
-        customer = await usersCollection.findOne({ _id: withdrawal.customerId });
+        customer2 = await usersCollection.findOne({ _id: withdrawal.customerId });
       }
       res.json({
         success: true,
         data: {
           ...withdrawal,
-          customer: customer ? {
-            _id: customer._id,
-            name: customer.name,
-            email: customer.email,
-            membershipId: customer.membershipId,
-            accountBalance: customer.accountBalance
+          customer: customer2 ? {
+            _id: customer2._id,
+            name: customer2.name,
+            email: customer2.email,
+            membershipId: customer2.membershipId,
+            accountBalance: customer2.accountBalance
           } : null
         }
       });

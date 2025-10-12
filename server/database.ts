@@ -27,6 +27,7 @@ export interface IUser {
   totalEarnings: number;
   campaignsCompleted: number;
   phoneNumber?: string;
+  requiredTask?: number;
   lastLogin: Date;
   dailyCheckIn: {
     lastCheckIn?: Date;

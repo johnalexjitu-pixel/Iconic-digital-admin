@@ -4051,9 +4051,13 @@ export default async function handler(req, res) {
         
         console.log("🎯 Found existing customer tasks:", existingTasks.length);
         
-        // Create manual 30 combo tasks (Task 1 to 30)
+        // Get user's required task count (requiredTask field)
+        const userTaskCount = customer?.requiredTask || customer?.taskCount || 30; // Default to 30 if not specified
+        console.log("🎯 User requiredTask from database:", userTaskCount);
+        
+        // Create dynamic combo tasks based on user's requiredTask (Task 1 to requiredTask)
         const manualComboTasks = [];
-        for (let i = 1; i <= 30; i++) {
+        for (let i = 1; i <= userTaskCount; i++) {
           // Check if task already exists in database
           const existingTask = existingTasks.find(task => task.taskNumber === i);
           
