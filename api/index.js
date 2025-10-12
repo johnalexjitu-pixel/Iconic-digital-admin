@@ -159,14 +159,11 @@ export default async function handler(req, res) {
           });
         }
         
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-        
-        // Create admin
+        // Create admin (password stored as plain text)
         const adminData = {
           username,
           email,
-          password: hashedPassword,
+          password: password,
           fullName,
           role,
           isActive: true,
