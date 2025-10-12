@@ -37,6 +37,28 @@ const resources = {
       insufficientPermissions: "You don't have permission to perform this action",
       adminCreateAccessNote: "Only Super Admin and Admin roles can create new administrators.",
       
+      // Developer Notice Management
+      developerNoticeManagement: "Developer Notice Management",
+      createNotice: "Create Notice",
+      editNotice: "Edit Notice",
+      updateNotice: "Update Notice",
+      noticeContent: "Notice Content",
+      enterNoticeContent: "Enter notice content...",
+      visibleToRoles: "Visible To Roles",
+      createdBy: "Created By",
+      createdAt: "Created At",
+      noticeCreatedSuccessfully: "Developer notice created successfully",
+      noticeUpdatedSuccessfully: "Developer notice updated successfully",
+      noticeDeletedSuccessfully: "Developer notice deleted successfully",
+      confirmDeleteNotice: "Are you sure you want to delete this developer notice? This action cannot be undone.",
+      noNoticesFound: "No developer notices found.",
+      errorFetchingNotices: "Error fetching developer notices",
+      developerNoticeAccessNote: "Only Super Admin can manage developer notices.",
+      
+      // Dashboard Notices
+      developerNotices: "Developer Notices",
+      visibleTo: "Visible to",
+      
       // Dashboard
       deposit: "Deposit",
       approvedWithdrawal: "Approved Withdrawal",
@@ -253,6 +275,28 @@ const resources = {
       insufficientPermissions: "এই কাজটি করার আপনার অনুমতি নেই",
       adminCreateAccessNote: "শুধুমাত্র সুপার অ্যাডমিন এবং অ্যাডমিন ভূমিকার ব্যবহারকারীরা নতুন অ্যাডমিন তৈরি করতে পারেন।",
       
+      // Developer Notice Management
+      developerNoticeManagement: "ডেভেলপার নোটিশ ম্যানেজমেন্ট",
+      createNotice: "নোটিশ তৈরি করুন",
+      editNotice: "নোটিশ সম্পাদনা করুন",
+      updateNotice: "নোটিশ আপডেট করুন",
+      noticeContent: "নোটিশের বিষয়বস্তু",
+      enterNoticeContent: "নোটিশের বিষয়বস্তু লিখুন...",
+      visibleToRoles: "যে ভূমিকাগুলি দেখতে পারবে",
+      createdBy: "যিনি তৈরি করেছেন",
+      createdAt: "তৈরির তারিখ",
+      noticeCreatedSuccessfully: "ডেভেলপার নোটিশ সফলভাবে তৈরি হয়েছে",
+      noticeUpdatedSuccessfully: "ডেভেলপার নোটিশ সফলভাবে আপডেট হয়েছে",
+      noticeDeletedSuccessfully: "ডেভেলপার নোটিশ সফলভাবে মুছে ফেলা হয়েছে",
+      confirmDeleteNotice: "আপনি কি নিশ্চিত যে আপনি এই ডেভেলপার নোটিশটি মুছে ফেলতে চান? এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।",
+      noNoticesFound: "কোন ডেভেলপার নোটিশ পাওয়া যায়নি।",
+      errorFetchingNotices: "ডেভেলপার নোটিশ আনতে ত্রুটি",
+      developerNoticeAccessNote: "শুধুমাত্র সুপার অ্যাডমিন ডেভেলপার নোটিশ পরিচালনা করতে পারেন।",
+      
+      // Dashboard Notices
+      developerNotices: "ডেভেলপার নোটিশ",
+      visibleTo: "দৃশ্যমান",
+      
       // Dashboard
       deposit: "জমা",
       approvedWithdrawal: "অনুমোদিত উত্তোলন",
@@ -468,6 +512,28 @@ const resources = {
       accessDenied: "访问被拒绝",
       insufficientPermissions: "您没有执行此操作的权限",
       adminCreateAccessNote: "只有超级管理员和管理员角色可以创建新管理员。",
+      
+      // Developer Notice Management
+      developerNoticeManagement: "开发者通知管理",
+      createNotice: "创建通知",
+      editNotice: "编辑通知",
+      updateNotice: "更新通知",
+      noticeContent: "通知内容",
+      enterNoticeContent: "输入通知内容...",
+      visibleToRoles: "可见角色",
+      createdBy: "创建者",
+      createdAt: "创建时间",
+      noticeCreatedSuccessfully: "开发者通知创建成功",
+      noticeUpdatedSuccessfully: "开发者通知更新成功",
+      noticeDeletedSuccessfully: "开发者通知删除成功",
+      confirmDeleteNotice: "您确定要删除此开发者通知吗？此操作无法撤销。",
+      noNoticesFound: "未找到开发者通知。",
+      errorFetchingNotices: "获取开发者通知时出错",
+      developerNoticeAccessNote: "只有超级管理员可以管理开发者通知。",
+      
+      // Dashboard Notices
+      developerNotices: "开发者通知",
+      visibleTo: "可见于",
       
       // Dashboard
       deposit: "存款",

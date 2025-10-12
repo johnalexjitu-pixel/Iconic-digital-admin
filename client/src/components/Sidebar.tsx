@@ -14,6 +14,7 @@ import {
   UserCheck,
   ChevronDown,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -40,6 +41,7 @@ const navItems = [
     children: [
       { href: "/admin-create", labelKey: "adminCreate", icon: UserPlus },
       { href: "/admin-list", labelKey: "adminList", icon: UserCheck },
+      { href: "/developer-notice-management", labelKey: "developerNoticeManagement", icon: FileText },
     ],
   },
   { href: "/master-data", labelKey: "masterData", icon: Database },
@@ -136,6 +138,10 @@ export default function Sidebar({ isOpen }: SidebarProps) {
         if (child.labelKey === 'adminList') {
           // Only superadmin and admin can view admin list
           return currentUserRole === 'superadmin' || currentUserRole === 'admin';
+        }
+        if (child.labelKey === 'developerNoticeManagement') {
+          // Only superadmin can manage developer notices
+          return currentUserRole === 'superadmin';
         }
         return true;
       });

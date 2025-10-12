@@ -424,6 +424,247 @@ export default async function handler(req, res) {
       }
     }
     
+    // Developer Notice Management
+    else if (req.method === 'POST' && path === '/api/developer-notice/create') {
+      console.log('📝 Creating new developer notice...');
+      try {
+        const { content, visibleToRoles, createdByUsername } = req.body;
+
+        if (!content || !visibleToRoles || !Array.isArray(visibleToRoles) || visibleToRoles.length === 0 || !createdByUsername) {
+          return res.status(400).json({
+            success: false,
+            error: 'Content, visibleToRoles (array), and createdByUsername are required'
+          });
+        }
+
+        const adminsCollection = database.collection('admins');
+        const creatorAdmin = await adminsCollection.findOne({ username: createdByUsername, isActive: true });
+
+        if (!creatorAdmin || creatorAdmin.role !== 'superadmin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Only Super Admin can create developer notices'
+          });
+        }
+
+        const developerNoticesCollection = database.collection('developerNotices');
+        const noticeData = {
+          content,
+          visibleToRoles,
+          createdBy: createdByUsername,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isActive: true
+        };
+
+        const result = await developerNoticesCollection.insertOne(noticeData);
+        console.log(`✅ Developer notice created successfully by ${createdByUsername}`);
+        res.json({
+          success: true,
+          message: 'Developer notice created successfully',
+          data: {
+            id: result.insertedId,
+            ...noticeData
+          }
+        });
+
+      } catch (error) {
+        console.error('❌ Error creating developer notice:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to create developer notice'
+        });
+      }
+    }
+    else if (req.method === 'GET' && path === '/api/developer-notice/list') {
+      console.log('📋 Fetching developer notices...');
+      try {
+        const { currentUserUsername } = req.query;
+
+        if (!currentUserUsername) {
+          return res.status(400).json({
+            success: false,
+            error: 'currentUserUsername is required'
+          });
+        }
+
+        const adminsCollection = database.collection('admins');
+        const currentAdmin = await adminsCollection.findOne({ username: currentUserUsername, isActive: true });
+
+        if (!currentAdmin) {
+          return res.status(404).json({
+            success: false,
+            error: 'Current admin not found or inactive'
+          });
+        }
+
+        const currentUserRole = currentAdmin.role;
+        const developerNoticesCollection = database.collection('developerNotices');
+
+        // Fetch notices that are active and visible to the current user's role
+        const notices = await developerNoticesCollection.find({
+          isActive: true,
+          visibleToRoles: currentUserRole
+        }).sort({ createdAt: -1 }).toArray();
+
+        console.log(`✅ Found ${notices.length} developer notices for role: ${currentUserRole}`);
+        res.json({
+          success: true,
+          data: notices
+        });
+
+      } catch (error) {
+        console.error('❌ Error fetching developer notices:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch developer notices'
+        });
+      }
+    }
+    else if (req.method === 'GET' && path === '/api/developer-notice/all') {
+      console.log('📋 Fetching all developer notices for management...');
+      try {
+        const { currentUserUsername } = req.query;
+
+        if (!currentUserUsername) {
+          return res.status(400).json({
+            success: false,
+            error: 'currentUserUsername is required'
+          });
+        }
+
+        const adminsCollection = database.collection('admins');
+        const currentAdmin = await adminsCollection.findOne({ username: currentUserUsername, isActive: true });
+
+        if (!currentAdmin || currentAdmin.role !== 'superadmin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Only Super Admin can view all notices'
+          });
+        }
+
+        const developerNoticesCollection = database.collection('developerNotices');
+        const notices = await developerNoticesCollection.find({}).sort({ createdAt: -1 }).toArray();
+
+        console.log(`✅ Found ${notices.length} developer notices for management`);
+        res.json({
+          success: true,
+          data: notices
+        });
+
+      } catch (error) {
+        console.error('❌ Error fetching all developer notices:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch all developer notices'
+        });
+      }
+    }
+    else if (req.method === 'PUT' && path.startsWith('/api/developer-notice/update/')) {
+      console.log('🔄 Updating developer notice...');
+      try {
+        const noticeId = path.split('/').pop();
+        const { content, visibleToRoles, updatedByUsername } = req.body;
+
+        if (!noticeId || !content || !visibleToRoles || !Array.isArray(visibleToRoles) || visibleToRoles.length === 0 || !updatedByUsername) {
+          return res.status(400).json({
+            success: false,
+            error: 'Notice ID, content, visibleToRoles (array), and updatedByUsername are required'
+          });
+        }
+
+        const adminsCollection = database.collection('admins');
+        const updaterAdmin = await adminsCollection.findOne({ username: updatedByUsername, isActive: true });
+
+        if (!updaterAdmin || updaterAdmin.role !== 'superadmin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Only Super Admin can update developer notices'
+          });
+        }
+
+        const developerNoticesCollection = database.collection('developerNotices');
+        const result = await developerNoticesCollection.updateOne(
+          { _id: new ObjectId(noticeId) },
+          { 
+            $set: {
+              content,
+              visibleToRoles,
+              updatedBy: updatedByUsername,
+              updatedAt: new Date()
+            }
+          }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).json({
+            success: false,
+            error: 'Developer notice not found'
+          });
+        }
+
+        console.log(`✅ Developer notice ${noticeId} updated successfully by ${updatedByUsername}`);
+        res.json({
+          success: true,
+          message: 'Developer notice updated successfully'
+        });
+
+      } catch (error) {
+        console.error('❌ Error updating developer notice:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to update developer notice'
+        });
+      }
+    }
+    else if (req.method === 'DELETE' && path.startsWith('/api/developer-notice/delete/')) {
+      console.log('🗑️ Deleting developer notice...');
+      try {
+        const noticeId = path.split('/').pop();
+        const { deletedByUsername } = req.body;
+
+        if (!noticeId || !deletedByUsername) {
+          return res.status(400).json({
+            success: false,
+            error: 'Notice ID and deletedByUsername are required'
+          });
+        }
+
+        const adminsCollection = database.collection('admins');
+        const deleterAdmin = await adminsCollection.findOne({ username: deletedByUsername, isActive: true });
+
+        if (!deleterAdmin || deleterAdmin.role !== 'superadmin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Only Super Admin can delete developer notices'
+          });
+        }
+
+        const developerNoticesCollection = database.collection('developerNotices');
+        const result = await developerNoticesCollection.deleteOne({ _id: new ObjectId(noticeId) });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).json({
+            success: false,
+            error: 'Developer notice not found'
+          });
+        }
+
+        console.log(`✅ Developer notice ${noticeId} deleted successfully by ${deletedByUsername}`);
+        res.json({
+          success: true,
+          message: 'Developer notice deleted successfully'
+        });
+
+      } catch (error) {
+        console.error('❌ Error deleting developer notice:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to delete developer notice'
+        });
+      }
+    }
+    
     // Change Admin Password
     else if (req.method === 'POST' && path === '/api/admin/change-password') {
       const { adminId, currentPassword, newPassword } = req.body;

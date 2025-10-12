@@ -16,6 +16,7 @@ import WithdrawalManagement from "@/pages/WithdrawalManagement";
 import UserManagement from "@/pages/UserManagement";
 import AdminCreate from "@/pages/AdminCreate";
 import AdminList from "@/pages/AdminList";
+import DeveloperNoticeManagement from "@/pages/DeveloperNoticeManagement";
 import MasterData from "@/pages/MasterData";
 import VIPLevel from "@/pages/VIPLevel";
 import TasklistExpiration from "@/pages/TasklistExpiration";
@@ -82,6 +83,9 @@ function Router() {
             </Route>
             <Route path="/admin-list">
               <ProtectedRoute component={AdminList} />
+            </Route>
+            <Route path="/developer-notice-management">
+              <ProtectedRoute component={DeveloperNoticeManagement} />
             </Route>
             <Route path="/master-data">
               <ProtectedRoute component={MasterData} />
