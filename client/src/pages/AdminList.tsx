@@ -30,6 +30,9 @@ export default function AdminList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  // Get current user role
+  const currentUserRole = localStorage.getItem('adminRole') || 'team';
+
   // Fetch admins data
   const { data: adminsData, isLoading, error } = useQuery<{
     success: boolean;
@@ -37,11 +40,12 @@ export default function AdminList() {
     total: number;
     pages: number;
   }>({
-    queryKey: ["/api/admin/list", { page: currentPage, limit: itemsPerPage, search: searchTerm, status: statusFilter }],
+    queryKey: ["/api/admin/list", { page: currentPage, limit: itemsPerPage, search: searchTerm, status: statusFilter, currentUserRole }],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
+        currentUserRole: currentUserRole,
       });
       
       if (searchTerm) params.append("search", searchTerm);

@@ -40,6 +40,9 @@ export default function AdminCreate() {
     }
   }, [t, toast]);
 
+  // Get current user role for role filtering
+  const currentUserRole = localStorage.getItem('adminRole') || 'team';
+
   const createAdminMutation = useMutation({
     mutationFn: async (adminData: {
       username: string;
@@ -224,7 +227,9 @@ export default function AdminCreate() {
                     <SelectValue placeholder={t('selectRole') || 'Select Role'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="superadmin">{t('superadmin') || 'Super Admin'}</SelectItem>
+                    {currentUserRole === 'superadmin' && (
+                      <SelectItem value="superadmin">{t('superadmin') || 'Super Admin'}</SelectItem>
+                    )}
                     <SelectItem value="admin">{t('admin') || 'Admin'}</SelectItem>
                     <SelectItem value="team">{t('team') || 'Team'}</SelectItem>
                   </SelectContent>

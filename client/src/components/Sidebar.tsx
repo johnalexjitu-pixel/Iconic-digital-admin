@@ -89,7 +89,13 @@ export default function Sidebar({ isOpen }: SidebarProps) {
   };
 
   // Filter nav items based on user role
-  const filteredNavItems = navItems.map(item => {
+  const filteredNavItems = navItems.filter(item => {
+    // Hide Admin Management completely for team role
+    if (item.labelKey === 'adminManagement' && currentUserRole === 'team') {
+      return false;
+    }
+    return true;
+  }).map(item => {
     if (item.labelKey === 'adminManagement' && 'children' in item) {
       // Filter admin management children based on role
       const filteredChildren = item.children.filter(child => {
@@ -98,8 +104,8 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           return currentUserRole === 'superadmin' || currentUserRole === 'admin';
         }
         if (child.labelKey === 'adminList') {
-          // All roles can view admin list
-          return true;
+          // Only superadmin and admin can view admin list
+          return currentUserRole === 'superadmin' || currentUserRole === 'admin';
         }
         return true;
       });

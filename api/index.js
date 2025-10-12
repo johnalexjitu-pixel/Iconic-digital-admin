@@ -256,7 +256,7 @@ export default async function handler(req, res) {
       console.log('📋 Fetching admin list...');
       
       try {
-        const { page = 1, limit = 10, search = '', status = 'all' } = req.query;
+        const { page = 1, limit = 10, search = '', status = 'all', currentUserRole = 'team' } = req.query;
         const pageNum = parseInt(page);
         const limitNum = parseInt(limit);
         const skip = (pageNum - 1) * limitNum;
@@ -266,12 +266,25 @@ export default async function handler(req, res) {
         // Build query
         let query = {};
         
+        // Role-based filtering
+        if (currentUserRole === 'team') {
+          // Team role can only see other team members
+          query.role = 'team';
+        } else if (currentUserRole === 'admin') {
+          // Admin role can see team and admin (but not superadmin)
+          query.role = { $in: ['team', 'admin'] };
+        }
+        // superadmin can see all roles (no additional filtering)
+        
         if (search) {
-          query.$or = [
-            { username: { $regex: search, $options: 'i' } },
-            { email: { $regex: search, $options: 'i' } },
-            { fullName: { $regex: search, $options: 'i' } }
-          ];
+          query.$and = query.$and || [];
+          query.$and.push({
+            $or: [
+              { username: { $regex: search, $options: 'i' } },
+              { email: { $regex: search, $options: 'i' } },
+              { fullName: { $regex: search, $options: 'i' } }
+            ]
+          });
         }
         
         if (status !== 'all') {
@@ -297,7 +310,7 @@ export default async function handler(req, res) {
         
         const pages = Math.ceil(total / limitNum);
         
-        console.log(`✅ Found ${adminsWithoutPassword.length} admins (total: ${total})`);
+        console.log(`✅ Found ${adminsWithoutPassword.length} admins (total: ${total}) for role: ${currentUserRole}`);
         
         res.json({
           success: true,
