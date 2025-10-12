@@ -1,8 +1,4 @@
 import { MongoClient, ObjectId } from 'mongodb';
-import { 
-  getUsersCollection, 
-  getCustomerTasksCollection 
-} from './server/database.js';
 
 // Function to parse user agent for device information
 function parseUserAgent(userAgent) {
@@ -4038,7 +4034,7 @@ export default async function handler(req, res) {
         console.log("🎯 Creating manual combo tasks for customer:", customerId);
         
         // Get customer info first
-        const usersCollection = getUsersCollection();
+        const usersCollection = database.collection('users');
         let customer;
         try {
           customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
@@ -4046,61 +4042,18 @@ export default async function handler(req, res) {
           customer = await usersCollection.findOne({ _id: customerId });
         }
         
-        if (!customer) {
-          console.error("❌ Customer not found for ID:", customerId);
-          return res.status(404).json({ success: false, error: "Customer not found" });
-        }
-        
-        console.log("🎯 Customer found:", {
-          id: customer._id,
-          username: customer.username,
-          requiredTask: customer.requiredTask,
-          taskCount: customer.taskCount
-        });
-        
         // Get existing customer tasks to check if any are already saved
-        const customerTasksCollection = getCustomerTasksCollection();
+        const customerTasksCollection = database.collection('customerTasks');
         const existingTasks = await customerTasksCollection
           .find({ customerId: customerId })
           .sort({ taskNumber: 1 })
           .toArray();
         
         console.log("🎯 Found existing customer tasks:", existingTasks.length);
-        console.log("🎯 Customer data from database:", {
-          username: customer?.username,
-          requiredTask: customer?.requiredTask,
-          taskCount: customer?.taskCount,
-          membershipId: customer?.membershipId,
-          fullCustomerObject: customer
-        });
         
-        // Double-check by querying the database again
-        const doubleCheckCustomer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
-        console.log("🎯 Double-check customer query:", {
-          requiredTask: doubleCheckCustomer?.requiredTask,
-          taskCount: doubleCheckCustomer?.taskCount
-        });
-        
-        // Get user's required task count (requiredTask field)
-        const userTaskCount = customer?.requiredTask || customer?.taskCount || 30; // Default to 30 if not specified
-        console.log("🎯 User requiredTask from database:", userTaskCount);
-        console.log("🎯 Will create tasks from 1 to:", userTaskCount);
-        console.log("🎯 Customer requiredTask field:", customer?.requiredTask);
-        console.log("🎯 Customer taskCount field:", customer?.taskCount);
-        console.log("🎯 Final userTaskCount being used:", userTaskCount);
-        
-        // Verify the logic
-        if (customer?.requiredTask) {
-          console.log("🎯 Using requiredTask field:", customer.requiredTask);
-        } else if (customer?.taskCount) {
-          console.log("🎯 Using taskCount field:", customer.taskCount);
-        } else {
-          console.log("🎯 Using default value: 30");
-        }
-        
-        // Create dynamic combo tasks based on user's requiredTask (Task 1 to requiredTask)
+        // Create manual 30 combo tasks (Task 1 to 30)
         const manualComboTasks = [];
-        for (let i = 1; i <= userTaskCount; i++) {
+        for (let i = 1; i <= 30; i++) {
           // Check if task already exists in database
           const existingTask = existingTasks.find(task => task.taskNumber === i);
           
@@ -4132,39 +4085,13 @@ export default async function handler(req, res) {
         }
 
         console.log("🎯 Created", manualComboTasks.length, "manual combo tasks");
-        console.log("🎯 Task range: Task 1 to Task", manualComboTasks.length);
-        console.log("🎯 User requiredTask was:", userTaskCount);
-        console.log("🎯 Task numbers created:", manualComboTasks.map(t => t.taskNumber));
-        console.log("🎯 Expected task count:", userTaskCount);
-        console.log("🎯 Actual task count:", manualComboTasks.length);
         
-        // Response with dynamic combo tasks based on requiredTask
-        res.json({ 
-          success: true, 
-          data: manualComboTasks, 
-          total: manualComboTasks.length,
-          requiredTask: userTaskCount,
-          message: `Created ${manualComboTasks.length} tasks based on requiredTask: ${userTaskCount}`,
-          timestamp: new Date().toISOString(),
-          debug: {
-            customerRequiredTask: customer?.requiredTask,
-            customerTaskCount: customer?.taskCount,
-            finalUserTaskCount: userTaskCount,
-            actualTaskCount: manualComboTasks.length,
-            taskNumbers: manualComboTasks.map(t => t.taskNumber)
-          }
-        });
+        // Response with manual combo tasks (always 30 tasks)
+        res.json({ success: true, data: manualComboTasks, total: manualComboTasks.length });
         
       } catch (error) {
         console.error("❌ Error creating manual combo tasks:", error);
-        console.error("❌ Error stack:", error.stack);
-        console.error("❌ Error message:", error.message);
-        res.status(500).json({ 
-          success: false, 
-          error: "Failed to create manual combo tasks",
-          details: error.message,
-          stack: error.stack
-        });
+        res.status(500).json({ success: false, error: "Failed to create manual combo tasks" });
       }
     }
     

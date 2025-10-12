@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Check, X, RefreshCw } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
@@ -154,30 +154,20 @@ export default function CustomerManagement() {
     success: boolean;
     data: any[];
     total: number;
-    requiredTask?: number;
   }>({
-    queryKey: ["/api/frontend/combo-tasks", taskDetailsModal.customer?.id, taskDetailsModal.customer?.requiredTask],
+    queryKey: ["/api/frontend/combo-tasks", taskDetailsModal.customer?.id],
     queryFn: async () => {
       if (!taskDetailsModal.customer?.id) return { success: true, data: [], total: 0 };
       console.log("🎯 Fetching combo tasks for customer ID:", taskDetailsModal.customer.id);
-      console.log("🎯 Customer requiredTask:", taskDetailsModal.customer.requiredTask);
-      
-      // Add cache-busting parameter
-      const cacheBuster = Date.now();
-      const response = await fetch(`/api/frontend/combo-tasks/${taskDetailsModal.customer.id}?t=${cacheBuster}`);
+      const response = await fetch(`/api/frontend/combo-tasks/${taskDetailsModal.customer.id}`);
       const data = await response.json();
       console.log("🎯 Combo tasks response:", data);
       console.log("🎯 Combo tasks data length:", data.data?.length);
       console.log("🎯 Combo tasks total:", data.total);
-      console.log("🎯 Required task from API:", data.requiredTask);
-      console.log("🎯 Expected tasks based on requiredTask:", data.requiredTask || 30);
-      console.log("🎯 Debug info from API:", data.debug);
-      console.log("🎯 API timestamp:", data.timestamp);
+      console.log("🎯 Expected: 30 combo tasks");
       return data;
     },
     enabled: taskDetailsModal.open && !!taskDetailsModal.customer?.id && taskDetailsModal.activeTab === "comboTaskSetting",
-    staleTime: 0, // Always fetch fresh data
-    refetchOnMount: true,
   });
 
   // Mutation for updating customer task settings
@@ -218,41 +208,20 @@ export default function CustomerManagement() {
   });
 
   const handleTaskClick = (task: any, taskNumber: number) => {
-    try {
-      console.log("🎯 Task clicked:", { taskNumber, task });
-      console.log("🎯 Task data:", {
-        taskCommission: task.taskCommission,
-        estimatedNegativeAmount: task.estimatedNegativeAmount,
-        priceFrom: task.priceFrom,
-        priceTo: task.priceTo,
-        hasGoldenEgg: task.hasGoldenEgg,
-        expiredDate: task.expiredDate
-      });
-
-      setTaskEditModal({
-        open: true,
-        taskNumber,
-        campaign: task,
-        taskCommission: task.taskCommission?.toString() || "0",
-        expiredDate: task.expiredDate 
-          ? new Date(task.expiredDate).toISOString().split('T')[0]
-          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        negativeAmount: task.estimatedNegativeAmount?.toString() || "0",
-        priceFrom: task.priceFrom?.toString() || "0",
-        priceTo: task.priceTo?.toString() || "0",
-        selectedOption: "",
-        hasGoldenEgg: task.hasGoldenEgg || false
-      });
-      
-      console.log("✅ Task edit modal opened successfully");
-    } catch (error) {
-      console.error("❌ Error opening task edit modal:", error);
-      toast({
-        title: "Error",
-        description: "Failed to open task editor",
-        variant: "destructive",
-      });
-    }
+    setTaskEditModal({
+      open: true,
+      taskNumber,
+      campaign: task,
+      taskCommission: task.taskCommission?.toString() || "0",
+      expiredDate: task.expiredDate 
+        ? new Date(task.expiredDate).toISOString().split('T')[0]
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      negativeAmount: task.estimatedNegativeAmount?.toString() || "0",
+      priceFrom: task.priceFrom?.toString() || "0",
+      priceTo: task.priceTo?.toString() || "0",
+      selectedOption: "",
+      hasGoldenEgg: task.hasGoldenEgg || false
+    });
   };
 
   const handleTaskEditSave = async () => {
@@ -415,40 +384,32 @@ export default function CustomerManagement() {
   };
 
   const handleTaskPriceChange = (task: any, value: string) => {
-    try {
-      const taskKey = task._id || `task-${task.taskNumber}`;
-      console.log("💰 Task price change:", { taskKey, value, task });
-      
-      // Allow empty string, negative numbers, and positive numbers
-      if (value === '' || value === '-') {
+    // Allow empty string, negative numbers, and positive numbers
+    if (value === '' || value === '-') {
+      setTaskPrices(prev => ({
+        ...prev,
+        [task._id]: value
+      }));
+    } else {
+      const price = parseFloat(value);
+      if (!isNaN(price)) {
         setTaskPrices(prev => ({
           ...prev,
-          [taskKey]: value
+          [task._id]: price
         }));
-      } else {
-        const price = parseFloat(value);
-        if (!isNaN(price)) {
-          setTaskPrices(prev => ({
-            ...prev,
-            [taskKey]: price
-          }));
-        }
       }
-    } catch (error) {
-      console.error("❌ Error in handleTaskPriceChange:", error);
     }
   };
 
   const handleSaveTaskPrice = async (task: any) => {
     try {
-      const taskKey = task._id || `task-${task.taskNumber}`;
-      console.log("💰 Saving task price:", task.taskNumber, "price:", taskPrices[taskKey]);
+      console.log("💰 Saving task price:", task.taskNumber, "price:", taskPrices[task._id]);
       
       if (!taskDetailsModal.customer?.id) {
         throw new Error("Customer ID not found");
       }
 
-      const newPrice = taskPrices[taskKey];
+      const newPrice = taskPrices[task._id];
       if (newPrice === undefined || newPrice === null) {
         throw new Error("Please enter a valid price");
       }
@@ -489,12 +450,6 @@ export default function CustomerManagement() {
         variant: "destructive",
       });
     }
-  };
-
-  // Function to refresh combo tasks
-  const refreshComboTasks = async () => {
-    console.log("🔄 Manually refreshing combo tasks...");
-    await refetchComboTasks();
   };
 
   const handleGoldenEggSave = async () => {
@@ -1863,8 +1818,8 @@ export default function CustomerManagement() {
                   <div className="font-medium">{taskDetailsModal.customer.completedTasks || 0}</div>
                 </div>
                 <div>
-                  <span className="text-sm text-muted-foreground">{t('requiredTask') || 'Required Task'}:</span>
-                  <div className="font-medium">{taskDetailsModal.customer.requiredTask || taskDetailsModal.customer.taskCount || 0}</div>
+                  <span className="text-sm text-muted-foreground">{t('currentTask') || 'Current Task'}:</span>
+                  <div className="font-medium">{taskDetailsModal.customer.taskCount || 0}</div>
                 </div>
                 <div>
                   <span className="text-sm text-muted-foreground">{t('actualWalletBalance')}:</span>
@@ -1932,29 +1887,13 @@ export default function CustomerManagement() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="text-lg font-semibold">{t('comboTaskNumber') || 'Combo Task Number'}</div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-sm text-muted-foreground">
-                        Showing {comboTasksData?.data?.length || 0} future tasks
-                        {taskDetailsModal.customer?.requiredTask && (
-                          <span className="ml-2 text-blue-600">
-                            (Required: {taskDetailsModal.customer.requiredTask})
-                          </span>
-                        )}
-                        {taskDetailsModal.customer?.completedTasks && (
-                          <span className="ml-2 text-green-600">
-                            (Completed: {taskDetailsModal.customer.completedTasks})
-                          </span>
-                        )}
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={refreshComboTasks}
-                        className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                      >
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        Refresh
-                      </Button>
+                    <div className="text-sm text-muted-foreground">
+                      Showing {comboTasksData?.data?.length || 0} future tasks
+                      {taskDetailsModal.customer?.currentTask && (
+                        <span className="ml-2 text-blue-600">
+                          (Current: {taskDetailsModal.customer.currentTask})
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="max-h-96 overflow-y-auto border rounded-md">
@@ -1974,23 +1913,7 @@ export default function CustomerManagement() {
                       {(() => {
                         console.log("🎯 Rendering combo tasks table with data:", comboTasksData?.data?.length);
                         console.log("🎯 Combo tasks data:", comboTasksData?.data);
-                        
-                        if (!comboTasksData?.data || !Array.isArray(comboTasksData.data)) {
-                          console.error("❌ Invalid combo tasks data:", comboTasksData);
-                          return (
-                            <TableRow>
-                              <TableCell colSpan={7} className="text-center text-red-500">
-                                Error loading tasks data
-                              </TableCell>
-                            </TableRow>
-                          );
-                        }
-                        
-                        return comboTasksData.data.map((task: any, index: number) => {
-                          if (!task) {
-                            console.error("❌ Invalid task at index:", index);
-                            return null;
-                          }
+                        return comboTasksData?.data?.map((task: any) => {
                         const commission = task.taskCommission || 0;
                         const taskPrice = task.taskPrice || 0;
                         const estimatedNegative = task.estimatedNegativeAmount || 0;
@@ -2000,7 +1923,7 @@ export default function CustomerManagement() {
                           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString();
 
                         return (
-                          <TableRow key={task._id || `task-${index}`}>
+                          <TableRow key={task._id}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
                                 <span>Task {task.taskNumber}</span>
@@ -2020,7 +1943,7 @@ export default function CustomerManagement() {
                               <div className="flex items-center gap-2">
                                 <Input
                                   type="number"
-                                  value={taskPrices[task._id || `task-${index}`] !== undefined ? taskPrices[task._id || `task-${index}`] : taskPrice}
+                                  value={taskPrices[task._id] !== undefined ? taskPrices[task._id] : taskPrice}
                                   onChange={(e) => handleTaskPriceChange(task, e.target.value)}
                                   className="w-20 h-8 text-sm"
                                   placeholder="0"
@@ -2031,7 +1954,7 @@ export default function CustomerManagement() {
                                   variant="outline"
                                   onClick={() => handleSaveTaskPrice(task)}
                                   className="h-8 px-2 text-xs"
-                                  disabled={taskPrices[task._id || `task-${index}`] === undefined || taskPrices[task._id || `task-${index}`] === null}
+                                  disabled={taskPrices[task._id] === undefined || taskPrices[task._id] === null}
                                 >
                                   {t('save')}
                                 </Button>

@@ -867,16 +867,15 @@ async function registerRoutes(app2) {
       console.log("\u{1F4CB} Fetching tasks for customer:", customerId);
       const customerTasksCollection = getCustomerTasksCollection();
       const tasks = await customerTasksCollection.find({ customerId }).sort({ taskNumber: 1 }).toArray();
-      const usersCollection = getUsersCollection();
-      const customer = await usersCollection.findOne({ _id: new ObjectId2(customerId) });
-      if (!customer) {
-        return res.json({ success: true, data: [], total: 0 });
-      }
-      const userTaskCount = customer.requiredTask || customer.taskCount || 30;
       if (tasks.length === 0) {
-        console.log(`No tasks found, initializing ${userTaskCount} tasks for customer:`, customerId);
+        console.log("No tasks found, initializing 30 tasks for customer:", customerId);
         const campaignsCollection = getCampaignsCollection();
-        const campaigns = await campaignsCollection.find().limit(userTaskCount).toArray();
+        const campaigns = await campaignsCollection.find().limit(30).toArray();
+        const usersCollection = getUsersCollection();
+        const customer = await usersCollection.findOne({ _id: new ObjectId2(customerId) });
+        if (!customer) {
+          return res.json({ success: true, data: [], total: 0 });
+        }
         const newTasks = campaigns.map((campaign, index) => ({
           customerId,
           customerCode: customer.membershipId || "",
@@ -951,21 +950,20 @@ async function registerRoutes(app2) {
     try {
       const { customerId } = req.params;
       console.log("\u2705 Allowing tasks for customer:", customerId);
-      const usersCollection = getUsersCollection();
-      const customer = await usersCollection.findOne({ _id: new ObjectId2(customerId) });
-      if (!customer) {
-        return res.status(404).json({
-          success: false,
-          error: "Customer not found"
-        });
-      }
-      const userTaskCount = customer.requiredTask || customer.taskCount || 30;
       const customerTasksCollection = getCustomerTasksCollection();
       const existingTasks = await customerTasksCollection.find({ customerId }).toArray();
       if (existingTasks.length === 0) {
-        console.log(`No tasks found, initializing ${userTaskCount} tasks for customer:`, customerId);
+        console.log("No tasks found, initializing 30 tasks for customer:", customerId);
         const campaignsCollection = getCampaignsCollection();
-        const campaigns = await campaignsCollection.find().limit(userTaskCount).toArray();
+        const campaigns = await campaignsCollection.find().limit(30).toArray();
+        const usersCollection2 = getUsersCollection();
+        const customer = await usersCollection2.findOne({ _id: new ObjectId2(customerId) });
+        if (!customer) {
+          return res.status(404).json({
+            success: false,
+            error: "Customer not found"
+          });
+        }
         const newTasks = campaigns.map((campaign, index) => ({
           customerId,
           customerCode: customer.membershipId || "",
@@ -985,8 +983,9 @@ async function registerRoutes(app2) {
         if (newTasks.length > 0) {
           await customerTasksCollection.insertMany(newTasks);
         }
-        console.log(`\u2705 ${newTasks.length} tasks initialized for customer (requiredTask: ${userTaskCount}):`, customerId);
+        console.log(`\u2705 ${newTasks.length} tasks initialized for customer:`, customerId);
       }
+      const usersCollection = getUsersCollection();
       await usersCollection.updateOne(
         { _id: new ObjectId2(customerId) },
         { $set: { allowTask: true, updatedAt: /* @__PURE__ */ new Date() } }
@@ -995,7 +994,7 @@ async function registerRoutes(app2) {
       res.json({
         success: true,
         message: "Customer allowed to start tasks",
-        tasksInitialized: existingTasks.length === 0 ? userTaskCount : existingTasks.length
+        tasksInitialized: existingTasks.length === 0 ? 30 : existingTasks.length
       });
     } catch (error) {
       console.error("\u274C Error allowing customer tasks:", error);
