@@ -495,7 +495,10 @@ export default async function handler(req, res) {
               currentIP: admin.currentIP,
               currentDeviceId: admin.currentDeviceId,
               deviceSessions: admin.deviceSessions,
-              lastLogin: admin.lastLogin
+              lastLogin: admin.lastLogin,
+              hasDeviceSessions: !!admin.deviceSessions,
+              deviceSessionsLength: admin.deviceSessions?.length || 0,
+              firstSession: admin.deviceSessions?.[0]
             });
             
             adminWithoutPassword.deviceInfo = {
@@ -590,20 +593,23 @@ export default async function handler(req, res) {
       try {
         const adminsCollection = database.collection('admins');
         
-        // Get all admins without device info
-        const adminsWithoutDeviceInfo = await adminsCollection.find({
+        // Get all admins that need device info updates (including those with incomplete device sessions)
+        const adminsToUpdate = await adminsCollection.find({
           $or: [
             { currentIP: { $exists: false } },
             { currentIP: null },
             { deviceSessions: { $exists: false } },
-            { deviceSessions: null }
+            { deviceSessions: null },
+            { 'deviceSessions.deviceName': { $exists: false } },
+            { 'deviceSessions.deviceModel': { $exists: false } },
+            { 'deviceSessions.osInfo': { $exists: false } }
           ]
         }).toArray();
         
-        console.log(`🔧 Found ${adminsWithoutDeviceInfo.length} admins without device info`);
+        console.log(`🔧 Found ${adminsToUpdate.length} admins that need device info updates`);
         
         // Update each admin with enhanced device info
-        for (const admin of adminsWithoutDeviceInfo) {
+        for (const admin of adminsToUpdate) {
           const mockIP = `192.168.1.${Math.floor(Math.random() * 255)}`;
           const mockDeviceId = `device_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
           
@@ -620,35 +626,60 @@ export default async function handler(req, res) {
           const randomBrowser = browsers[Math.floor(Math.random() * browsers.length)];
           const randomOS = osInfo[Math.floor(Math.random() * osInfo.length)];
           
-          await adminsCollection.updateOne(
-            { _id: admin._id },
-            {
-              $set: {
-                currentIP: mockIP,
-                currentDeviceId: mockDeviceId,
-                deviceSessions: [{
-                  deviceId: mockDeviceId,
-                  ipAddress: mockIP,
-                  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                  deviceType: randomDeviceType,
-                  deviceName: randomDeviceName,
-                  deviceModel: randomDeviceModel,
-                  browserInfo: randomBrowser,
-                  osInfo: randomOS,
-                  loginTime: admin.lastLogin || new Date(),
-                  isActive: true
-                }]
+          // Check if admin already has device sessions but missing new fields
+          if (admin.deviceSessions && admin.deviceSessions.length > 0) {
+            // Update existing device sessions with missing fields
+            const updatedSessions = admin.deviceSessions.map(session => ({
+              ...session,
+              deviceName: session.deviceName || randomDeviceName,
+              deviceModel: session.deviceModel || randomDeviceModel,
+              osInfo: session.osInfo || randomOS,
+              deviceType: session.deviceType || randomDeviceType,
+              browserInfo: session.browserInfo || randomBrowser
+            }));
+            
+            await adminsCollection.updateOne(
+              { _id: admin._id },
+              {
+                $set: {
+                  currentIP: admin.currentIP || mockIP,
+                  currentDeviceId: admin.currentDeviceId || mockDeviceId,
+                  deviceSessions: updatedSessions
+                }
               }
-            }
-          );
+            );
+          } else {
+            // Create new device session for admins without any device info
+            await adminsCollection.updateOne(
+              { _id: admin._id },
+              {
+                $set: {
+                  currentIP: mockIP,
+                  currentDeviceId: mockDeviceId,
+                  deviceSessions: [{
+                    deviceId: mockDeviceId,
+                    ipAddress: mockIP,
+                    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    deviceType: randomDeviceType,
+                    deviceName: randomDeviceName,
+                    deviceModel: randomDeviceModel,
+                    browserInfo: randomBrowser,
+                    osInfo: randomOS,
+                    loginTime: admin.lastLogin || new Date(),
+                    isActive: true
+                  }]
+                }
+              }
+            );
+          }
           
           console.log(`✅ Updated device info for admin: ${admin.username}`);
         }
         
         res.json({
           success: true,
-          message: `Updated device info for ${adminsWithoutDeviceInfo.length} admins`,
-          updatedCount: adminsWithoutDeviceInfo.length
+          message: `Updated device info for ${adminsToUpdate.length} admins`,
+          updatedCount: adminsToUpdate.length
         });
         
       } catch (error) {
