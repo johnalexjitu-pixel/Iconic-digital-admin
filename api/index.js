@@ -3688,9 +3688,9 @@ export default async function handler(req, res) {
     // Golden Egg Price Update - When egg is clicked, allow price update
     else if (req.method === 'PATCH' && path.startsWith('/api/frontend/combo-tasks/') && path.includes('/golden-egg-price-update')) {
       const customerId = path.split('/')[4]; // Get customer ID from correct position
-      const { taskNumber, taskPrice, hasGoldenEgg } = req.body;
+      const { taskNumber, taskPrice, hasGoldenEgg, estimatedNegativeAmount, taskCommission } = req.body;
       
-      console.log("🥚 Golden egg price update:", { customerId, taskNumber, taskPrice, hasGoldenEgg });
+      console.log("🥚 Golden egg price update:", { customerId, taskNumber, taskPrice, hasGoldenEgg, estimatedNegativeAmount, taskCommission });
 
       try {
         // Get customer info first
@@ -3716,9 +3716,9 @@ export default async function handler(req, res) {
         
         // Prepare update data
         const updateData = {
-          taskCommission: existingTask?.taskCommission || 0,
+          taskCommission: taskCommission !== undefined ? Number(taskCommission) : (existingTask?.taskCommission || 0),
           taskPrice: Number(taskPrice),
-          estimatedNegativeAmount: existingTask?.estimatedNegativeAmount || 0,
+          estimatedNegativeAmount: estimatedNegativeAmount !== undefined ? Number(estimatedNegativeAmount) : (existingTask?.estimatedNegativeAmount || 0),
           priceFrom: existingTask?.priceFrom || 0,
           priceTo: existingTask?.priceTo || 0,
           hasGoldenEgg: hasGoldenEgg !== undefined ? Boolean(hasGoldenEgg) : true,
