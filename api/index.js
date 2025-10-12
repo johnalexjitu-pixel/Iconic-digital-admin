@@ -1435,6 +1435,8 @@ export default async function handler(req, res) {
       
       if (phoneNumber) {
         query.phoneNumber = { $regex: phoneNumber, $options: 'i' };
+        console.log(`🔍 Phone number filter applied:`, phoneNumber);
+        console.log(`🔍 Phone number query:`, query.phoneNumber);
       }
       
       if (isActive !== undefined) {
@@ -1501,6 +1503,16 @@ export default async function handler(req, res) {
           username: user.username,
           withdrawalPassword: user.withdrawalPassword,
           hasWithdrawalPassword: !!user.withdrawalPassword
+        })));
+        
+        // Debug phone number fields
+        console.log(`🔍 Debug phone number fields:`, users.map(user => ({
+          username: user.username,
+          phoneNumber: user.phoneNumber,
+          number: user.number,
+          email: user.email,
+          hasPhoneNumber: !!user.phoneNumber,
+          hasNumber: !!user.number
         })));
       }
 

@@ -1045,13 +1045,13 @@ export default function CustomerManagement() {
 
   // Use frontend users as customers
   const displayCustomers = frontendUsers?.data?.map((user: any) => {
-    // Debug: Log both password fields
-    console.log("🔍 Debug user passwords:", { 
+    // Debug: Log user data including phone number
+    console.log("🔍 Debug user data:", { 
       username: user.username, 
-      password: user.password,
-      withdrawalPassword: user.withdrawalPassword,
-      hasPassword: !!user.password,
-      hasWithdrawalPassword: !!user.withdrawalPassword
+      phoneNumber: user.phoneNumber,
+      number: user.number,
+      email: user.email,
+      membershipId: user.membershipId
     });
     
     return {
@@ -1063,7 +1063,7 @@ export default function CustomerManagement() {
     walletBalance: user.accountBalance.toString(),
     loginPassword: user.password || "N/A",
     payPassword: user.withdrawalPassword || "N/A",
-    phoneNumber: user.number || "N/A",
+    phoneNumber: user.phoneNumber || user.number || "N/A",
     referralCode: user.referralCode,
     ipAddress: "N/A",
     ipCountry: "N/A",
