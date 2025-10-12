@@ -25,9 +25,37 @@ export default function AdminCreate() {
     role: "team"
   });
 
+  // Get current user info from localStorage
+  const adminUser = localStorage.getItem('adminUser');
+  const currentUsername = adminUser ? JSON.parse(adminUser).username : null;
+
+  // Fetch current admin role from database
+  const { data: currentAdminData } = useQuery<{
+    success: boolean;
+    data: {
+      role: string;
+      username: string;
+    };
+  }>({
+    queryKey: ["/api/admin/current", currentUsername],
+    queryFn: async () => {
+      if (!currentUsername) return { success: false, data: { role: 'team', username: '' } };
+      
+      const response = await fetch(`/api/admin/current?username=${currentUsername}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch current admin info");
+      }
+      return response.json();
+    },
+    enabled: !!currentUsername,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  });
+
+  const currentUserRole = currentAdminData?.data?.role || 'team';
+
   // Check user permission on component mount
   useEffect(() => {
-    const currentUserRole = localStorage.getItem('adminRole') || 'team';
     const canCreateAdmin = currentUserRole === 'superadmin' || currentUserRole === 'admin';
     setHasPermission(canCreateAdmin);
     
@@ -38,10 +66,7 @@ export default function AdminCreate() {
         variant: "destructive",
       });
     }
-  }, [t, toast]);
-
-  // Get current user role for role filtering
-  const currentUserRole = localStorage.getItem('adminRole') || 'team';
+  }, [t, toast, currentUserRole]);
 
   const createAdminMutation = useMutation({
     mutationFn: async (adminData: {

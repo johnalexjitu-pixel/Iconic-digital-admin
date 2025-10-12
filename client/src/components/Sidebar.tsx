@@ -60,11 +60,37 @@ export default function Sidebar({ isOpen }: SidebarProps) {
   const { t } = useTranslation();
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
-  // Get current user role
-  const currentUserRole = localStorage.getItem('adminRole') || 'team';
+  // Get current user info from localStorage
+  const adminUser = localStorage.getItem('adminUser');
+  const currentUsername = adminUser ? JSON.parse(adminUser).username : null;
+
+  // Fetch current admin role from database
+  const { data: currentAdminData } = useQuery<{
+    success: boolean;
+    data: {
+      role: string;
+      username: string;
+    };
+  }>({
+    queryKey: ["/api/admin/current", currentUsername],
+    queryFn: async () => {
+      if (!currentUsername) return { success: false, data: { role: 'team', username: '' } };
+      
+      const response = await fetch(`/api/admin/current?username=${currentUsername}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch current admin info");
+      }
+      return response.json();
+    },
+    enabled: !!currentUsername,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  });
+
+  const currentUserRole = currentAdminData?.data?.role || 'team';
   
   // Debug log to check current user role
-  console.log('🔍 Current user role in Sidebar:', currentUserRole);
+  console.log('🔍 Current user role from database:', currentUserRole);
   console.log('🔍 Admin Management should be visible for:', currentUserRole === 'superadmin' || currentUserRole === 'admin');
 
   // Fetch pending counts for badges
@@ -100,7 +126,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     }
     return true;
   }).map(item => {
-    if (item.labelKey === 'adminManagement' && 'children' in item) {
+    if (item.labelKey === 'adminManagement' && 'children' in item && item.children) {
       // Filter admin management children based on role
       const filteredChildren = item.children.filter(child => {
         if (child.labelKey === 'adminCreate') {
@@ -230,7 +256,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
                   )}
                   {'badge' in item && item.badge && (
                     <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded">
-                      {item.badge}
+                      {String(item.badge)}
                     </span>
                   )}
                 </>

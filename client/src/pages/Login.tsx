@@ -25,7 +25,7 @@ export default function Login() {
     onSuccess: (data: any) => {
       console.log("✅ Login successful:", data);
       
-      // Store admin info in localStorage
+      // Store admin info in localStorage (without role - role will be fetched from database)
       localStorage.setItem("adminUser", JSON.stringify(data.data));
       localStorage.setItem("isAdminLoggedIn", "true");
       

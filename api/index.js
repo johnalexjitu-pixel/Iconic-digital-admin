@@ -251,6 +251,52 @@ export default async function handler(req, res) {
       });
     }
     
+    // Get Current Admin Info
+    else if (req.method === 'GET' && path === '/api/admin/current') {
+      console.log('👤 Fetching current admin info...');
+      
+      try {
+        const { username } = req.query;
+        
+        if (!username) {
+          return res.status(400).json({
+            success: false,
+            error: 'Username is required'
+          });
+        }
+        
+        const adminsCollection = database.collection('admins');
+        const admin = await adminsCollection.findOne({ 
+          username,
+          isActive: true 
+        });
+        
+        if (!admin) {
+          return res.status(404).json({
+            success: false,
+            error: 'Admin not found'
+          });
+        }
+        
+        // Remove password from response
+        const { password, ...adminWithoutPassword } = admin;
+        
+        console.log(`✅ Current admin info fetched: ${username} (${admin.role})`);
+        
+        res.json({
+          success: true,
+          data: adminWithoutPassword
+        });
+        
+      } catch (error) {
+        console.error('❌ Error fetching current admin info:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch current admin info'
+        });
+      }
+    }
+    
     // Get Admin List
     else if (req.method === 'GET' && path === '/api/admin/list') {
       console.log('📋 Fetching admin list...');

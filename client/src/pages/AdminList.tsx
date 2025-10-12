@@ -30,8 +30,34 @@ export default function AdminList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Get current user role
-  const currentUserRole = localStorage.getItem('adminRole') || 'team';
+  // Get current user info from localStorage
+  const adminUser = localStorage.getItem('adminUser');
+  const currentUsername = adminUser ? JSON.parse(adminUser).username : null;
+
+  // Fetch current admin role from database
+  const { data: currentAdminData } = useQuery<{
+    success: boolean;
+    data: {
+      role: string;
+      username: string;
+    };
+  }>({
+    queryKey: ["/api/admin/current", currentUsername],
+    queryFn: async () => {
+      if (!currentUsername) return { success: false, data: { role: 'team', username: '' } };
+      
+      const response = await fetch(`/api/admin/current?username=${currentUsername}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch current admin info");
+      }
+      return response.json();
+    },
+    enabled: !!currentUsername,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  });
+
+  const currentUserRole = currentAdminData?.data?.role || 'team';
 
   // Fetch admins data
   const { data: adminsData, isLoading, error } = useQuery<{

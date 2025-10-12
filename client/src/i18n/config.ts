@@ -96,8 +96,6 @@ const resources = {
       activate: "Activate",
       deactivate: "Deactivate",
       suspend: "Suspend",
-      inactive: "Inactive",
-      save: "Save",
       approve: "Approve",
       reject: "Reject",
       
@@ -110,7 +108,6 @@ const resources = {
       // Customer Management Page
       all: "All",
       active: "Active",
-      inactive: "Inactive",
       online: "Online",
       offline: "Offline",
       actualAccount: "Actual Account",
@@ -148,7 +145,6 @@ const resources = {
       
       // Withdrawal Management Page
       date: "Date",
-      admin: "Admin",
       withdrawalAmount: "Withdrawal Amount",
       bankName: "Bank Name",
       bankAccountHolder: "Bank Account Holder",
@@ -316,8 +312,6 @@ const resources = {
       activate: "সক্রিয়",
       deactivate: "নিষ্ক্রিয়",
       suspend: "স্থগিত",
-      inactive: "নিষ্ক্রিয়",
-      save: "সংরক্ষণ",
       approve: "অনুমোদন",
       reject: "প্রত্যাখ্যান",
       
@@ -330,7 +324,6 @@ const resources = {
       // Customer Management Page
       all: "সব",
       active: "সক্রিয়",
-      inactive: "নিষ্ক্রিয়",
       online: "অনলাইন",
       offline: "অফলাইন",
       actualAccount: "প্রকৃত অ্যাকাউন্ট",
@@ -368,7 +361,6 @@ const resources = {
       
       // Withdrawal Management Page
       date: "তারিখ",
-      admin: "অ্যাডমিন",
       withdrawalAmount: "উত্তোলন পরিমাণ",
       bankName: "ব্যাংকের নাম",
       bankAccountHolder: "ব্যাংক অ্যাকাউন্ট ধারক",
@@ -536,8 +528,6 @@ const resources = {
       activate: "激活",
       deactivate: "停用",
       suspend: "暂停",
-      inactive: "非活跃",
-      save: "保存",
       approve: "批准",
       reject: "拒绝",
       
@@ -550,7 +540,6 @@ const resources = {
       // Customer Management Page
       all: "全部",
       active: "活跃",
-      inactive: "不活跃",
       online: "在线",
       offline: "离线",
       actualAccount: "实际账户",
@@ -588,7 +577,6 @@ const resources = {
       
       // Withdrawal Management Page
       date: "日期",
-      admin: "管理员",
       withdrawalAmount: "提款金额",
       bankName: "银行名称",
       bankAccountHolder: "银行账户持有人",
