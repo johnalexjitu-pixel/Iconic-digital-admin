@@ -1,5 +1,4 @@
 import { MongoClient, ObjectId } from 'mongodb';
-import bcrypt from 'bcryptjs';
 
 
 const MONGODB_URI = 'mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/?retryWrites=true&w=majority&appName=iconicdigital';
@@ -116,18 +115,6 @@ export default async function handler(req, res) {
     
     console.log("🚀 Parsed path:", path);
     
-    // Health Check Endpoint
-    if (req.method === 'GET' && path === '/api/health') {
-      console.log('🏥 Health check requested');
-      res.json({
-        success: true,
-        message: 'API is working',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0'
-      });
-      return;
-    }
-    
     // Admin Authentication Routes
     
     // Create Admin
@@ -205,11 +192,9 @@ export default async function handler(req, res) {
         
       } catch (error) {
         console.error('❌ Error creating admin:', error);
-        console.error('❌ Error stack:', error.stack);
-        console.error('❌ Error message:', error.message);
         res.status(500).json({
           success: false,
-          error: `Failed to create admin: ${error.message}`
+          error: 'Failed to create admin'
         });
       }
     }
@@ -271,14 +256,11 @@ export default async function handler(req, res) {
     // Get Current Admin Info
     else if (req.method === 'GET' && path === '/api/admin/current') {
       console.log('👤 Fetching current admin info...');
-      console.log('📦 Query params:', req.query);
       
       try {
         const { username } = req.query;
-        console.log('🔍 Looking for username:', username);
         
         if (!username) {
-          console.log('❌ Username is missing');
           return res.status(400).json({
             success: false,
             error: 'Username is required'
@@ -286,14 +268,10 @@ export default async function handler(req, res) {
         }
         
         const adminsCollection = database.collection('admins');
-        console.log('🔍 Searching for admin in database...');
-        
         const admin = await adminsCollection.findOne({ 
           username,
           isActive: true 
         });
-        
-        console.log('🔍 Admin found:', admin ? `Yes (${admin.username})` : 'No');
         
         if (!admin) {
           return res.status(404).json({
@@ -314,11 +292,9 @@ export default async function handler(req, res) {
         
       } catch (error) {
         console.error('❌ Error fetching current admin info:', error);
-        console.error('❌ Error stack:', error.stack);
-        console.error('❌ Error message:', error.message);
         res.status(500).json({
           success: false,
-          error: `Failed to fetch current admin info: ${error.message}`
+          error: 'Failed to fetch current admin info'
         });
       }
     }
@@ -1880,9 +1856,6 @@ export default async function handler(req, res) {
       console.log('📊 Fetching pending counts for sidebar...');
       
       try {
-        const withdrawalsCollection = database.collection('withdrawals');
-        const usersCollection = database.collection('users');
-        
         // Get pending withdrawals count
         const pendingWithdrawals = await withdrawalsCollection.countDocuments({ status: 'pending' });
         
