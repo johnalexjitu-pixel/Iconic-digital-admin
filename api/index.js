@@ -120,9 +120,11 @@ export default async function handler(req, res) {
     // Create Admin
     if (req.method === 'POST' && path === '/api/admin/create') {
       console.log('👤 Creating new admin...');
+      console.log('📦 Request body:', JSON.stringify(req.body));
       
       try {
-        const { username, email, password, fullName, role = 'admin' } = req.body;
+        const { username, email, password, fullName, role = 'team' } = req.body;
+        console.log('🔍 Extracted data:', { username, email, fullName, role, hasPassword: !!password });
         
         // Validation
         if (!username || !email || !password || !fullName) {
@@ -1854,6 +1856,9 @@ export default async function handler(req, res) {
       console.log('📊 Fetching pending counts for sidebar...');
       
       try {
+        const withdrawalsCollection = database.collection('withdrawals');
+        const usersCollection = database.collection('users');
+        
         // Get pending withdrawals count
         const pendingWithdrawals = await withdrawalsCollection.countDocuments({ status: 'pending' });
         
