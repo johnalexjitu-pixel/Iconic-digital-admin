@@ -810,16 +810,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .sort({ taskNumber: 1 })
         .toArray();
 
+      // Get customer info first
+      const usersCollection = getUsersCollection();
+      const customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+      
+      if (!customer) {
+        return res.json({ success: true, data: [], total: 0 });
+      }
+      
+      const userTaskCount = customer.requiredTask || customer.taskCount || 30; // Default to 30 if not specified
+
       // If no tasks found, initialize tasks from campaigns based on user's taskCount
       if (tasks.length === 0) {
-        const usersCollection = getUsersCollection();
-        const customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
-        
-        if (!customer) {
-          return res.json({ success: true, data: [], total: 0 });
-        }
-        
-        const userTaskCount = customer.requiredTask || customer.taskCount || 30; // Default to 30 if not specified
         console.log(`No tasks found, initializing ${userTaskCount} tasks for customer:`, customerId);
         
         const campaignsCollection = getCampaignsCollection();
@@ -914,6 +916,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { customerId } = req.params;
       console.log("✅ Allowing tasks for customer:", customerId);
 
+      // Get customer info first
+      const usersCollection = getUsersCollection();
+      const customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+      
+      if (!customer) {
+        return res.status(404).json({
+          success: false,
+          error: "Customer not found"
+        });
+      }
+      
+      const userTaskCount = customer.requiredTask || customer.taskCount || 30;
+
       // First, initialize tasks if they don't exist
       const customerTasksCollection = getCustomerTasksCollection();
       const existingTasks = await customerTasksCollection
@@ -921,19 +936,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .toArray();
 
       if (existingTasks.length === 0) {
-        console.log("No tasks found, initializing 30 tasks for customer:", customerId);
+        console.log(`No tasks found, initializing ${userTaskCount} tasks for customer:`, customerId);
         const campaignsCollection = getCampaignsCollection();
-        const campaigns = await campaignsCollection.find().limit(30).toArray();
-        
-        const usersCollection = getUsersCollection();
-        const customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
-        
-        if (!customer) {
-          return res.status(404).json({
-            success: false,
-            error: "Customer not found"
-          });
-        }
+        const campaigns = await campaignsCollection.find().limit(userTaskCount).toArray();
 
         const newTasks = campaigns.map((campaign, index) => ({
           customerId,
@@ -960,7 +965,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update customer's allowTask status
-      const usersCollection = getUsersCollection();
       await usersCollection.updateOne(
         { _id: new ObjectId(customerId) },
         { $set: { allowTask: true, updatedAt: new Date() } }
@@ -970,7 +974,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         message: "Customer allowed to start tasks",
-        tasksInitialized: existingTasks.length === 0 ? (customer?.requiredTask || customer?.taskCount || 30) : existingTasks.length
+        tasksInitialized: existingTasks.length === 0 ? userTaskCount : existingTasks.length
       });
     } catch (error: any) {
       console.error("❌ Error allowing customer tasks:", error);
@@ -1530,7 +1534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         withdrawal = await withdrawalsCollection.findOne({ _id: new ObjectId(withdrawalId) });
       } catch (objectIdError) {
-        withdrawal = await withdrawalsCollection.findOne({ _id: withdrawalId });
+        withdrawal = await withdrawalsCollection.findOne({ _id: withdrawalId as any });
       }
       
       if (!withdrawal) {
@@ -1601,7 +1605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         withdrawal = await withdrawalsCollection.findOne({ _id: new ObjectId(withdrawalId) });
       } catch (objectIdError) {
-        withdrawal = await withdrawalsCollection.findOne({ _id: withdrawalId });
+        withdrawal = await withdrawalsCollection.findOne({ _id: withdrawalId as any });
       }
       
       if (!withdrawal) {
