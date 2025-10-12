@@ -171,6 +171,8 @@ export default function CustomerManagement() {
       console.log("🎯 Combo tasks total:", data.total);
       console.log("🎯 Required task from API:", data.requiredTask);
       console.log("🎯 Expected tasks based on requiredTask:", data.requiredTask || 30);
+      console.log("🎯 Debug info from API:", data.debug);
+      console.log("🎯 API timestamp:", data.timestamp);
       return data;
     },
     enabled: taskDetailsModal.open && !!taskDetailsModal.customer?.id && taskDetailsModal.activeTab === "comboTaskSetting",

@@ -4061,6 +4061,9 @@ export default async function handler(req, res) {
         const userTaskCount = customer?.requiredTask || customer?.taskCount || 30; // Default to 30 if not specified
         console.log("🎯 User requiredTask from database:", userTaskCount);
         console.log("🎯 Will create tasks from 1 to:", userTaskCount);
+        console.log("🎯 Customer requiredTask field:", customer?.requiredTask);
+        console.log("🎯 Customer taskCount field:", customer?.taskCount);
+        console.log("🎯 Final userTaskCount being used:", userTaskCount);
         
         // Create dynamic combo tasks based on user's requiredTask (Task 1 to requiredTask)
         const manualComboTasks = [];
@@ -4098,6 +4101,9 @@ export default async function handler(req, res) {
         console.log("🎯 Created", manualComboTasks.length, "manual combo tasks");
         console.log("🎯 Task range: Task 1 to Task", manualComboTasks.length);
         console.log("🎯 User requiredTask was:", userTaskCount);
+        console.log("🎯 Task numbers created:", manualComboTasks.map(t => t.taskNumber));
+        console.log("🎯 Expected task count:", userTaskCount);
+        console.log("🎯 Actual task count:", manualComboTasks.length);
         
         // Response with dynamic combo tasks based on requiredTask
         res.json({ 
@@ -4105,7 +4111,15 @@ export default async function handler(req, res) {
           data: manualComboTasks, 
           total: manualComboTasks.length,
           requiredTask: userTaskCount,
-          message: `Created ${manualComboTasks.length} tasks based on requiredTask: ${userTaskCount}`
+          message: `Created ${manualComboTasks.length} tasks based on requiredTask: ${userTaskCount}`,
+          timestamp: new Date().toISOString(),
+          debug: {
+            customerRequiredTask: customer?.requiredTask,
+            customerTaskCount: customer?.taskCount,
+            finalUserTaskCount: userTaskCount,
+            actualTaskCount: manualComboTasks.length,
+            taskNumbers: manualComboTasks.map(t => t.taskNumber)
+          }
         });
         
       } catch (error) {
