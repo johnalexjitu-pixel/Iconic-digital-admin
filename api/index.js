@@ -1,4 +1,5 @@
 import { MongoClient, ObjectId } from 'mongodb';
+import bcrypt from 'bcryptjs';
 
 
 const MONGODB_URI = 'mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/?retryWrites=true&w=majority&appName=iconicdigital';
@@ -192,9 +193,11 @@ export default async function handler(req, res) {
         
       } catch (error) {
         console.error('❌ Error creating admin:', error);
+        console.error('❌ Error stack:', error.stack);
+        console.error('❌ Error message:', error.message);
         res.status(500).json({
           success: false,
-          error: 'Failed to create admin'
+          error: `Failed to create admin: ${error.message}`
         });
       }
     }
