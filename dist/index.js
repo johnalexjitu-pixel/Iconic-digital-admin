@@ -868,9 +868,9 @@ async function registerRoutes(app2) {
       const customerTasksCollection = getCustomerTasksCollection();
       const tasks = await customerTasksCollection.find({ customerId }).sort({ taskNumber: 1 }).toArray();
       if (tasks.length === 0) {
-        console.log("No tasks found, initializing 30 tasks for customer:", customerId);
+        console.log("No tasks found, initializing 32 tasks for customer:", customerId);
         const campaignsCollection = getCampaignsCollection();
-        const campaigns = await campaignsCollection.find().limit(30).toArray();
+        const campaigns = await campaignsCollection.find().limit(32).toArray();
         const usersCollection = getUsersCollection();
         const customer = await usersCollection.findOne({ _id: new ObjectId2(customerId) });
         if (!customer) {
@@ -953,9 +953,9 @@ async function registerRoutes(app2) {
       const customerTasksCollection = getCustomerTasksCollection();
       const existingTasks = await customerTasksCollection.find({ customerId }).toArray();
       if (existingTasks.length === 0) {
-        console.log("No tasks found, initializing 30 tasks for customer:", customerId);
+        console.log("No tasks found, initializing 32 tasks for customer:", customerId);
         const campaignsCollection = getCampaignsCollection();
-        const campaigns = await campaignsCollection.find().limit(30).toArray();
+        const campaigns = await campaignsCollection.find().limit(32).toArray();
         const usersCollection2 = getUsersCollection();
         const customer = await usersCollection2.findOne({ _id: new ObjectId2(customerId) });
         if (!customer) {

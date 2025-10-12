@@ -4051,9 +4051,9 @@ export default async function handler(req, res) {
         
         console.log("🎯 Found existing customer tasks:", existingTasks.length);
         
-        // Create manual 30 combo tasks (Task 1 to 30)
+        // Create manual 32 combo tasks (Task 1 to 32)
         const manualComboTasks = [];
-        for (let i = 1; i <= 30; i++) {
+        for (let i = 1; i <= 32; i++) {
           // Check if task already exists in database
           const existingTask = existingTasks.find(task => task.taskNumber === i);
           
@@ -4086,7 +4086,7 @@ export default async function handler(req, res) {
 
         console.log("🎯 Created", manualComboTasks.length, "manual combo tasks");
         
-        // Response with manual combo tasks (always 30 tasks)
+        // Response with manual combo tasks (always 32 tasks)
         res.json({ success: true, data: manualComboTasks, total: manualComboTasks.length });
         
       } catch (error) {
@@ -4640,11 +4640,11 @@ export default async function handler(req, res) {
         const campaigns = await campaignsCollection
           .find({})
           .sort({ createdAt: -1 })
-          .limit(30)
+          .limit(32)
           .toArray();
         
         console.log("🔍 Total campaigns in database:", totalCampaigns);
-        console.log("🔍 Found campaigns (limit 30):", campaigns.length);
+        console.log("🔍 Found campaigns (limit 32):", campaigns.length);
         
         res.json({
           success: true,
