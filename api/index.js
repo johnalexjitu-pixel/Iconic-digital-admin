@@ -4054,7 +4054,15 @@ export default async function handler(req, res) {
           username: customer?.username,
           requiredTask: customer?.requiredTask,
           taskCount: customer?.taskCount,
-          membershipId: customer?.membershipId
+          membershipId: customer?.membershipId,
+          fullCustomerObject: customer
+        });
+        
+        // Double-check by querying the database again
+        const doubleCheckCustomer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+        console.log("🎯 Double-check customer query:", {
+          requiredTask: doubleCheckCustomer?.requiredTask,
+          taskCount: doubleCheckCustomer?.taskCount
         });
         
         // Get user's required task count (requiredTask field)
@@ -4064,6 +4072,15 @@ export default async function handler(req, res) {
         console.log("🎯 Customer requiredTask field:", customer?.requiredTask);
         console.log("🎯 Customer taskCount field:", customer?.taskCount);
         console.log("🎯 Final userTaskCount being used:", userTaskCount);
+        
+        // Verify the logic
+        if (customer?.requiredTask) {
+          console.log("🎯 Using requiredTask field:", customer.requiredTask);
+        } else if (customer?.taskCount) {
+          console.log("🎯 Using taskCount field:", customer.taskCount);
+        } else {
+          console.log("🎯 Using default value: 30");
+        }
         
         // Create dynamic combo tasks based on user's requiredTask (Task 1 to requiredTask)
         const manualComboTasks = [];
