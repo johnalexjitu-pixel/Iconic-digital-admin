@@ -154,20 +154,28 @@ export default function CustomerManagement() {
     success: boolean;
     data: any[];
     total: number;
+    requiredTask?: number;
   }>({
-    queryKey: ["/api/frontend/combo-tasks", taskDetailsModal.customer?.id],
+    queryKey: ["/api/frontend/combo-tasks", taskDetailsModal.customer?.id, taskDetailsModal.customer?.requiredTask],
     queryFn: async () => {
       if (!taskDetailsModal.customer?.id) return { success: true, data: [], total: 0 };
       console.log("🎯 Fetching combo tasks for customer ID:", taskDetailsModal.customer.id);
-      const response = await fetch(`/api/frontend/combo-tasks/${taskDetailsModal.customer.id}`);
+      console.log("🎯 Customer requiredTask:", taskDetailsModal.customer.requiredTask);
+      
+      // Add cache-busting parameter
+      const cacheBuster = Date.now();
+      const response = await fetch(`/api/frontend/combo-tasks/${taskDetailsModal.customer.id}?t=${cacheBuster}`);
       const data = await response.json();
       console.log("🎯 Combo tasks response:", data);
       console.log("🎯 Combo tasks data length:", data.data?.length);
       console.log("🎯 Combo tasks total:", data.total);
-      console.log("🎯 Expected: 30 combo tasks");
+      console.log("🎯 Required task from API:", data.requiredTask);
+      console.log("🎯 Expected tasks based on requiredTask:", data.requiredTask || 30);
       return data;
     },
     enabled: taskDetailsModal.open && !!taskDetailsModal.customer?.id && taskDetailsModal.activeTab === "comboTaskSetting",
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
   });
 
   // Mutation for updating customer task settings
@@ -450,6 +458,12 @@ export default function CustomerManagement() {
         variant: "destructive",
       });
     }
+  };
+
+  // Function to refresh combo tasks
+  const refreshComboTasks = async () => {
+    console.log("🔄 Manually refreshing combo tasks...");
+    await refetchComboTasks();
   };
 
   const handleGoldenEggSave = async () => {
@@ -1887,18 +1901,29 @@ export default function CustomerManagement() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="text-lg font-semibold">{t('comboTaskNumber') || 'Combo Task Number'}</div>
-                    <div className="text-sm text-muted-foreground">
-                      Showing {comboTasksData?.data?.length || 0} future tasks
-                      {taskDetailsModal.customer?.requiredTask && (
-                        <span className="ml-2 text-blue-600">
-                          (Required: {taskDetailsModal.customer.requiredTask})
-                        </span>
-                      )}
-                      {taskDetailsModal.customer?.completedTasks && (
-                        <span className="ml-2 text-green-600">
-                          (Completed: {taskDetailsModal.customer.completedTasks})
-                        </span>
-                      )}
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {comboTasksData?.data?.length || 0} future tasks
+                        {taskDetailsModal.customer?.requiredTask && (
+                          <span className="ml-2 text-blue-600">
+                            (Required: {taskDetailsModal.customer.requiredTask})
+                          </span>
+                        )}
+                        {taskDetailsModal.customer?.completedTasks && (
+                          <span className="ml-2 text-green-600">
+                            (Completed: {taskDetailsModal.customer.completedTasks})
+                          </span>
+                        )}
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={refreshComboTasks}
+                        className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        Refresh
+                      </Button>
                     </div>
                   </div>
                   <div className="max-h-96 overflow-y-auto border rounded-md">

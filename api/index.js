@@ -4050,10 +4050,17 @@ export default async function handler(req, res) {
           .toArray();
         
         console.log("🎯 Found existing customer tasks:", existingTasks.length);
+        console.log("🎯 Customer data from database:", {
+          username: customer?.username,
+          requiredTask: customer?.requiredTask,
+          taskCount: customer?.taskCount,
+          membershipId: customer?.membershipId
+        });
         
         // Get user's required task count (requiredTask field)
         const userTaskCount = customer?.requiredTask || customer?.taskCount || 30; // Default to 30 if not specified
         console.log("🎯 User requiredTask from database:", userTaskCount);
+        console.log("🎯 Will create tasks from 1 to:", userTaskCount);
         
         // Create dynamic combo tasks based on user's requiredTask (Task 1 to requiredTask)
         const manualComboTasks = [];
@@ -4089,9 +4096,17 @@ export default async function handler(req, res) {
         }
 
         console.log("🎯 Created", manualComboTasks.length, "manual combo tasks");
+        console.log("🎯 Task range: Task 1 to Task", manualComboTasks.length);
+        console.log("🎯 User requiredTask was:", userTaskCount);
         
-        // Response with manual combo tasks (always 30 tasks)
-        res.json({ success: true, data: manualComboTasks, total: manualComboTasks.length });
+        // Response with dynamic combo tasks based on requiredTask
+        res.json({ 
+          success: true, 
+          data: manualComboTasks, 
+          total: manualComboTasks.length,
+          requiredTask: userTaskCount,
+          message: `Created ${manualComboTasks.length} tasks based on requiredTask: ${userTaskCount}`
+        });
         
       } catch (error) {
         console.error("❌ Error creating manual combo tasks:", error);
