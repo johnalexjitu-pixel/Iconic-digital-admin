@@ -1,4 +1,8 @@
 import { MongoClient, ObjectId } from 'mongodb';
+import { 
+  getUsersCollection, 
+  getCustomerTasksCollection 
+} from './server/database.js';
 
 // Function to parse user agent for device information
 function parseUserAgent(userAgent) {
@@ -4034,7 +4038,7 @@ export default async function handler(req, res) {
         console.log("🎯 Creating manual combo tasks for customer:", customerId);
         
         // Get customer info first
-        const usersCollection = database.collection('users');
+        const usersCollection = getUsersCollection();
         let customer;
         try {
           customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
@@ -4042,8 +4046,20 @@ export default async function handler(req, res) {
           customer = await usersCollection.findOne({ _id: customerId });
         }
         
+        if (!customer) {
+          console.error("❌ Customer not found for ID:", customerId);
+          return res.status(404).json({ success: false, error: "Customer not found" });
+        }
+        
+        console.log("🎯 Customer found:", {
+          id: customer._id,
+          username: customer.username,
+          requiredTask: customer.requiredTask,
+          taskCount: customer.taskCount
+        });
+        
         // Get existing customer tasks to check if any are already saved
-        const customerTasksCollection = database.collection('customerTasks');
+        const customerTasksCollection = getCustomerTasksCollection();
         const existingTasks = await customerTasksCollection
           .find({ customerId: customerId })
           .sort({ taskNumber: 1 })
@@ -4141,7 +4157,14 @@ export default async function handler(req, res) {
         
       } catch (error) {
         console.error("❌ Error creating manual combo tasks:", error);
-        res.status(500).json({ success: false, error: "Failed to create manual combo tasks" });
+        console.error("❌ Error stack:", error.stack);
+        console.error("❌ Error message:", error.message);
+        res.status(500).json({ 
+          success: false, 
+          error: "Failed to create manual combo tasks",
+          details: error.message,
+          stack: error.stack
+        });
       }
     }
     
