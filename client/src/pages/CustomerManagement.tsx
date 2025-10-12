@@ -770,7 +770,7 @@ export default function CustomerManagement() {
   }, [currentPage, itemsPerPage, isFiltered, filters]);
 
   // Fetch users from MongoDB frontend database
-  const { data: frontendUsers, isLoading: frontendUsersLoading } = useQuery<{
+  const { data: frontendUsers, isLoading: frontendUsersLoading, error: frontendUsersError } = useQuery<{
     success: boolean;
     data: any[];
     pagination: {
@@ -780,7 +780,7 @@ export default function CustomerManagement() {
       pages: number;
     };
   }>({
-    queryKey: ["/api/frontend/users", currentPage, itemsPerPage, isFiltered, filters],
+    queryKey: ["/api/frontend/users", queryParams.toString()],
     queryFn: async () => {
       const url = `/api/frontend/users?${queryParams.toString()}`;
       console.log("🔍 Frontend users API URL:", url);
@@ -957,8 +957,7 @@ export default function CustomerManagement() {
   // Filter functions - Clean and efficient implementation
   const handleFilterChange = (field: string, value: string) => {
     setFilters(prev => ({ ...prev, [field]: value }));
-    // Reset filter state when user changes any filter field
-    setIsFiltered(false);
+    // Don't reset filter state immediately - let user decide when to apply
   };
 
   const handleApplyFilter = async () => {
@@ -1070,6 +1069,27 @@ export default function CustomerManagement() {
     return (
       <div className="p-6">
         <div className="h-96 bg-muted animate-pulse rounded-lg" />
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (frontendUsersError) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h3 className="text-red-800 font-semibold mb-2">Error Loading Data</h3>
+          <p className="text-red-600">
+            {frontendUsersError instanceof Error ? frontendUsersError.message : 'Failed to load customer data'}
+          </p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="mt-4"
+            variant="outline"
+          >
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
@@ -1203,7 +1223,8 @@ export default function CustomerManagement() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {displayCustomers?.map((customer: any, index: number) => (
+            {displayCustomers && displayCustomers.length > 0 ? (
+              displayCustomers.map((customer: any, index: number) => (
               <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`} className="hover:bg-muted/50">
                 <TableCell className="text-sm">{28009 - index}</TableCell>
                 <TableCell>
@@ -1350,7 +1371,14 @@ export default function CustomerManagement() {
                   </Button>
                 </TableCell>
               </TableRow>
-            ))}
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  {isFiltered ? 'No customers found matching your filters' : 'No customers available'}
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
 
