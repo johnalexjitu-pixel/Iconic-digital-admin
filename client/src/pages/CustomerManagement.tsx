@@ -114,11 +114,15 @@ export default function CustomerManagement() {
     taskNumber: number;
     campaign: any;
     taskPrice: string;
+    estimatedNegativeAmount: string;
+    taskCommission: string;
   }>({
     open: false,
     taskNumber: 0,
     campaign: null,
-    taskPrice: ""
+    taskPrice: "",
+    estimatedNegativeAmount: "",
+    taskCommission: ""
   });
 
   // Fetch customer-specific tasks
@@ -324,7 +328,9 @@ export default function CustomerManagement() {
       open: true,
       taskNumber,
       campaign: task,
-      taskPrice: task.taskPrice?.toString() || "0"
+      taskPrice: task.taskPrice?.toString() || "0",
+      estimatedNegativeAmount: task.estimatedNegativeAmount?.toString() || "0",
+      taskCommission: task.taskCommission?.toString() || "0"
     });
   };
 
@@ -450,24 +456,31 @@ export default function CustomerManagement() {
     if (!goldenEggModal.campaign || !taskDetailsModal.customer?.id) return;
 
     try {
-      console.log("🥚 Saving golden egg price:", goldenEggModal.taskNumber, "price:", goldenEggModal.taskPrice);
+      console.log("🥚 Saving golden egg data:", {
+        taskNumber: goldenEggModal.taskNumber,
+        taskPrice: goldenEggModal.taskPrice,
+        estimatedNegativeAmount: goldenEggModal.estimatedNegativeAmount,
+        taskCommission: goldenEggModal.taskCommission
+      });
       
       // Call the golden egg price update API endpoint
       const response = await apiRequest("PATCH", `/api/frontend/combo-tasks/${taskDetailsModal.customer.id}/golden-egg-price-update`, {
         taskNumber: goldenEggModal.taskNumber,
         taskPrice: Number(goldenEggModal.taskPrice),
+        estimatedNegativeAmount: Number(goldenEggModal.estimatedNegativeAmount),
+        taskCommission: Number(goldenEggModal.taskCommission),
         hasGoldenEgg: true // Automatically set golden egg to true when price is saved
       });
 
       const result = await response.json();
       
       if (!result.success) {
-        throw new Error(result.error || "Failed to save golden egg price");
+        throw new Error(result.error || "Failed to save golden egg data");
       }
 
       toast({
         title: "Success",
-        description: `Golden egg activated and price updated to ${goldenEggModal.taskPrice} for Task ${goldenEggModal.taskNumber}`,
+        description: `Golden egg activated and data updated for Task ${goldenEggModal.taskNumber}`,
       });
 
       // Close modal
@@ -475,7 +488,9 @@ export default function CustomerManagement() {
         open: false,
         taskNumber: 0,
         campaign: null,
-        taskPrice: ""
+        taskPrice: "",
+        estimatedNegativeAmount: "",
+        taskCommission: ""
       });
 
       // Invalidate queries to refresh data
@@ -484,10 +499,10 @@ export default function CustomerManagement() {
       await refetchComboTasks();
       
     } catch (error: any) {
-      console.error("❌ Error saving golden egg price:", error);
+      console.error("❌ Error saving golden egg data:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to save golden egg price",
+        description: error.message || "Failed to save golden egg data",
         variant: "destructive",
       });
     }
@@ -2149,6 +2164,30 @@ export default function CustomerManagement() {
                 type="number"
                 value={goldenEggModal.taskPrice}
                 onChange={(e) => setGoldenEggModal({ ...goldenEggModal, taskPrice: e.target.value })}
+                className="mt-2"
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="estimatedNegativeAmount">{t('estimatedNegativeAmount') || 'Estimated Negative Amount'} *</Label>
+              <Input
+                id="estimatedNegativeAmount"
+                type="number"
+                value={goldenEggModal.estimatedNegativeAmount}
+                onChange={(e) => setGoldenEggModal({ ...goldenEggModal, estimatedNegativeAmount: e.target.value })}
+                className="mt-2"
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="taskCommission">{t('taskCommission') || 'Task Commission'} *</Label>
+              <Input
+                id="taskCommission"
+                type="number"
+                value={goldenEggModal.taskCommission}
+                onChange={(e) => setGoldenEggModal({ ...goldenEggModal, taskCommission: e.target.value })}
                 className="mt-2"
                 placeholder="0"
               />
