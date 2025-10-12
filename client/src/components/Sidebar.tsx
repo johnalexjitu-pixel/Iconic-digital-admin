@@ -62,6 +62,10 @@ export default function Sidebar({ isOpen }: SidebarProps) {
 
   // Get current user role
   const currentUserRole = localStorage.getItem('adminRole') || 'team';
+  
+  // Debug log to check current user role
+  console.log('🔍 Current user role in Sidebar:', currentUserRole);
+  console.log('🔍 Admin Management should be visible for:', currentUserRole === 'superadmin' || currentUserRole === 'admin');
 
   // Fetch pending counts for badges
   const { data: pendingCounts } = useQuery<{
@@ -110,13 +114,19 @@ export default function Sidebar({ isOpen }: SidebarProps) {
         return true;
       });
       
-      return {
-        ...item,
-        children: filteredChildren
-      };
+      // Only return the item if it has children after filtering
+      if (filteredChildren.length > 0) {
+        return {
+          ...item,
+          children: filteredChildren
+        };
+      } else {
+        // If no children remain, hide the parent item
+        return null;
+      }
     }
     return item;
-  });
+  }).filter(item => item !== null);
 
   return (
     <aside className={`${isOpen ? 'w-64' : 'w-0 overflow-hidden'} bg-card border-r border-border flex flex-col pt-2 px-4 pb-4 transition-all duration-300`}>
