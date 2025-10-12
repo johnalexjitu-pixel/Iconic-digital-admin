@@ -36,6 +36,7 @@ export default function WithdrawalManagement() {
   const allProcessedWithdrawals = withdrawalsResponse?.data?.map((withdrawal: any, index: number) => ({
     id: withdrawal._id,
     customerName: withdrawal.customer?.name || 'N/A',
+    customerUsername: withdrawal.customer?.username || 'N/A',
     customerId: withdrawal.customer?.membershipId || 'N/A',
     customerBalance: withdrawal.customer?.accountBalance || 0,
     amount: withdrawal.amount || 0,
@@ -371,6 +372,9 @@ export default function WithdrawalManagement() {
                   <TableCell>
                     <div>
                       <div className="font-medium">{withdrawal.customerName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Username: {withdrawal.customerUsername}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         ID: {withdrawal.customerId}
                       </div>
@@ -717,6 +721,12 @@ export default function WithdrawalManagement() {
                     <strong style={{ color: '#6c757d', fontSize: '14px' }}>Customer Name:</strong>
                     <div style={{ color: '#495057', fontSize: '16px', fontWeight: '500' }}>
                       {selectedWithdrawal?.customerName || 'N/A'}
+                    </div>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#6c757d', fontSize: '14px' }}>Username:</strong>
+                    <div style={{ color: '#495057', fontSize: '16px', fontWeight: '500' }}>
+                      {selectedWithdrawal?.customerUsername || 'N/A'}
                     </div>
                   </div>
                   <div>
