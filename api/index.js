@@ -198,9 +198,10 @@ export default async function handler(req, res) {
     
     // Admin Login
     if (req.method === 'POST' && path === '/api/admin/login') {
-      const { username, password } = req.body;
+      const { username, password, deviceInfo } = req.body;
       
       console.log(`🔐 Admin login attempt: ${username}`);
+      console.log(`📱 Device info:`, deviceInfo);
 
       if (!username || !password) {
         return res.status(400).json({ 
@@ -231,12 +232,46 @@ export default async function handler(req, res) {
         });
       }
 
+      // Get client IP address
+      const clientIP = req.headers['x-forwarded-for'] || 
+                      req.headers['x-real-ip'] || 
+                      req.connection.remoteAddress || 
+                      req.socket.remoteAddress ||
+                      (req.connection.socket ? req.connection.socket.remoteAddress : null);
+
+      // Generate or use provided device ID
+      const deviceId = deviceInfo?.deviceId || `device_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Create device session
+      const deviceSession = {
+        deviceId,
+        ipAddress: clientIP,
+        userAgent: req.headers['user-agent'] || 'Unknown',
+        deviceType: deviceInfo?.deviceType || 'Unknown',
+        browserInfo: deviceInfo?.browserInfo || 'Unknown',
+        loginTime: new Date(),
+        isActive: true
+      };
+
+      // Update admin with device tracking
       await adminsCollection.updateOne(
         { _id: admin._id },
-        { $set: { lastLogin: new Date() } }
+        { 
+          $set: { 
+            lastLogin: new Date(),
+            currentIP: clientIP,
+            currentDeviceId: deviceId
+          },
+          $push: {
+            deviceSessions: {
+              $each: [deviceSession],
+              $slice: -10 // Keep only last 10 sessions
+            }
+          }
+        }
       );
 
-      console.log(`✅ Admin logged in successfully: ${username}`);
+      console.log(`✅ Admin logged in successfully: ${username} from IP: ${clientIP}`);
 
       res.json({
         success: true,
@@ -244,7 +279,9 @@ export default async function handler(req, res) {
           id: admin._id,
           username: admin.username,
           email: admin.email,
-          role: admin.role
+          role: admin.role,
+          deviceId,
+          currentIP: clientIP
         },
         message: "Login successful"
       });
@@ -347,9 +384,21 @@ export default async function handler(req, res) {
           .limit(limitNum)
           .toArray();
         
-        // Remove password from response
+        // Remove password from response and add device info for superadmin
         const adminsWithoutPassword = admins.map(admin => {
           const { password, ...adminWithoutPassword } = admin;
+          
+          // Add device information if current user is superadmin
+          if (currentUserRole === 'superadmin') {
+            adminWithoutPassword.deviceInfo = {
+              currentIP: admin.currentIP || 'Not Available',
+              currentDeviceId: admin.currentDeviceId || 'Not Available',
+              deviceCount: admin.deviceSessions ? admin.deviceSessions.filter(session => session.isActive).length : 0,
+              lastLogin: admin.lastLogin,
+              deviceSessions: admin.deviceSessions ? admin.deviceSessions.slice(-5) : [] // Last 5 sessions
+            };
+          }
+          
           return adminWithoutPassword;
         });
         
@@ -420,6 +469,64 @@ export default async function handler(req, res) {
         res.status(500).json({
           success: false,
           error: 'Failed to update admin status'
+        });
+      }
+    }
+    
+    // Get Admin Device Info (Superadmin only)
+    else if (req.method === 'GET' && path.startsWith('/api/admin/device-info/')) {
+      console.log('📱 Fetching admin device info...');
+      
+      try {
+        const { currentUserRole } = req.query;
+        
+        // Only superadmin can access device info
+        if (currentUserRole !== 'superadmin') {
+          return res.status(403).json({
+            success: false,
+            error: 'Access denied. Superadmin role required.'
+          });
+        }
+        
+        const adminId = path.split('/').pop();
+        console.log(`📱 Fetching device info for admin: ${adminId}`);
+        
+        const adminsCollection = database.collection('admins');
+        const admin = await adminsCollection.findOne({ _id: new ObjectId(adminId) });
+        
+        if (!admin) {
+          return res.status(404).json({
+            success: false,
+            error: 'Admin not found'
+          });
+        }
+        
+        const deviceInfo = {
+          adminId: admin._id,
+          username: admin.username,
+          email: admin.email,
+          fullName: admin.fullName,
+          currentIP: admin.currentIP || 'Not Available',
+          currentDeviceId: admin.currentDeviceId || 'Not Available',
+          deviceCount: admin.deviceSessions ? admin.deviceSessions.filter(session => session.isActive).length : 0,
+          lastLogin: admin.lastLogin,
+          allDeviceSessions: admin.deviceSessions || [],
+          createdAt: admin.createdAt,
+          isActive: admin.isActive
+        };
+        
+        console.log(`✅ Device info retrieved for admin: ${admin.username}`);
+        
+        res.json({
+          success: true,
+          data: deviceInfo
+        });
+        
+      } catch (error) {
+        console.error('❌ Error fetching admin device info:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch admin device info'
         });
       }
     }

@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useTranslation } from "react-i18next";
-import { Search, ChevronLeft, ChevronRight, UserCheck, UserX, Edit, Trash2 } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, UserCheck, UserX, Edit, Trash2, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Admin {
@@ -20,6 +21,21 @@ interface Admin {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  deviceInfo?: {
+    currentIP: string;
+    currentDeviceId: string;
+    deviceCount: number;
+    lastLogin: string;
+    deviceSessions: Array<{
+      deviceId: string;
+      ipAddress: string;
+      userAgent: string;
+      deviceType: string;
+      browserInfo: string;
+      loginTime: string;
+      isActive: boolean;
+    }>;
+  };
 }
 
 export default function AdminList() {
@@ -29,6 +45,8 @@ export default function AdminList() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [selectedAdminForDevices, setSelectedAdminForDevices] = useState<Admin | null>(null);
+  const [showDeviceModal, setShowDeviceModal] = useState(false);
 
   // Get current user info from localStorage
   const adminUser = localStorage.getItem('adminUser');
@@ -305,6 +323,13 @@ export default function AdminList() {
                     <TableHead>{t("email") || "Email"}</TableHead>
                     <TableHead>{t("role") || "Role"}</TableHead>
                     <TableHead>{t("status") || "Status"}</TableHead>
+                    {currentUserRole === 'superadmin' && (
+                      <>
+                        <TableHead>Current IP</TableHead>
+                        <TableHead>Device Count</TableHead>
+                        <TableHead>Last Login</TableHead>
+                      </>
+                    )}
                     <TableHead>{t("createdAt") || "Created At"}</TableHead>
                     <TableHead>{t("actions") || "Actions"}</TableHead>
                   </TableRow>
@@ -323,6 +348,24 @@ export default function AdminList() {
                           {admin.isActive ? t("active") || "Active" : t("inactive") || "Inactive"}
                         </Badge>
                       </TableCell>
+                      {currentUserRole === 'superadmin' && (
+                        <>
+                          <TableCell className="text-sm">
+                            {admin.deviceInfo?.currentIP || 'N/A'}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <Badge variant="outline">
+                              {admin.deviceInfo?.deviceCount || 0} devices
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {admin.deviceInfo?.lastLogin ? 
+                              new Date(admin.deviceInfo.lastLogin).toLocaleString() : 
+                              'Never'
+                            }
+                          </TableCell>
+                        </>
+                      )}
                       <TableCell>
                         {new Date(admin.createdAt).toLocaleDateString()}
                       </TableCell>
@@ -345,6 +388,19 @@ export default function AdminList() {
                               </>
                             )}
                           </Button>
+                          {currentUserRole === 'superadmin' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedAdminForDevices(admin);
+                                setShowDeviceModal(true);
+                              }}
+                              title="View Device Information"
+                            >
+                              <Smartphone className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -413,6 +469,94 @@ export default function AdminList() {
           )}
         </CardContent>
       </Card>
+
+      {/* Device Information Modal */}
+      <Dialog open={showDeviceModal} onOpenChange={setShowDeviceModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Device Information - {selectedAdminForDevices?.username}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedAdminForDevices && (
+            <div className="space-y-6">
+              {/* Current Session Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Current Session</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Current IP Address</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedAdminForDevices.deviceInfo?.currentIP || 'Not Available'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Current Device ID</Label>
+                      <p className="text-sm text-muted-foreground font-mono">
+                        {selectedAdminForDevices.deviceInfo?.currentDeviceId || 'Not Available'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Active Devices</Label>
+                      <Badge variant="outline">
+                        {selectedAdminForDevices.deviceInfo?.deviceCount || 0} devices
+                      </Badge>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Last Login</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedAdminForDevices.deviceInfo?.lastLogin ? 
+                          new Date(selectedAdminForDevices.deviceInfo.lastLogin).toLocaleString() : 
+                          'Never'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Device Sessions History */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Recent Device Sessions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedAdminForDevices.deviceInfo?.deviceSessions && selectedAdminForDevices.deviceInfo.deviceSessions.length > 0 ? (
+                    <div className="space-y-3">
+                      {selectedAdminForDevices.deviceInfo.deviceSessions.map((session, index) => (
+                        <div key={index} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={session.isActive ? "default" : "secondary"}>
+                                  {session.isActive ? "Active" : "Inactive"}
+                                </Badge>
+                                <span className="text-sm font-medium">Device ID: {session.deviceId}</span>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                IP: {session.ipAddress} | {session.deviceType} | {session.browserInfo}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Login: {new Date(session.loginTime).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No device sessions found.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
