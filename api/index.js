@@ -390,6 +390,13 @@ export default async function handler(req, res) {
           
           // Add device information if current user is superadmin
           if (currentUserRole === 'superadmin') {
+            console.log(`🔍 Admin ${admin.username} device data:`, {
+              currentIP: admin.currentIP,
+              currentDeviceId: admin.currentDeviceId,
+              deviceSessions: admin.deviceSessions,
+              lastLogin: admin.lastLogin
+            });
+            
             adminWithoutPassword.deviceInfo = {
               currentIP: admin.currentIP || 'Not Available',
               currentDeviceId: admin.currentDeviceId || 'Not Available',
@@ -397,6 +404,8 @@ export default async function handler(req, res) {
               lastLogin: admin.lastLogin,
               deviceSessions: admin.deviceSessions ? admin.deviceSessions.slice(-5) : [] // Last 5 sessions
             };
+            
+            console.log(`✅ Device info for ${admin.username}:`, adminWithoutPassword.deviceInfo);
           }
           
           return adminWithoutPassword;
@@ -469,6 +478,67 @@ export default async function handler(req, res) {
         res.status(500).json({
           success: false,
           error: 'Failed to update admin status'
+        });
+      }
+    }
+    
+    // Populate device info for existing admins (for testing)
+    else if (req.method === 'POST' && path === '/api/admin/populate-device-info') {
+      console.log('🔧 Populating device info for existing admins...');
+      
+      try {
+        const adminsCollection = database.collection('admins');
+        
+        // Get all admins without device info
+        const adminsWithoutDeviceInfo = await adminsCollection.find({
+          $or: [
+            { currentIP: { $exists: false } },
+            { currentIP: null },
+            { deviceSessions: { $exists: false } },
+            { deviceSessions: null }
+          ]
+        }).toArray();
+        
+        console.log(`🔧 Found ${adminsWithoutDeviceInfo.length} admins without device info`);
+        
+        // Update each admin with basic device info
+        for (const admin of adminsWithoutDeviceInfo) {
+          const mockIP = `192.168.1.${Math.floor(Math.random() * 255)}`;
+          const mockDeviceId = `device_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          
+          await adminsCollection.updateOne(
+            { _id: admin._id },
+            {
+              $set: {
+                currentIP: mockIP,
+                currentDeviceId: mockDeviceId,
+                deviceSessions: [{
+                  deviceId: mockDeviceId,
+                  ipAddress: mockIP,
+                  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                  deviceType: 'Desktop',
+                  browserInfo: 'Chrome/120.0.0.0',
+                  loginTime: admin.lastLogin || new Date(),
+                  isActive: true
+                }]
+              }
+            }
+          );
+          
+          console.log(`✅ Updated device info for admin: ${admin.username}`);
+        }
+        
+        res.json({
+          success: true,
+          message: `Updated device info for ${adminsWithoutDeviceInfo.length} admins`,
+          updatedCount: adminsWithoutDeviceInfo.length
+        });
+        
+      } catch (error) {
+        console.error('❌ Error populating device info:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to populate device info'
         });
       }
     }

@@ -48,6 +48,35 @@ export default function AdminList() {
   const [selectedAdminForDevices, setSelectedAdminForDevices] = useState<Admin | null>(null);
   const [showDeviceModal, setShowDeviceModal] = useState(false);
 
+  // Function to populate device info for existing admins
+  const populateDeviceInfo = async () => {
+    try {
+      const response = await fetch('/api/admin/populate-device-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to populate device info');
+      }
+      
+      const result = await response.json();
+      toast({
+        title: "Success",
+        description: `Updated device info for ${result.updatedCount} admins`,
+      });
+      
+      // Refresh the admin list
+      window.location.reload();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to populate device info",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Get current user info from localStorage
   const adminUser = localStorage.getItem('adminUser');
   const currentUsername = adminUser ? JSON.parse(adminUser).username : null;
@@ -102,6 +131,14 @@ export default function AdminList() {
       return response.json();
     },
   });
+
+  // Debug: Log admin data to see device info
+  console.log("🔍 Admin List Data:", adminsData?.data);
+  if (currentUserRole === 'superadmin' && adminsData?.data) {
+    adminsData.data.forEach(admin => {
+      console.log(`🔍 Admin ${admin.username} device info:`, admin.deviceInfo);
+    });
+  }
 
   // Filtered and paginated data
   const filteredAdmins = useMemo(() => {
@@ -206,12 +243,25 @@ export default function AdminList() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground mb-2">
-          {t("adminList") || "Admin List"}
-        </h2>
-        <p className="text-muted-foreground">
-          {t("manageAdmins") || "Manage all administrators in the system"}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              {t("adminList") || "Admin List"}
+            </h2>
+            <p className="text-muted-foreground">
+              {t("manageAdmins") || "Manage all administrators in the system"}
+            </p>
+          </div>
+          {currentUserRole === 'superadmin' && (
+            <Button 
+              onClick={populateDeviceInfo}
+              variant="outline"
+              size="sm"
+            >
+              Populate Device Info
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
