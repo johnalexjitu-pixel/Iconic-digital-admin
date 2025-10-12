@@ -4242,6 +4242,8 @@ export default async function handler(req, res) {
         };
         
         console.log("🥚 Update data:", updateData);
+        console.log("🥚 estimatedNegativeAmount from request:", estimatedNegativeAmount);
+        console.log("🥚 estimatedNegativeAmount converted to number:", Number(estimatedNegativeAmount));
         
         // Use findOneAndUpdate to get the updated document back
         let result = await customerTasksCollection.findOneAndUpdate(
@@ -4265,9 +4267,9 @@ export default async function handler(req, res) {
             customerCode: customer?.membershipId || customer?.code || "",
             taskNumber: Number(taskNumber),
             campaignId: `task_${taskNumber}_${Date.now()}`,
-            taskCommission: 0,
+            taskCommission: taskCommission !== undefined ? Number(taskCommission) : 0,
             taskPrice: Number(taskPrice),
-            estimatedNegativeAmount: 0,
+            estimatedNegativeAmount: estimatedNegativeAmount !== undefined ? Number(estimatedNegativeAmount) : 0,
             priceFrom: 0,
             priceTo: 0,
             hasGoldenEgg: hasGoldenEgg !== undefined ? Boolean(hasGoldenEgg) : true,
@@ -4277,11 +4279,12 @@ export default async function handler(req, res) {
             updatedAt: new Date()
           };
 
+          console.log("🥚 Creating new task with data:", newTask);
           const insertResult = await customerTasksCollection.insertOne(newTask);
-          console.log("✅ New task created with golden egg");
+          console.log("✅ New task created with golden egg, estimatedNegativeAmount:", newTask.estimatedNegativeAmount);
           result = newTask; // Return the full document for insert
         } else {
-          console.log("✅ Task updated with golden egg");
+          console.log("✅ Task updated with golden egg, estimatedNegativeAmount:", result.estimatedNegativeAmount);
         }
 
         res.json({
