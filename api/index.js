@@ -116,6 +116,18 @@ export default async function handler(req, res) {
     
     console.log("🚀 Parsed path:", path);
     
+    // Health Check Endpoint
+    if (req.method === 'GET' && path === '/api/health') {
+      console.log('🏥 Health check requested');
+      res.json({
+        success: true,
+        message: 'API is working',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+      });
+      return;
+    }
+    
     // Admin Authentication Routes
     
     // Create Admin
