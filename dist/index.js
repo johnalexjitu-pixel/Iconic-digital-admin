@@ -1530,9 +1530,12 @@ async function registerRoutes(app2) {
       if (status === "rejected" && withdrawal.customerId) {
         console.log(`\u{1F504} Restoring balance for rejected withdrawal: ${withdrawal.amount} to customer ${withdrawal.customerId}`);
         try {
-          const customer = await usersCollection.findOne({
-            membershipId: withdrawal.customerId
-          });
+          let customer;
+          try {
+            customer = await usersCollection.findOne({ _id: new ObjectId2(withdrawal.customerId) });
+          } catch (objectIdError) {
+            customer = await usersCollection.findOne({ _id: withdrawal.customerId });
+          }
           if (customer) {
             const currentBalance = customer.accountBalance || 0;
             const newBalance = currentBalance + withdrawal.amount;
@@ -1546,9 +1549,9 @@ async function registerRoutes(app2) {
                 }
               }
             );
-            console.log(`\u2705 Balance restored successfully for customer ${withdrawal.customerId}`);
+            console.log(`\u2705 Balance restored successfully for customer ${customer.membershipId || customer._id}`);
           } else {
-            console.log(`\u26A0\uFE0F Customer not found for membershipId: ${withdrawal.customerId}`);
+            console.log(`\u26A0\uFE0F Customer not found for customerId: ${withdrawal.customerId}`);
           }
         } catch (balanceError) {
           console.error("\u274C Error restoring balance:", balanceError);

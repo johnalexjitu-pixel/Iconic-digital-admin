@@ -3282,10 +3282,13 @@ export default async function handler(req, res) {
         try {
           const usersCollection = database.collection('users');
           
-          // Find the customer by membershipId
-          const customer = await usersCollection.findOne({ 
-            membershipId: withdrawal.customerId 
-          });
+          // Find the customer by _id (customerId contains MongoDB ObjectId)
+          let customer;
+          try {
+            customer = await usersCollection.findOne({ _id: new ObjectId(withdrawal.customerId) });
+          } catch (objectIdError) {
+            customer = await usersCollection.findOne({ _id: withdrawal.customerId });
+          }
           
           if (customer) {
             const currentBalance = customer.accountBalance || 0;
@@ -3303,9 +3306,9 @@ export default async function handler(req, res) {
               }
             );
             
-            console.log(`✅ Balance restored successfully for customer ${withdrawal.customerId}`);
+            console.log(`✅ Balance restored successfully for customer ${customer.membershipId || customer._id}`);
           } else {
-            console.log(`⚠️ Customer not found for membershipId: ${withdrawal.customerId}`);
+            console.log(`⚠️ Customer not found for customerId: ${withdrawal.customerId}`);
           }
         } catch (balanceError) {
           console.error("❌ Error restoring balance:", balanceError);
