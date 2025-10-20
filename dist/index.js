@@ -1505,6 +1505,7 @@ async function registerRoutes(app2) {
       }
       const database = await connectToDatabase();
       const withdrawalsCollection = database.collection("withdrawals");
+      const usersCollection = database.collection("users");
       let withdrawal;
       try {
         withdrawal = await withdrawalsCollection.findOne({ _id: new ObjectId2(withdrawalId) });
@@ -1525,6 +1526,33 @@ async function registerRoutes(app2) {
       if (processedBy) updateData.processedBy = processedBy;
       if (status === "completed" || status === "rejected") {
         updateData.processedAt = /* @__PURE__ */ new Date();
+      }
+      if (status === "rejected" && withdrawal.customerId) {
+        console.log(`\u{1F504} Restoring balance for rejected withdrawal: ${withdrawal.amount} to customer ${withdrawal.customerId}`);
+        try {
+          const customer = await usersCollection.findOne({
+            membershipId: withdrawal.customerId
+          });
+          if (customer) {
+            const currentBalance = customer.accountBalance || 0;
+            const newBalance = currentBalance + withdrawal.amount;
+            console.log(`\u{1F4B0} Balance restoration: ${currentBalance} \u2192 ${newBalance} (+${withdrawal.amount})`);
+            await usersCollection.findOneAndUpdate(
+              { _id: customer._id },
+              {
+                $set: {
+                  accountBalance: newBalance,
+                  updatedAt: /* @__PURE__ */ new Date()
+                }
+              }
+            );
+            console.log(`\u2705 Balance restored successfully for customer ${withdrawal.customerId}`);
+          } else {
+            console.log(`\u26A0\uFE0F Customer not found for membershipId: ${withdrawal.customerId}`);
+          }
+        } catch (balanceError) {
+          console.error("\u274C Error restoring balance:", balanceError);
+        }
       }
       const result = await withdrawalsCollection.findOneAndUpdate(
         { _id: withdrawal._id },

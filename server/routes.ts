@@ -1594,6 +1594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const database = await connectToDatabase();
       const withdrawalsCollection = database.collection('withdrawals');
+      const usersCollection = database.collection('users');
       
       let withdrawal;
       try {
@@ -1621,6 +1622,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.processedAt = new Date();
       }
 
+      // If withdrawal is being rejected, restore the amount to customer's balance
+      if (status === 'rejected' && withdrawal.customerId) {
+        console.log(`🔄 Restoring balance for rejected withdrawal: ${withdrawal.amount} to customer ${withdrawal.customerId}`);
+        
+        try {
+          // Find the customer by membershipId
+          const customer = await usersCollection.findOne({ 
+            membershipId: withdrawal.customerId 
+          });
+          
+          if (customer) {
+            const currentBalance = customer.accountBalance || 0;
+            const newBalance = currentBalance + withdrawal.amount;
+            
+            console.log(`💰 Balance restoration: ${currentBalance} → ${newBalance} (+${withdrawal.amount})`);
+            
+            await usersCollection.findOneAndUpdate(
+              { _id: customer._id },
+              { 
+                $set: { 
+                  accountBalance: newBalance,
+                  updatedAt: new Date()
+                } 
+              }
+            );
+            
+            console.log(`✅ Balance restored successfully for customer ${withdrawal.customerId}`);
+          } else {
+            console.log(`⚠️ Customer not found for membershipId: ${withdrawal.customerId}`);
+          }
+        } catch (balanceError) {
+          console.error("❌ Error restoring balance:", balanceError);
+          // Continue with withdrawal status update even if balance restoration fails
+        }
+      }
+
       const result = await withdrawalsCollection.findOneAndUpdate(
         { _id: withdrawal._id },
         { $set: updateData },
@@ -1638,7 +1675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("❌ Error updating withdrawal status:", error);
       res.status(500).json({ 
         success: false, 
-        error: error.message || "Failed to update withdrawal status" 
+        error: error.message || "Failed to update withdrawal status"
       });
     }
   });

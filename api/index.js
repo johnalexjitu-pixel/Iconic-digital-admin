@@ -3275,6 +3275,44 @@ export default async function handler(req, res) {
 
       console.log(`💰 Update data:`, updateData);
 
+      // If withdrawal is being rejected, restore the amount to customer's balance
+      if (dbStatus === 'rejected' && withdrawal.customerId) {
+        console.log(`🔄 Restoring balance for rejected withdrawal: ${withdrawal.amount} to customer ${withdrawal.customerId}`);
+        
+        try {
+          const usersCollection = database.collection('users');
+          
+          // Find the customer by membershipId
+          const customer = await usersCollection.findOne({ 
+            membershipId: withdrawal.customerId 
+          });
+          
+          if (customer) {
+            const currentBalance = customer.accountBalance || 0;
+            const newBalance = currentBalance + withdrawal.amount;
+            
+            console.log(`💰 Balance restoration: ${currentBalance} → ${newBalance} (+${withdrawal.amount})`);
+            
+            await usersCollection.findOneAndUpdate(
+              { _id: customer._id },
+              { 
+                $set: { 
+                  accountBalance: newBalance,
+                  updatedAt: new Date()
+                } 
+              }
+            );
+            
+            console.log(`✅ Balance restored successfully for customer ${withdrawal.customerId}`);
+          } else {
+            console.log(`⚠️ Customer not found for membershipId: ${withdrawal.customerId}`);
+          }
+        } catch (balanceError) {
+          console.error("❌ Error restoring balance:", balanceError);
+          // Continue with withdrawal status update even if balance restoration fails
+        }
+      }
+
       // Update the withdrawal
       let result;
       try {
