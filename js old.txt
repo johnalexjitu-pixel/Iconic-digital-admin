@@ -1,0 +1,95 @@
+const { ObjectId } = require("mongodb");
+const database = require("./database"); // adjust if path differs
+
+module.exports = async function handler(req, res) {
+  try {
+    const { path, body, method } = req;
+
+    // 🔹 Deposit handling
+    if (method === "POST" && path.startsWith("/api/frontend/deposit")) {
+      const { customerId, amount } = body;
+      const usersCollection = database.collection("users");
+
+      let user;
+      try {
+        user = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+      } catch {
+        user = await usersCollection.findOne({ _id: customerId });
+      }
+      if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+      const depositAmount = Math.max(Number(amount) || 0, 0);
+      const currentBalance = Math.max(Number(user.accountBalance) || 0, 0);
+      const newBalance = currentBalance + depositAmount;
+
+      await usersCollection.updateOne(
+        { _id: user._id },
+        { $set: { accountBalance: newBalance } }
+      );
+
+      console.log(`✅ Deposit added to user ${customerId}: ${depositAmount}`);
+
+      return res.json({
+        success: true,
+        message: "Deposit added successfully",
+        balance: newBalance,
+      });
+    }
+
+    // 🔹 Task logic
+    if (method === "POST" && path.startsWith("/api/frontend/customer-tasks")) {
+      const { customerId, taskNumber, taskPrice, taskCommission } = body;
+      const customerTasksCollection = database.collection("customerTasks");
+      const usersCollection = database.collection("users");
+
+      let customer;
+      try {
+        customer = await usersCollection.findOne({ _id: new ObjectId(customerId) });
+      } catch {
+        customer = await usersCollection.findOne({ _id: customerId });
+      }
+      if (!customer) return res.status(404).json({ success: false, error: "Customer not found" });
+
+      // 🧠 Enforce 30 task limit
+      const tasksCount = await customerTasksCollection.countDocuments({ customerId });
+      if (tasksCount >= 30) {
+        console.log(`⚠️ Task limit reached for user ${customerId}`);
+        return res.status(403).json({
+          success: false,
+          error: "Daily task limit reached. Contact admin to reset.",
+        });
+      }
+
+      // Prepare task data — no deduction and no negative estimates
+      const taskData = {
+        customerId,
+        taskNumber: Number(taskNumber),
+        taskPrice: Math.max(Number(taskPrice) || 0, 0),
+        taskCommission: Math.max(Number(taskCommission) || 0, 0),
+        estimatedNegativeAmount: 0,
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      await customerTasksCollection.updateOne(
+        { customerId, taskNumber: Number(taskNumber) },
+        { $set: taskData },
+        { upsert: true }
+      );
+
+      console.log(`✅ Task ${taskNumber} saved for ${customerId}`);
+
+      return res.json({
+        success: true,
+        message: "Task saved successfully",
+        data: taskData,
+      });
+    }
+
+    return res.status(404).json({ success: false, error: "Unknown route" });
+  } catch (err) {
+    console.error("❌ Error in handler:", err);
+    return res.status(500).json({ success: false, error: "Internal server error" });
+  }
+};
